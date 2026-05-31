@@ -1,1 +1,3 @@
-# DentalCare - Hệ thống quản lý nha khoa
+# grp4-dental-system
+
+Dental Care Management System

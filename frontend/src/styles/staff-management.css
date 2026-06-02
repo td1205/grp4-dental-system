@@ -1,0 +1,353 @@
+/* Staff management — dental clinic palette */
+:root {
+  --staff-primary: #1d4ed8;
+  --staff-primary-hover: #1e40af;
+  --staff-bg: #f1f5f9;
+  --staff-card: #ffffff;
+  --staff-border: #e2e8f0;
+  --staff-text: #334155;
+  --staff-text-muted: #64748b;
+  --staff-heading: #0f172a;
+  --staff-success-bg: #dcfce7;
+  --staff-success-text: #15803d;
+  --staff-warning-bg: #ffedd5;
+  --staff-warning-text: #c2410c;
+  --staff-role-admin-bg: #dbeafe;
+  --staff-role-admin-text: #1d4ed8;
+  --staff-role-staff-bg: #e0f2fe;
+  --staff-role-staff-text: #0369a1;
+}
+
+#root {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  text-align: left;
+  border: none;
+  min-height: 100svh;
+}
+
+.staff-page {
+  padding: 2rem 2.5rem;
+  box-sizing: border-box;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--staff-text);
+}
+
+.staff-page__header {
+  margin-bottom: 1.5rem;
+}
+
+.staff-page__header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--staff-heading);
+  margin: 0 0 0.35rem;
+  letter-spacing: normal;
+}
+
+.staff-page__header p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--staff-text-muted);
+}
+
+.staff-card {
+  background: var(--staff-card);
+  border-radius: 12px;
+  border: 1px solid var(--staff-border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  padding: 1.25rem 1.5rem 1rem;
+}
+
+/* Toolbar */
+.staff-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.staff-toolbar__search {
+  flex: 1 1 220px;
+  position: relative;
+  min-width: 200px;
+}
+
+.staff-toolbar__search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--staff-text-muted);
+  display: flex;
+  pointer-events: none;
+}
+
+.staff-toolbar__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.75rem 0.55rem 2.5rem;
+  border: 1px solid var(--staff-border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--staff-heading);
+  background: #fff;
+}
+
+.staff-toolbar__input:focus {
+  outline: 2px solid rgba(29, 78, 216, 0.25);
+  border-color: var(--staff-primary);
+}
+
+.staff-toolbar__select {
+  padding: 0.55rem 2rem 0.55rem 0.75rem;
+  border: 1px solid var(--staff-border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--staff-text);
+  background: #fff;
+  cursor: pointer;
+}
+
+/* Buttons */
+.staff-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.staff-btn--outline {
+  background: #fff;
+  border-color: var(--staff-border);
+  color: var(--staff-text);
+}
+
+.staff-btn--outline:hover {
+  background: #f8fafc;
+}
+
+.staff-btn--primary {
+  background: var(--staff-primary);
+  color: #fff;
+}
+
+.staff-btn--primary:hover {
+  background: var(--staff-primary-hover);
+}
+
+/* Table */
+.staff-table-wrap {
+  overflow-x: auto;
+}
+
+.staff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.staff-table th {
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--staff-text-muted);
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--staff-border);
+  white-space: nowrap;
+}
+
+.staff-table td {
+  padding: 0.85rem 0.75rem;
+  border-bottom: 1px solid var(--staff-border);
+  vertical-align: middle;
+}
+
+.staff-row__id {
+  font-weight: 500;
+  color: var(--staff-heading);
+}
+
+.staff-row__name {
+  font-weight: 600;
+  color: var(--staff-heading);
+}
+
+.staff-row__degree {
+  max-width: 180px;
+}
+
+.staff-table__message {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--staff-text-muted);
+  font-size: 0.9rem;
+}
+
+.staff-table__message--error {
+  color: #b91c1c;
+}
+
+/* Badges */
+.staff-badge {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.staff-badge--role-admin {
+  background: var(--staff-role-admin-bg);
+  color: var(--staff-role-admin-text);
+}
+
+.staff-badge--role-doctor,
+.staff-badge--role-receptionist {
+  background: var(--staff-role-staff-bg);
+  color: var(--staff-role-staff-text);
+}
+
+.staff-badge--status-active {
+  background: var(--staff-success-bg);
+  color: var(--staff-success-text);
+}
+
+.staff-badge--status-locked {
+  background: var(--staff-warning-bg);
+  color: var(--staff-warning-text);
+}
+
+.staff-badge--status-inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.staff-btn--danger {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+.staff-btn--danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.staff-page__toast {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.8125rem;
+  border-radius: 8px;
+  color: #15803d;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.staff-page__toast--error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+/* Row actions */
+.staff-row__actions {
+  display: flex;
+  gap: 0.15rem;
+  flex-wrap: nowrap;
+}
+
+.staff-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--staff-text-muted);
+  cursor: pointer;
+}
+
+.staff-action-btn:hover {
+  background: #f1f5f9;
+  color: var(--staff-primary);
+}
+
+.staff-action-btn--danger:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+/* Pagination */
+.staff-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--staff-border);
+}
+
+.staff-pagination__count {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--staff-text-muted);
+}
+
+.staff-pagination__count strong {
+  color: var(--staff-heading);
+  font-weight: 600;
+}
+
+.staff-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.staff-pagination__btn,
+.staff-pagination__page {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--staff-border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.8125rem;
+  color: var(--staff-text);
+  cursor: pointer;
+}
+
+.staff-pagination__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.staff-pagination__page {
+  min-width: 2rem;
+  text-align: center;
+}
+
+.staff-pagination__page--active {
+  background: var(--staff-primary);
+  border-color: var(--staff-primary);
+  color: #fff;
+}
+
+.staff-pagination__ellipsis {
+  padding: 0 0.25rem;
+  color: var(--staff-text-muted);
+}

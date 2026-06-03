@@ -1,0 +1,122 @@
+.service-price-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.service-price-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2vw, 20px);
+  margin-bottom: clamp(20px, 2.5vw, 28px);
+}
+
+.service-price-page__title {
+  margin: 0;
+  font-size: clamp(22px, 2.5vw, 28px);
+  font-weight: 700;
+  color: var(--staff-text);
+  letter-spacing: -0.02em;
+}
+
+.service-price-page__tabs {
+  display: flex;
+  gap: 32px;
+  border-bottom: 1px solid var(--staff-border);
+  margin-bottom: 24px;
+}
+
+.service-price-page__tab {
+  padding: 8px 0 12px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--staff-text-muted);
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.service-price-page__tab:hover {
+  color: var(--staff-text);
+}
+
+.service-price-page__tab--active {
+  color: var(--staff-primary);
+}
+
+.service-price-page__tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--staff-primary);
+}
+
+.service-price-page__table-container {
+  background: var(--staff-surface);
+  border-radius: var(--staff-radius-lg);
+  box-shadow: var(--staff-shadow);
+  border: 1px solid var(--staff-border);
+  overflow: hidden;
+}
+
+.service-price-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.service-price-table th {
+  background: var(--staff-bg);
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--staff-text-muted);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--staff-border);
+}
+
+.service-price-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--staff-border);
+  color: var(--staff-text);
+  vertical-align: middle;
+}
+
+.service-price-table tr:last-child td {
+  border-bottom: none;
+}
+
+.service-price-table tr:hover {
+  background-color: rgba(248, 250, 252, 0.5);
+}
+
+.service-price-page__action-btn {
+  background: none;
+  border: none;
+  color: var(--staff-primary);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.service-price-page__action-btn:hover {
+  background: var(--staff-primary-focus);
+  text-decoration: underline;
+}
+
+@media (min-width: 900px) {
+  .service-price-page__header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}

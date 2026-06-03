@@ -1,0 +1,47 @@
+:root {
+  --staff-primary: #1d4ed8;
+  --staff-primary-dark: #1e40af;
+  --staff-primary-light: rgba(255, 255, 255, 0.12);
+  --staff-primary-focus: rgba(29, 78, 216, 0.2);
+  --staff-sidebar-active-bg: rgba(255, 255, 255, 0.18);
+
+  --staff-border: #e2e8f0;
+  --staff-bg: #f8fafc;
+  --staff-surface: #ffffff;
+  --staff-text: #0f172a;
+  --staff-text-muted: #64748b;
+  --staff-text-on-primary: #ffffff;
+  --staff-text-sidebar-muted: rgba(255, 255, 255, 0.72);
+
+  --staff-success-bg: #dcfce7;
+  --staff-success-text: #166534;
+  --staff-warning-bg: #fef9c3;
+  --staff-warning-text: #854d0e;
+
+  --staff-badge-implant-bg: #dbeafe;
+  --staff-badge-implant-text: #1d4ed8;
+  --staff-badge-ortho-bg: #ede9fe;
+  --staff-badge-ortho-text: #6d28d9;
+  --staff-badge-reception-bg: #f1f5f9;
+  --staff-badge-reception-text: #475569;
+
+  --staff-avatar-bg: #dbeafe;
+  --staff-avatar-text: #1d4ed8;
+  --staff-overlay: rgba(15, 23, 42, 0.45);
+  --staff-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --staff-toast-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  --staff-radius: 8px;
+  --staff-radius-lg: 12px;
+
+  --staff-sidebar-width: clamp(200px, 18vw, 236px);
+  --staff-sidebar-brand-padding: clamp(16px, 2vw, 20px) clamp(12px, 1.5vw, 16px)
+    clamp(12px, 1.5vw, 16px);
+  --staff-sidebar-nav-padding: 4px clamp(8px, 1vw, 10px);
+  --staff-sidebar-link-padding: clamp(7px, 0.8vw, 9px) clamp(10px, 1.2vw, 12px);
+  --staff-sidebar-user-padding: clamp(10px, 1.2vw, 14px) clamp(8px, 1vw, 10px);
+
+  --staff-content-padding-x: clamp(16px, 3vw, 32px);
+  --staff-content-padding-y: clamp(20px, 2.5vw, 28px);
+
+  --staff-font: 'Segoe UI', system-ui, Roboto, sans-serif;
+}

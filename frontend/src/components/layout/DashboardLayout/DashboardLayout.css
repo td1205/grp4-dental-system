@@ -1,0 +1,23 @@
+.dashboard-layout {
+  display: flex;
+  min-height: 100svh;
+  width: 100%;
+}
+
+.dashboard-layout__main {
+  flex: 1;
+  min-width: 0;
+  background: var(--staff-bg);
+  overflow: auto;
+}
+
+.dashboard-layout__content {
+  width: 100%;
+  padding: var(--staff-content-padding-y) var(--staff-content-padding-x);
+}
+
+@media (max-width: 768px) {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+}

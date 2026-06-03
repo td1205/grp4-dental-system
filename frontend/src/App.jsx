@@ -1,48 +1,25 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppLayout } from './components/layout/AppLayout';
-import StaffManagementPage from './pages/StaffManagementPage';
-import AddStaffPage from './pages/AddStaffPage';
-import EditStaffPage from './pages/EditStaffPage';
-import PlaceholderPage from './pages/PlaceholderPage';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import StaffManagementPage from './pages/StaffManagementPage/StaffManagementPage'
+import ServicePricePage from './pages/ServicePricePage/ServicePricePage'
+import CustomerManagementPage from './pages/CustomerManagement/CustomerManagementPage'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Navigate to="/staff" replace />} />
-          <Route path="/staff/new" element={<AddStaffPage />} />
-          <Route path="/staff/:id/edit" element={<EditStaffPage />} />
-          <Route path="/staff" element={<StaffManagementPage />} />
-          <Route
-            path="/dashboard"
-            element={<PlaceholderPage title="Tổng quan" />}
-          />
-          <Route
-            path="/appointments"
-            element={<PlaceholderPage title="Lịch hẹn" />}
-          />
-          <Route
-            path="/patients"
-            element={<PlaceholderPage title="Bệnh nhân" />}
-          />
-          <Route
-            path="/services"
-            element={<PlaceholderPage title="Dịch vụ" />}
-          />
-          <Route
-            path="/reports"
-            element={<PlaceholderPage title="Báo cáo" />}
-          />
-          <Route
-            path="/settings"
-            element={<PlaceholderPage title="Cài đặt" />}
-          />
-          <Route path="*" element={<Navigate to="/staff" replace />} />
-        </Route>
+        <Route path="/" element={<Navigate to="/staff" replace />} />
+        <Route path="/staff" element={<StaffManagementPage />} />
+        
+        {/* Giữ lại cả trang khách hàng */}
+        <Route path="/customers" element={<CustomerManagementPage />} />
+        
+        {/* Và giữ lại cả các trang khác đang có trên develop */}
+        <Route path="/services/prices" element={<ServicePricePage />} />
+        
+        <Route path="*" element={<Navigate to="/staff" replace />} />
       </Routes>
     </BrowserRouter>
-  );
+  )
 }
 
-export default App;
+export default App

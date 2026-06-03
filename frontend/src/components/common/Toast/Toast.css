@@ -1,0 +1,31 @@
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 360px);
+  padding: 14px 16px;
+  background: var(--staff-surface);
+  border: 1px solid var(--staff-border);
+  border-radius: var(--staff-radius);
+  box-shadow: var(--staff-toast-shadow);
+}
+
+.toast__icon-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--staff-text);
+  color: var(--staff-surface);
+}
+
+.toast__message {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--staff-text);
+  line-height: 1.4;
+}

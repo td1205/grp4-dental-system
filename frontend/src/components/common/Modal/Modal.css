@@ -1,0 +1,112 @@
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--staff-overlay);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.modal__container {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100svh - 48px);
+  overflow: auto;
+  background: var(--staff-surface);
+  border-radius: var(--staff-radius-lg);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+}
+
+.modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 0;
+}
+
+.modal__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--staff-text);
+}
+
+.modal__subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--staff-text-muted);
+}
+
+.modal__close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--staff-radius);
+  background: transparent;
+  color: var(--staff-text-muted);
+}
+
+.modal__close:hover {
+  background: var(--staff-bg);
+  color: var(--staff-text);
+}
+
+.modal__body {
+  padding: 20px 24px;
+}
+
+.modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 24px 24px;
+}
+
+.modal__btn {
+  padding: 10px 20px;
+  border-radius: var(--staff-radius);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.modal__btn--secondary {
+  background: var(--staff-surface);
+  border-color: var(--staff-border);
+  color: var(--staff-text);
+}
+
+.modal__btn--secondary:hover {
+  background: var(--staff-bg);
+}
+
+.modal__btn--primary {
+  background: var(--staff-primary);
+  color: var(--staff-text-on-primary);
+}
+
+.modal__btn--primary:hover {
+  background: var(--staff-primary-dark);
+}

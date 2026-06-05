@@ -3,33 +3,10 @@ import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLa
 import CustomerToolbar from '../../components/customer/CustomerToolbar/CustomerToolbar'
 import CustomerTable from '../../components/customer/CustomerTable/CustomerTable'
 import './CustomerManagementPage.css'
+import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 
 const ACTIVE_PATH = '/customers'
 
-const NAV_ITEMS = [
-  {
-    id: 'users',
-    label: 'Quản lý người dùng',
-    icon: 'users',
-    path: '/users',
-    children: [
-      { id: 'staff', label: 'Quản lý nhân viên', path: '/staff' },
-      { id: 'customers', label: 'Quản lý khách hàng', path: '/customers' },
-    ],
-  },
-  { id: 'services', label: 'Dịch vụ', icon: 'services', path: '/services' },
-  { id: 'schedule', label: 'Lịch làm việc', icon: 'schedule', path: '/schedule' },
-  { id: 'salary', label: 'Lương', icon: 'salary', path: '/salary' },
-  { id: 'revenue', label: 'Thống kê doanh thu', icon: 'stats', path: '/revenue' },
-]
-
-const ADMIN_USER = {
-  initials: 'AU',
-  name: 'Admin User',
-  email: 'admin@dentalcare.vn',
-}
-
-// Khởi tạo dữ liệu mẫu chính xác theo hình ảnh bạn cung cấp
 const INITIAL_CUSTOMERS = [
   {
     id: 'BN001',
@@ -51,7 +28,6 @@ export default function CustomerManagementPage() {
   const [customers, setCustomers] = useState(INITIAL_CUSTOMERS)
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Bộ lọc tìm kiếm theo Tên, SĐT hoặc CCCD
   const filteredCustomers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return customers
@@ -66,7 +42,6 @@ export default function CustomerManagementPage() {
 
   const handleOpenAddModal = () => {
     console.log('Mở modal thêm khách hàng mới')
-    // Logic mở modal sẽ phát triển ở các bước tiếp theo
   }
 
   const handleEditCustomer = (customer) => {
@@ -80,7 +55,7 @@ export default function CustomerManagementPage() {
   }
 
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={ADMIN_USER}>
+    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
       <section className="customer-page">
         <header className="customer-page__header">
           <h1 className="customer-page__title">Quản lý khách hàng</h1>

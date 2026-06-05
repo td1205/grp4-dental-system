@@ -11,9 +11,11 @@ const NAV_ICON_MAP = {
   stats: 'bar-chart-3',
 }
 
+// SỬA HÀM NÀY: Duyệt qua tất cả các mục, mục nào có children thì mở hết
 function getInitialExpandedIds(navItems, activePath) {
   const ids = new Set()
   navItems.forEach((item) => {
+    // CHỈ mở rộng nhóm menu nào có chứa trang con đang được kích hoạt (active)
     if (item.children?.some((child) => child.path === activePath)) {
       ids.add(item.id)
     }

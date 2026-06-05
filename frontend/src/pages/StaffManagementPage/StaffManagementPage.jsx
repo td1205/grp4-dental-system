@@ -5,68 +5,53 @@ import AddStaffModal from '../../components/staff/AddStaffModal/AddStaffModal'
 import StaffGrid from '../../components/staff/StaffGrid/StaffGrid'
 import StaffToolbar from '../../components/staff/StaffToolbar/StaffToolbar'
 import './StaffManagementPage.css'
+import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 
 const ACTIVE_PATH = '/staff'
 const TOAST_DURATION_MS = 4000
-const RESEND_SUCCESS_MESSAGE = 'Đã gửi lại email thành công!'
 
-const NAV_ITEMS = [
-  {
-    id: 'users',
-    label: 'Quản lý người dùng',
-    icon: 'users',
-    path: '/users',
-    children: [
-      { id: 'staff', label: 'Quản lý nhân viên', path: '/staff' },
-      { id: 'customers', label: 'Quản lý khách hàng', path: '/customers' },
-    ],
-  },
-  { id: 'services', label: 'Dịch vụ', icon: 'services', path: '/services' },
-  { id: 'schedule', label: 'Lịch làm việc', icon: 'schedule', path: '/schedule' },
-  { id: 'salary', label: 'Lương', icon: 'salary', path: '/salary' },
-  { id: 'revenue', label: 'Thống kê doanh thu', icon: 'stats', path: '/revenue' },
-]
-
-const ADMIN_USER = {
-  initials: 'AU',
-  name: 'Admin User',
-  email: 'admin@dentalcare.vn',
-}
-
+// Dữ liệu giả lập ban đầu bao gồm cả trường cccd và trạng thái chuẩn
 const INITIAL_STAFF = [
   {
     id: 'BS001',
     initials: 'NA',
     name: 'BS. Nguyễn Văn A',
     specialty: 'Implant',
-    email: 'nguyen.a@dentalcare.com',
+    email: 'bs.nguyenvana@dentalcare.com',
     phone: '0901234567',
-    status: 'active',
+    cccd: '001234567890',
+    status: 'active', // Hoạt động
+    workplace: 'Phòng khám chính',
   },
   {
     id: 'BS002',
     initials: 'TB',
     name: 'BS. Trần Thị B',
     specialty: 'Orthodontics',
-    email: 'tran.b@dentalcare.com',
+    email: 'bs.tranthib@dentalcare.com',
     phone: '0912345678',
+    cccd: '001234567891',
     status: 'active',
+    workplace: 'Phòng khám chính',
   },
   {
-    id: 'LT003',
+    id: 'LT001',
     initials: 'LC',
     name: 'Lê Văn C',
     specialty: 'Lễ tân',
-    email: 'le.c@dentalcare.com',
+    email: 'nv.levanc@dentalcare.com',
     phone: '0923456789',
-    status: 'pending',
+    cccd: '001234567892',
+    status: 'pending', // Chờ kích hoạt
+    workplace: 'Quầy tiếp đón',
   },
 ]
 
 const EMPTY_FORM = {
   fullName: '',
   phone: '',
-  position: '',
+  cccd: '',
+  position: 'doctor', // 'doctor' hoặc 'receptionist'
   specialty: '',
   dateOfBirth: '',
   workplace: '',
@@ -79,11 +64,6 @@ function getInitials(name) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
 }
 
-function generateStaffId(list) {
-  const num = list.length + 1
-  return `NV${String(num).padStart(3, '0')}`
-}
-
 export default function StaffManagementPage() {
   const [staffList, setStaffList] = useState(INITIAL_STAFF)
   const [searchQuery, setSearchQuery] = useState('')
@@ -91,10 +71,13 @@ export default function StaffManagementPage() {
   const [formValues, setFormValues] = useState(EMPTY_FORM)
   const [toasts, setToasts] = useState([])
 
+  // Bộ lọc tìm kiếm nhân viên (Ẩn các nhân viên có trạng thái 'inactive' - Xóa logic)
   const filteredStaff = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    if (!q) return staffList
-    return staffList.filter(
+    const activeStaff = staffList.filter((s) => s.status !== 'inactive') // Quy tắc BR1.3.2
+    
+    if (!q) return activeStaff
+    return activeStaff.filter(
       (s) =>
         s.name.toLowerCase().includes(q) ||
         s.id.toLowerCase().includes(q) ||
@@ -104,10 +87,9 @@ export default function StaffManagementPage() {
     )
   }, [staffList, searchQuery])
 
-  const pushToast = useCallback((message) => {
+  const pushToast = useCallback((message, type = 'success') => {
     const id = crypto.randomUUID()
-    setToasts((prev) => [...prev, { id, message }])
-
+    setToasts((prev) => [...prev, { id, message, type }])
     window.setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id))
     }, TOAST_DURATION_MS)
@@ -127,37 +109,79 @@ export default function StaffManagementPage() {
     setFormValues(EMPTY_FORM)
   }
 
+  // LUỒNG 1: Xử lý Thêm mới Nhân viên & Kiểm tra ngoại lệ
   const handleSubmit = () => {
-    if (!formValues.fullName.trim() || !formValues.phone.trim()) return
+    const { fullName, phone, cccd, position, specialty, workplace } = formValues
 
-    const specialty =
-      formValues.specialty ||
-      (formValues.position === 'receptionist' ? 'Lễ tân' : 'General')
+    // Kiểm tra bỏ trống các trường bắt buộc
+    if (!fullName.trim() || !phone.trim() || !cccd.trim() || !workplace.trim()) {
+      pushToast('Vui lòng nhập đầy đủ các thông tin bắt buộc!', 'error')
+      return
+    }
+
+    // Ngoại lệ EF1.3.1: Kiểm tra trùng lặp Số điện thoại hoặc CCCD
+    const isDuplicate = staffList.some(
+      (s) => s.phone === phone.trim() || s.cccd === cccd.trim()
+    )
+    if (isDuplicate) {
+      pushToast('Số CCCD hoặc Số điện thoại đã được đăng ký trong hệ thống!', 'error')
+      return // Chặn không cho lưu và giữ nguyên form biểu mẫu
+    }
+
+    // Chuẩn hóa tên hiển thị cho Bác sĩ
     const displayName =
-      formValues.position === 'doctor' && !formValues.fullName.startsWith('BS.')
-        ? `BS. ${formValues.fullName}`
-        : formValues.fullName
+      position === 'doctor' && !fullName.startsWith('BS.')
+        ? `BS. ${fullName}`
+        : fullName
+
+    const generatedId = generateStaffId(staffList, position)
+    const autoEmail = generateAutoEmail(fullName, position, staffList)
 
     const newStaff = {
-      id: generateStaffId(staffList),
+      id: generatedId,
       initials: getInitials(displayName),
       name: displayName,
-      specialty,
-      email: `${formValues.fullName.replace(/\s+/g, '.').toLowerCase()}@dentalcare.com`,
-      phone: formValues.phone,
-      status: 'pending',
+      specialty: specialty || (position === 'receptionist' ? 'Lễ tân' : 'Tổng quát'),
+      email: autoEmail,
+      phone: phone.trim(),
+      cccd: cccd.trim(),
+      status: 'pending', // Mặc định trạng thái ban đầu là "Chờ kích hoạt"
+      workplace: workplace,
     }
 
     setStaffList((prev) => [...prev, newStaff])
+    pushToast(`Thêm mới nhân viên thành công! Mã số định danh: ${generatedId}`)
     handleCloseModal()
   }
 
-  const handleResendMail = () => {
-    pushToast(RESEND_SUCCESS_MESSAGE)
+  // LUỒNG 4 & Quy tắc BR1.3.2: Xóa logic (Soft Delete) nhân viên
+  const handleDeleteStaff = (id) => {
+    const staff = staffList.find(s => s.id === id)
+    if (!staff) return
+
+    if (window.confirm(`Bạn có chắc chắn muốn ngừng kích hoạt tài khoản của nhân viên ${staff.name}?`)) {
+      setStaffList((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, status: 'inactive' } : s
+        )
+      )
+      pushToast(`Đã chuyển trạng thái nhân viên ${id} sang Ngưng hoạt động.`)
+    }
+  }
+
+  // Luồng thay thế AF1.2.2: Gửi lại email kích hoạt
+  const handleResendMail = (id) => {
+    const staff = staffList.find((s) => s.id === id)
+    if (staff && staff.status === 'pending') {
+      // Giả lập hệ thống tạo mã token mới và gửi mail thành công
+      pushToast(`Đã tạo token mới và gửi lại email kích hoạt đến: ${staff.email}`)
+    } else {
+      pushToast('Tài khoản này đã hoạt động hoặc không hợp lệ!', 'error')
+    }
   }
 
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={ADMIN_USER}>
+    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
       <section className="staff-page">
         <header className="staff-page__header">
           <h1 className="staff-page__title">Quản lý nhân viên &amp; Bác sĩ</h1>
@@ -168,7 +192,12 @@ export default function StaffManagementPage() {
           />
         </header>
 
-        <StaffGrid staffList={filteredStaff} onResendMail={handleResendMail} />
+        {/* Truyền thêm hàm handleResendMail và handleDeleteStaff vào Grid/Card */}
+        <StaffGrid 
+          staffList={filteredStaff} 
+          onResendMail={handleResendMail} 
+          onDeleteStaff={handleDeleteStaff}
+        />
 
         <AddStaffModal
           isOpen={isModalOpen}
@@ -183,4 +212,3 @@ export default function StaffManagementPage() {
     </DashboardLayout>
   )
 }
-  

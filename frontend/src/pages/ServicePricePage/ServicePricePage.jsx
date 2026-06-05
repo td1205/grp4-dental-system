@@ -1,129 +1,111 @@
 import { useState } from 'react'
 import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLayout'
-import Badge from '../../components/common/Badge/Badge'
+import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 import './ServicePricePage.css'
 
 const ACTIVE_PATH = '/services/prices'
-
-const NAV_ITEMS = [
-  {
-    id: 'users',
-    label: 'Quản lý người dùng',
-    icon: 'users',
-    path: '/users',
-    children: [
-      { id: 'staff', label: 'Quản lý nhân viên', path: '/staff' },
-      { id: 'customers', label: 'Quản lý khách hàng', path: '/customers' },
-    ],
-  },
-  { 
-    id: 'services', 
-    label: 'Dịch vụ', 
-    icon: 'services', 
-    path: '/services',
-    children: [
-      { id: 'service-list', label: 'Danh sách dịch vụ', path: '/services' },
-      { id: 'service-prices', label: 'Bảng giá dịch vụ', path: '/services/prices' },
-    ]
-  },
-  { id: 'schedule', label: 'Lịch làm việc', icon: 'schedule', path: '/schedule' },
-  { id: 'salary', label: 'Lương', icon: 'salary', path: '/salary' },
-  { id: 'revenue', label: 'Thống kê doanh thu', icon: 'stats', path: '/revenue' },
-]
-
-const ADMIN_USER = {
-  initials: 'AU',
-  name: 'Admin User',
-  email: 'admin@dentalcare.vn',
-}
 
 const INITIAL_PRICES = [
   {
     id: 'DV001',
     name: 'Khám và tư vấn nha khoa tổng quát',
-    price: 200000,
-    insurancePrice: 150000,
+    price: '200.000',
+    bhyt: '150.000',
     effectiveDate: '1/1/2026',
     status: 'active',
   },
   {
     id: 'DV002',
     name: 'Vệ sinh răng miệng định kỳ',
-    price: 300000,
-    insurancePrice: 250000,
+    price: '300.000',
+    bhyt: '250.000',
     effectiveDate: '1/1/2026',
     status: 'active',
   },
   {
     id: 'DV003',
     name: 'Tẩy trắng răng',
-    price: 2000000,
-    insurancePrice: 0,
+    price: '2.000.000',
+    bhyt: '0',
     effectiveDate: '1/1/2026',
     status: 'active',
   },
 ]
 
 export default function ServicePricePage() {
-  const [activeTab, setActiveTab] = useState('all')
+  const [activeTab, setActiveTab] = useState('all') // 'all' hoặc 'no-price'
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('vi-VN').format(value)
-  }
+  // Lọc dữ liệu theo tab (Hiện tại hiển thị dữ liệu mẫu cho tab tất cả)
+  const displayedPrices = activeTab === 'all' ? INITIAL_PRICES : []
 
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={ADMIN_USER}>
-      <div className="service-price-page">
-        <header className="service-price-page__header">
-          <h1 className="service-price-page__title">Bảng giá dịch vụ</h1>
+    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
+      <div className="price-page">
+        {/* Tiêu đề trang */}
+        <header className="price-page__header">
+          <h1 className="price-page__title">Bảng giá dịch vụ</h1>
         </header>
 
-        <nav className="service-price-page__tabs">
+        {/* Thanh chuyển đổi Tabs */}
+        <div className="price-page__tabs">
           <button
-            className={`service-price-page__tab ${activeTab === 'all' ? 'service-price-page__tab--active' : ''}`}
+            type="button"
+            className={`price-page__tab ${activeTab === 'all' ? 'price-page__tab--active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
             Tất cả biểu giá
           </button>
           <button
-            className={`service-price-page__tab ${activeTab === 'no-price' ? 'service-price-page__tab--active' : ''}`}
+            type="button"
+            className={`price-page__tab ${activeTab === 'no-price' ? 'price-page__tab--active' : ''}`}
             onClick={() => setActiveTab('no-price')}
           >
             Dịch vụ chưa có giá
           </button>
-        </nav>
+        </div>
 
-        <div className="service-price-page__table-container">
-          <table className="service-price-table">
+        {/* Bảng hiển thị giá dịch vụ */}
+        <div className="price-table-container">
+          <table className="price-table">
             <thead>
               <tr>
-                <th>Mã DV</th>
-                <th>Tên dịch vụ</th>
-                <th>Đơn giá (VND)</th>
+                <th>MÃ DV</th>
+                <th>TÊN DỊCH VỤ</th>
+                <th>ĐƠN GIÁ (VND)</th>
                 <th>BHYT (VND)</th>
-                <th>Ngày hiệu lực</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th>NGÀY HIỆU LỰC</th>
+                <th>TRẠNG THÁI</th>
+                <th className="price-table__align-right">THAO TÁC</th>
               </tr>
             </thead>
             <tbody>
-              {INITIAL_PRICES.map((item) => (
-                <tr key={item.id}>
-                  <td style={{ fontWeight: 600 }}>{item.id}</td>
-                  <td>{item.name}</td>
-                  <td>{formatCurrency(item.price)}</td>
-                  <td>{formatCurrency(item.insurancePrice)}</td>
-                  <td>{item.effectiveDate}</td>
-                  <td>
-                    <Badge label="Đang áp dụng" variant="success" />
-                  </td>
-                  <td>
-                    <button className="service-price-page__action-btn">
-                      Điều chỉnh giá
-                    </button>
+              {displayedPrices.length > 0 ? (
+                displayedPrices.map((item) => (
+                  <tr key={item.id}>
+                    <td className="price-table__id">{item.id}</td>
+                    <td className="price-table__name">{item.name}</td>
+                    <td>{item.price}</td>
+                    <td>{item.bhyt}</td>
+                    <td>{item.effectiveDate}</td>
+                    <td>
+                      <span className={`price-badge price-badge--${item.status}`}>
+                        Đang áp dụng
+                      </span>
+                    </td>
+                    <td className="price-table__align-right">
+                      <button type="button" className="price-table__btn-action">
+                        Điều chỉnh giá
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="price-table__empty">
+                    Không có dữ liệu hiển thị.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

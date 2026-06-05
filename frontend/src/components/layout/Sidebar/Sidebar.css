@@ -222,3 +222,8 @@
 .sidebar__nav-link--pressed {
   background: rgba(255, 255, 255, 0.22);
 }
+.sidebar__subnav--open {
+  max-height: 500px; /* SỬA TẠI ĐÂY: Tăng từ 120px lên 500px để thoải mái không bị kích chữ */
+  margin-top: 2px;
+  opacity: 1;
+}

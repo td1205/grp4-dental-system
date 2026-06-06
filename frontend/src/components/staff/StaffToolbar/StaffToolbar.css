@@ -1,0 +1,90 @@
+.staff-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(12px, 1.5vw, 16px);
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.staff-toolbar__search-wrap {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: min(100%, 220px);
+}
+
+.staff-toolbar__search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--staff-text-muted);
+  pointer-events: none;
+}
+
+.staff-toolbar__search {
+  width: 100%;
+  padding: 11px 14px 11px 42px;
+  border: 1px solid var(--staff-border);
+  border-radius: var(--staff-radius);
+  background: var(--staff-surface);
+  color: var(--staff-text);
+  font-size: 14px;
+}
+
+.staff-toolbar__search::placeholder {
+  color: var(--staff-text-muted);
+}
+
+.staff-toolbar__search:focus {
+  outline: none;
+  border-color: var(--staff-primary);
+  box-shadow: 0 0 0 3px var(--staff-primary-focus);
+}
+
+.staff-toolbar__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border: none;
+  border-radius: var(--staff-radius);
+  background: var(--staff-primary);
+  color: var(--staff-text-on-primary);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.staff-toolbar__add:hover {
+  background: var(--staff-primary-dark);
+}
+
+.staff-toolbar__add-icon {
+  flex-shrink: 0;
+}
+
+@media (max-width: 899px) {
+  .staff-toolbar {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .staff-toolbar__add {
+    width: 100%;
+    justify-content: center;
+  }
+}
+.staff-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Đẩy ô tìm kiếm sang trái, nút sang phải */
+  gap: clamp(12px, 1.5vw, 16px);
+  width: 100%; /* SỬA TẠI ĐÂY: Thay flex: 1 thành width: 100% để kéo dãn hết chiều ngang */
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+/* Các phần CSS khác bên dưới giữ nguyên... */

@@ -1,0 +1,88 @@
+.customer-table-container {
+  width: 100%;
+  background: var(--staff-surface, #fff);
+  border: 1px solid var(--staff-border, #e5e7eb);
+  border-radius: var(--staff-radius, 8px);
+  overflow-x: auto;
+}
+
+.customer-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.customer-table th {
+  background: #fafafa;
+  color: #4b5563;
+  font-weight: 600;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f0f0f0;
+  white-space: nowrap;
+}
+
+.customer-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #1f2937;
+}
+
+.customer-table tr:last-child td {
+  border-bottom: none;
+}
+
+.customer-table__id {
+  font-weight: 600;
+}
+
+.customer-table__align-right {
+  text-align: right;
+}
+
+/* Định dạng Badge Trạng thái Đang hoạt động giống ảnh */
+.customer-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.customer-badge--active {
+  background-color: #ecfdf5;
+  color: #10b981;
+}
+
+/* Các nút bấm thao tác Sửa / Xóa */
+.customer-table__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.customer-table__btn {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #4b5563;
+  transition: color 0.2s ease;
+}
+
+.customer-table__btn--edit:hover {
+  color: #1f2937;
+}
+
+.customer-table__btn--delete:hover {
+  color: #ef4444; /* Đổi sang màu đỏ khi hover nút xóa */
+}
+
+.customer-table__empty {
+  text-align: center;
+  color: #9ca3af;
+  padding: 32px !important;
+}

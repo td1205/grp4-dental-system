@@ -67,19 +67,9 @@ export default function AddStaffModal({
             type="text"
             className="add-staff-form__input"
             name="fullName"
-            value={formValues.fullName}
+            value={formValues.fullName || ''}
             onChange={(e) => onFieldChange('fullName', e.target.value)}
             autoFocus
-          />
-        </FormField>
-
-        <FormField label="Số điện thoại" required>
-          <input
-            type="tel"
-            className="add-staff-form__input"
-            name="phone"
-            value={formValues.phone}
-            onChange={(e) => onFieldChange('phone', e.target.value)}
           />
         </FormField>
 
@@ -88,28 +78,11 @@ export default function AddStaffModal({
             <select
               className="add-staff-form__select"
               name="position"
-              value={formValues.position}
+              value={formValues.position || ''}
               onChange={(e) => onFieldChange('position', e.target.value)}
             >
-              {POSITION_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <Icon name="chevron-down" className="add-staff-form__select-chevron" size={16} />
-          </div>
-        </FormField>
-
-        <FormField label="Chuyên khoa">
-          <div className="add-staff-form__select-wrap">
-            <select
-              className="add-staff-form__select"
-              name="specialty"
-              value={formValues.specialty}
-              onChange={(e) => onFieldChange('specialty', e.target.value)}
-            >
-              {SPECIALTY_OPTIONS.map((opt) => (
+              <option value="" disabled>Chọn chức vụ</option>
+              {POSITION_OPTIONS.filter(opt => opt.value !== '').map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -124,8 +97,37 @@ export default function AddStaffModal({
             type="date"
             className="add-staff-form__input"
             name="dateOfBirth"
-            value={formValues.dateOfBirth}
+            value={formValues.dateOfBirth || ''}
             onChange={(e) => onFieldChange('dateOfBirth', e.target.value)}
+          />
+        </FormField>
+
+        <FormField label="Chuyên khoa">
+          <div className="add-staff-form__select-wrap">
+            <select
+              className="add-staff-form__select"
+              name="specialty"
+              value={formValues.specialty || ''}
+              onChange={(e) => onFieldChange('specialty', e.target.value)}
+            >
+              <option value="" disabled>Chọn chuyên khoa</option>
+              {SPECIALTY_OPTIONS.filter(opt => opt.value !== '').map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <Icon name="chevron-down" className="add-staff-form__select-chevron" size={16} />
+          </div>
+        </FormField>
+
+        <FormField label="Số điện thoại">
+          <input
+            type="tel"
+            className="add-staff-form__input"
+            name="phone"
+            value={formValues.phone || ''}
+            onChange={(e) => onFieldChange('phone', e.target.value)}
           />
         </FormField>
 
@@ -134,8 +136,7 @@ export default function AddStaffModal({
             type="text"
             className="add-staff-form__input"
             name="workplace"
-            placeholder=""
-            value={formValues.workplace}
+            value={formValues.workplace || ''}
             onChange={(e) => onFieldChange('workplace', e.target.value)}
           />
         </FormField>

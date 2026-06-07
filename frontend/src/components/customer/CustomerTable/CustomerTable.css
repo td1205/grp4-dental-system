@@ -54,6 +54,16 @@
   color: #10b981;
 }
 
+.customer-badge--locked {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.customer-badge--inactive {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
 /* Các nút bấm thao tác Sửa / Xóa */
 .customer-table__actions {
   display: flex;
@@ -64,21 +74,30 @@
 .customer-table__btn {
   background: transparent;
   border: none;
-  padding: 4px;
+  padding: 6px 10px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   justify-content: center;
-  color: #4b5563;
-  transition: color 0.2s ease;
+  color: #2563eb;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 }
 
 .customer-table__btn--edit:hover {
-  color: #1f2937;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.customer-table__btn--delete {
+  color: #ef4444;
 }
 
 .customer-table__btn--delete:hover {
-  color: #ef4444; /* Đổi sang màu đỏ khi hover nút xóa */
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .customer-table__empty {

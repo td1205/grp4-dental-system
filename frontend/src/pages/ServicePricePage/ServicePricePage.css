@@ -138,3 +138,21 @@
   color: #9ca3af;
   padding: 32px !important;
 }
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px dashed #e2e8f0;
+  font-size: 13px;
+  color: #334155;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-item__version {
+  font-weight: 600;
+  color: #2563eb;
+}

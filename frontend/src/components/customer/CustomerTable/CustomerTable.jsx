@@ -25,7 +25,11 @@ export default function CustomerTable({ customers, onEdit, onDelete }) {
                 <td>{customer.cccd}</td>
                 <td>
                   <span className={`customer-badge customer-badge--${customer.status}`}>
-                    {customer.status === 'active' ? 'Đang hoạt động' : 'Tạm khóa'}
+                    {customer.status === 'active'
+                      ? 'Đang hoạt động'
+                      : customer.status === 'inactive'
+                      ? 'Ngừng hoạt động'
+                      : 'Tạm khóa'}
                   </span>
                 </td>
                 <td className="customer-table__actions customer-table__align-right">
@@ -35,7 +39,7 @@ export default function CustomerTable({ customers, onEdit, onDelete }) {
                     onClick={() => onEdit(customer)}
                     title="Chỉnh sửa"
                   >
-                    <Icon name="edit" size={16} />
+                    <Icon name="edit" size={16} /> <span>Chỉnh sửa</span>
                   </button>
                   <button 
                     type="button" 
@@ -43,7 +47,7 @@ export default function CustomerTable({ customers, onEdit, onDelete }) {
                     onClick={() => onDelete(customer.id)}
                     title="Xóa"
                   >
-                    <Icon name="trash" size={16} />
+                    <Icon name="trash" size={16} /> <span>Xóa</span>
                   </button>
                 </td>
               </tr>

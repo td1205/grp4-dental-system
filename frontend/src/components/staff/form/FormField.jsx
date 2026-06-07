@@ -58,7 +58,7 @@ export function FormField({
   return (
     <div className={`staff-form-field${error ? ' staff-form-field--error' : ''}`}>
       <label className="staff-form-field__label" htmlFor={id}>
-        {label}
+        {label.toLowerCase()}
         {required && (
           <span className="staff-form-field__required" aria-hidden="true">
             {' '}

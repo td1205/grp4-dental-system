@@ -10,6 +10,43 @@ import {
   mapServerErrors,
 } from '../utils/validateStaffForm';
 
+function removeAccents(str) {
+  if (!str) return '';
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd')
+    .toLowerCase();
+}
+
+function generateEmail(fullName, role, existingEmails = []) {
+  if (!fullName || !role) return '';
+  const cleanName = removeAccents(fullName)
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim();
+  if (!cleanName) return '';
+  
+  const nameParts = cleanName.split(/\s+/);
+  const nameJoined = nameParts.join('');
+  
+  let prefix = 'nv';
+  if (role === 'doctor') prefix = 'bs';
+  else if (role === 'admin') prefix = 'admin';
+  
+  const baseEmailPrefix = `${prefix}.${nameJoined}`;
+  let email = `${baseEmailPrefix}@dentalcare.com`;
+  
+  let counter = 2;
+  const existingSet = new Set(existingEmails.map(e => e.toLowerCase().trim()));
+  while (existingSet.has(email)) {
+    email = `${baseEmailPrefix}${counter}@dentalcare.com`;
+    counter++;
+  }
+  
+  return email;
+}
+
 export function useStaffForm({ mode = 'create', staffId } = {}) {
   const isEdit = mode === 'edit';
   const navigate = useNavigate();
@@ -18,6 +55,7 @@ export function useStaffForm({ mode = 'create', staffId } = {}) {
   const [values, setValues] = useState(EMPTY_STAFF_FORM);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
+  const [isEmailDirty, setIsEmailDirty] = useState(false);
 
   const staffQuery = useQuery({
     queryKey: ['staff', staffId],
@@ -25,11 +63,28 @@ export function useStaffForm({ mode = 'create', staffId } = {}) {
     enabled: isEdit && Boolean(staffId),
   });
 
+  const allStaffQuery = useQuery({
+    queryKey: ['all-staffs'],
+    queryFn: () => staffApi.getAll({ limit: 500 }),
+    enabled: !isEdit,
+  });
+
   useEffect(() => {
     if (staffQuery.data) {
       setValues(staffToFormValues(staffQuery.data));
     }
   }, [staffQuery.data]);
+
+  // Tự động sinh email dựa trên họ tên và vai trò (chỉ khi đang thêm mới và chưa sửa email thủ công)
+  useEffect(() => {
+    if (!isEdit && !isEmailDirty && values.fullName && values.role) {
+      const existingEmails = allStaffQuery.data?.data?.map((s) => s.email) || [];
+      const generated = generateEmail(values.fullName, values.role, existingEmails);
+      if (generated) {
+        setValues((prev) => ({ ...prev, email: generated }));
+      }
+    }
+  }, [values.fullName, values.role, allStaffQuery.data, isEmailDirty, isEdit]);
 
   const onMutationError = (err) => {
     const data = err.response?.data;
@@ -64,6 +119,9 @@ export function useStaffForm({ mode = 'create', staffId } = {}) {
   });
 
   const handleChange = useCallback((field, value) => {
+    if (field === 'email') {
+      setIsEmailDirty(true);
+    }
     setValues((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => {
       if (!prev[field]) return prev;

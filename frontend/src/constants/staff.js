@@ -19,6 +19,7 @@ export const ROLE_LABELS = {
 };
 
 export const STATUS_LABELS = {
+  pending: 'Chờ kích hoạt',
   active: 'Hoạt động',
   locked: 'Tạm khóa',
   inactive: 'Ngưng hoạt động',

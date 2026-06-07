@@ -19,7 +19,7 @@ export function StaffToolbar({
         <input
           type="search"
           className="staff-toolbar__input"
-          placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+          placeholder="Tìm kiếm nhân viên..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           aria-label="Tìm kiếm nhân viên"
@@ -57,7 +57,7 @@ export function StaffToolbar({
         Xuất Excel
       </button>
 
-      <button type="button" className="staff-btn staff-btn--primary" onClick={onAdd}>
+      <button type="button" className="staff-btn staff-btn--primary staff-btn--add" onClick={onAdd}>
         <PlusIcon />
         Thêm nhân viên mới
       </button>

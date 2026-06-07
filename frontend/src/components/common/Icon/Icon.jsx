@@ -70,6 +70,42 @@ const ICONS = {
     </>
   ),
   check: <path d="M20 6 9 17l-5-5" />,
+  edit: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M3 6h18" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M8 6V4h8v2" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  key: (
+    <>
+      <path d="m21 2-2 2m-7.6 7.6a6.5 6.5 0 1 1-2.2-2.2L15 7l2-2 4 4-2 2-3.4-3.4Z" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 1 1 8 0v3" />
+    </>
+  ),
+  unlock: (
+    <>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0" />
+    </>
+  ),
 }
 
 export default function Icon({ name, className = '', size = 18, strokeWidth = 2 }) {

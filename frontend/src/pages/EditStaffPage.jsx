@@ -4,6 +4,10 @@ import { JobInfoSection } from '../components/staff/form/JobInfoSection';
 import { AccountInfoSection } from '../components/staff/form/AccountInfoSection';
 import { StaffFormActions } from '../components/staff/form/StaffFormActions';
 import { useStaffForm } from '../hooks/useStaffForm';
+import DashboardLayout from '../components/layout/DashboardLayout/DashboardLayout';
+import { NAV_ITEMS, DEFAULT_USER } from '../constants/navigation';
+
+const ACTIVE_PATH = '/staff';
 
 export default function EditStaffPage() {
   const { id } = useParams();
@@ -20,79 +24,78 @@ export default function EditStaffPage() {
     loadError,
   } = useStaffForm({ mode: 'edit', staffId: id });
 
-  if (loadError) {
-    return (
+  return (
+    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
       <div className="staff-add-page">
-        <p className="staff-add-page__submit-error" role="alert">
-          Không tìm thấy nhân viên hoặc không thể tải dữ liệu.
-        </p>
         <Link to="/staff" className="staff-add-page__back">
+          <BackIcon />
           Quay lại danh sách
         </Link>
-      </div>
-    );
-  }
 
-  return (
-    <div className="staff-add-page">
-      <Link to="/staff" className="staff-add-page__back">
-        <BackIcon />
-        Quay lại danh sách
-      </Link>
-
-      <header className="staff-add-page__header">
-        <h1>Chỉnh sửa nhân viên</h1>
-        <p>Cập nhật thông tin nhân viên — {id}</p>
-      </header>
-
-      {isLoading ? (
-        <p className="staff-table__message">Đang tải dữ liệu...</p>
-      ) : (
-        <form className="staff-add-page__form" onSubmit={handleSubmit} noValidate>
-          <div className="staff-add-page__grid">
-            <div className="staff-add-page__column">
-              <PersonalInfoSection
-                values={values}
-                errors={errors}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="staff-add-page__column staff-add-page__column--side">
-              <JobInfoSection
-                values={values}
-                errors={errors}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                disabled={isSubmitting}
-              />
-              <AccountInfoSection
-                values={values}
-                errors={errors}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                disabled={isSubmitting}
-                isEdit
-              />
-            </div>
-          </div>
-
-          {submitError ? (
+        {loadError ? (
+          <div>
             <p className="staff-add-page__submit-error" role="alert">
-              {submitError}
+              Không tìm thấy nhân viên hoặc không thể tải dữ liệu.
             </p>
-          ) : null}
+          </div>
+        ) : (
+          <>
+            <header className="staff-add-page__header">
+              <h1>Chỉnh sửa nhân viên</h1>
+              <p>Cập nhật thông tin nhân viên — {id}</p>
+            </header>
 
-          <StaffFormActions
-            onCancel={handleCancel}
-            isSubmitting={isSubmitting}
-            submitLabel="Cập nhật thông tin"
-          />
-        </form>
-      )}
-    </div>
+            {isLoading ? (
+              <p className="staff-table__message">Đang tải dữ liệu...</p>
+            ) : (
+              <form className="staff-add-page__form" onSubmit={handleSubmit} noValidate>
+                <div className="staff-add-page__grid">
+                  <div className="staff-add-page__column">
+                    <PersonalInfoSection
+                      values={values}
+                      errors={errors}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div className="staff-add-page__column staff-add-page__column--side">
+                    <JobInfoSection
+                      values={values}
+                      errors={errors}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      disabled={isSubmitting}
+                    />
+                    <AccountInfoSection
+                      values={values}
+                      errors={errors}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      disabled={isSubmitting}
+                      isEdit
+                    />
+                  </div>
+                </div>
+
+                {submitError ? (
+                  <p className="staff-add-page__submit-error" role="alert">
+                    {submitError}
+                  </p>
+                ) : null}
+
+                <StaffFormActions
+                  onCancel={handleCancel}
+                  isSubmitting={isSubmitting}
+                  submitLabel="Cập nhật thông tin"
+                />
+              </form>
+            )}
+          </>
+        )}
+      </div>
+    </DashboardLayout>
   );
 }
 

@@ -1,28 +1,119 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  width: var(--staff-sidebar-width);
+  width: var(--staff-sidebar-width, 236px);
   min-height: 100svh;
-  background: var(--staff-primary);
-  color: var(--staff-text-on-primary);
+  background: var(--color-secondary, #03045e);
+  color: #ffffff;
   flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.2, 0, 0, 1);
+  overflow-x: hidden;
+}
+
+.sidebar--collapsed {
+  width: 68px;
+}
+
+.sidebar__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 16px 16px 16px;
+}
+
+.sidebar--collapsed .sidebar__header {
+  padding: 24px 0 16px 0;
 }
 
 .sidebar__brand {
-  padding: var(--staff-sidebar-brand-padding);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+  position: relative;
+  height: 40px;
+  justify-content: center;
 }
 
 .sidebar__logo {
   margin: 0;
-  font-size: clamp(16px, 1.4vw, 18px);
+  font-size: 20px;
+  /* Tăng nhẹ cỡ chữ để "Dental Care" trông nổi bật hơn */
   font-weight: 700;
+  color: #ffffff !important;
+  /* Đảm bảo chữ luôn màu trắng tinh, không bị dính box nền lạ */
   letter-spacing: -0.02em;
+  white-space: nowrap;
+  /* QUAN TRỌNG: Ép chữ "Dental Care" phải nằm trên cùng 1 dòng, không tự vỡ đôi */
+  background: transparent !important;
+  transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.sidebar--collapsed .sidebar__logo {
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
 }
 
 .sidebar__tagline {
-  margin: 2px 0 0;
-  font-size: clamp(11px, 1vw, 12px);
-  color: var(--staff-text-sidebar-muted);
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.sidebar--collapsed .sidebar__tagline {
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+}
+
+.sidebar__logo-icon {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  position: absolute;
+  top: 2px;
+  left: 0;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.sidebar--collapsed .sidebar__logo-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.sidebar__toggle {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  transition: var(--transition-smooth);
+}
+
+.sidebar__toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
 }
 
 .sidebar__nav {
@@ -57,6 +148,12 @@
   font-size: clamp(12px, 1.1vw, 13px);
   font-weight: 500;
   text-align: left;
+  transition: var(--transition-smooth);
+}
+
+.sidebar--collapsed .sidebar__nav-link {
+  padding: 10px;
+  justify-content: center;
 }
 
 .sidebar__nav-link--pressed {
@@ -66,22 +163,43 @@
 .sidebar__nav-icon {
   flex-shrink: 0;
   opacity: 0.95;
+  color: var(--light-color, var(--color-bg-subtle));
 }
 
 .sidebar__nav-label {
   flex: 1;
   min-width: 0;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, max-width 0.3s cubic-bezier(0.2, 0, 0, 1);
+  opacity: 1;
+  max-width: 200px;
+  overflow: hidden;
+}
+
+.sidebar--collapsed .sidebar__nav-label {
+  opacity: 0;
+  max-width: 0;
 }
 
 .sidebar__nav-chevron {
   flex-shrink: 0;
   opacity: 0.75;
-  transform: rotate(0deg); /* SỬA TẠI ĐÂY: Mặc định hiển thị chúc xuống (0 độ) */
-  transition: transform 0.25s ease;
+  transform: rotate(0deg);
+  transform: rotate(0deg);
+  transition: transform 0.25s ease, opacity 0.2s ease, max-width 0.3s ease;
+  opacity: 1;
+  max-width: 20px;
+  overflow: hidden;
+}
+
+.sidebar--collapsed .sidebar__nav-chevron {
+  opacity: 0;
+  max-width: 0;
 }
 
 .sidebar__nav-chevron--open {
-  transform: rotate(180deg); /* SỬA TẠI ĐÂY: Xoay ngược lên trên khi menu mở rộng */
+  transform: rotate(180deg);
+  /* SỬA TẠI ĐÂY: Xoay ngược lên trên khi menu mở rộng */
 }
 
 .sidebar__nav-chevron--static {
@@ -108,6 +226,12 @@
   opacity: 1;
 }
 
+.sidebar--collapsed .sidebar__subnav--open {
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+}
+
 .sidebar__subnav-item {
   display: block;
 }
@@ -128,10 +252,13 @@
   background: var(--staff-sidebar-active-bg);
 }
 
-.sidebar__user {
+.sidebar__footer {
   margin-top: auto;
   padding: var(--staff-sidebar-user-padding);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .sidebar__user-card {
@@ -145,6 +272,11 @@
   background: transparent;
   color: inherit;
   text-align: left;
+}
+
+.sidebar--collapsed .sidebar__user-card {
+  padding: 8px 0;
+  justify-content: center;
 }
 
 .sidebar__user-avatar {
@@ -188,23 +320,52 @@
   opacity: 0.75;
 }
 
+.sidebar__logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--staff-radius);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffcccc;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.sidebar--collapsed .sidebar__logout-btn {
+  padding: 8px 0;
+}
+
+.sidebar__logout-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     width: 100%;
     min-height: auto;
   }
 }
+
 /* --- 1. Hiệu ứng HOVER (di chuột) vào tất cả các block --- */
 
 /* Hover cho các menu chính (Mục cha hoặc mục đơn) */
 .sidebar__nav-link:hover {
-  background: rgba(255, 255, 255, 0.12); /* Nền xanh nhạt hơn một chút */
+  background: rgba(255, 255, 255, 0.12);
+  /* Nền xanh nhạt hơn một chút */
   cursor: pointer;
 }
 
 /* Hover cho các menu con (Mục con) */
 .sidebar__subnav-link:hover {
-  background: rgba(255, 255, 255, 0.1); /* Nền xanh nhạt khi di chuột vào */
+  background: rgba(255, 255, 255, 0.1);
+  /* Nền xanh nhạt khi di chuột vào */
   color: var(--staff-text-on-primary);
 }
 
@@ -215,15 +376,17 @@
 .sidebar__subnav-link--pressed {
   color: var(--staff-text-on-primary);
   /* Tăng độ opacity của lớp màu trắng để tạo ra màu xanh nhạt hơn nữa */
-  background: rgba(255, 255, 255, 0.22) !important; 
+  background: rgba(255, 255, 255, 0.22) !important;
 }
 
 /* (Tùy chọn) Nếu mục đơn không có cấp con (như Thống kê doanh thu) được nhấn */
 .sidebar__nav-link--pressed {
   background: rgba(255, 255, 255, 0.22);
 }
+
 .sidebar__subnav--open {
-  max-height: 500px; /* SỬA TẠI ĐÂY: Tăng từ 120px lên 500px để thoải mái không bị kích chữ */
+  max-height: 500px;
+  /* SỬA TẠI ĐÂY: Tăng từ 120px lên 500px để thoải mái không bị kích chữ */
   margin-top: 2px;
   opacity: 1;
 }

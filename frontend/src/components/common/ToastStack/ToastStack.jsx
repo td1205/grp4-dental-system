@@ -14,7 +14,7 @@ export default function ToastStack({ toasts }) {
       >
         {visibleToasts.map((toast) => (
           <div key={toast.id} className="toast-stack__item">
-            <Toast message={toast.message} />
+            <Toast message={toast.message} type={toast.type} />
           </div>
         ))}
       </div>

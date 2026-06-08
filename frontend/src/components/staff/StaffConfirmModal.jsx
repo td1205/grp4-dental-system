@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 /**
  * Confirmation dialog — lock, delete (soft), or generic actions.
  */
@@ -11,8 +13,19 @@ export function StaffConfirmModal({
   onCancel,
   isLoading = false,
   variant = 'default',
+  requireReason = false,
 }) {
+  const [reason, setReason] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setReason('');
+    }
+  }, [open]);
+
   if (!open) return null;
+
+  const isConfirmDisabled = isLoading || (requireReason && !reason.trim());
 
   return (
     <div className="staff-modal" role="presentation" onClick={onCancel}>
@@ -30,7 +43,23 @@ export function StaffConfirmModal({
         <p id="staff-modal-desc" className="staff-modal__message">
           {message}
         </p>
-        <div className="staff-modal__actions">
+        
+        {requireReason && (
+          <div className="staff-modal__reason-field" style={{ marginTop: '16px' }}>
+            <label htmlFor="suspend-reason" style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
+              Lý do đình chỉ <span style={{ color: '#dc2626' }}>*</span>
+            </label>
+            <textarea
+              id="suspend-reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Nhập lý do đình chỉ nhân viên này..."
+              style={{ width: '100%', minHeight: '80px', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', fontFamily: 'inherit', resize: 'vertical' }}
+            />
+          </div>
+        )}
+
+        <div className="staff-modal__actions" style={{ marginTop: requireReason ? '20px' : '0' }}>
           <button
             type="button"
             className="staff-btn staff-btn--outline"
@@ -44,8 +73,8 @@ export function StaffConfirmModal({
             className={`staff-btn staff-btn--primary${
               variant === 'danger' ? ' staff-btn--danger' : ''
             }`}
-            onClick={onConfirm}
-            disabled={isLoading}
+            onClick={() => onConfirm(reason)}
+            disabled={isConfirmDisabled}
           >
             {isLoading ? 'Đang xử lý...' : confirmLabel}
           </button>

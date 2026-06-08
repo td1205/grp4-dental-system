@@ -7,8 +7,9 @@
 .dashboard-layout__main {
   flex: 1;
   min-width: 0;
-  background: var(--staff-bg);
+  background: var(--color-background, var(--staff-bg));
   overflow: auto;
+  transition: var(--transition-smooth, all 0.3s cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .dashboard-layout__content {

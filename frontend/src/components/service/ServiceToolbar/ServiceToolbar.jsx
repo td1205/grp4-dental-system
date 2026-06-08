@@ -1,4 +1,6 @@
 import Icon from '../../common/Icon/Icon'
+import { PrimaryButton } from '../../ui/Button/PrimaryButton'
+import { MacDropdown } from '../../common/MacDropdown/MacDropdown'
 import './ServiceToolbar.css'
 
 export default function ServiceToolbar({ searchQuery, onSearchChange, selectedFilter, onFilterChange, onAddClick }) {
@@ -15,28 +17,28 @@ export default function ServiceToolbar({ searchQuery, onSearchChange, selectedFi
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
-        
+
         {/* Dropdown bộ lọc danh mục */}
-        <div className="service-toolbar__select-wrap">
-          <Icon name="filter" className="service-toolbar__filter-icon" size={16} />
-          <select 
-            className="service-toolbar__select"
+        <div style={{ width: '220px' }}>
+          <MacDropdown
+            options={[
+              { value: 'all', label: 'Tất cả danh mục' },
+              { value: 'Khám và tư vấn', label: 'Khám và tư vấn' },
+              { value: 'Vệ sinh răng miệng', label: 'Vệ sinh răng miệng' },
+              { value: 'Thẩm mỹ', label: 'Thẩm mỹ' },
+              { value: 'Phẫu thuật', label: 'Phẫu thuật' },
+            ]}
             value={selectedFilter}
-            onChange={(e) => onFilterChange(e.target.value)}
-          >
-            <option value="all">Tất cả danh mục</option>
-            <option value="kham">Khám và tư vấn</option>
-            <option value="rang-mieng">Vệ sinh răng miệng</option>
-            <option value="tham-my">Thẩm mỹ</option>
-            <option value="phau-thuat">Phẫu thuật</option>
-          </select>
+            onChange={onFilterChange}
+            ariaLabel="Lọc danh mục"
+          />
         </div>
       </div>
 
-      <button type="button" className="service-toolbar__add" onClick={onAddClick}>
-        <Icon name="plus" size={18} />
+      <PrimaryButton onClick={onAddClick}>
+        <Icon name="plus" size={18} style={{ marginRight: '8px' }} />
         Thêm dịch vụ mới
-      </button>
+      </PrimaryButton>
     </div>
   )
 }

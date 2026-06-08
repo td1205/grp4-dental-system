@@ -1,0 +1,113 @@
+.mac-dropdown {
+  position: relative;
+  display: inline-block;
+  min-width: 160px;
+  font-family: var(--staff-font, 'Inter', sans-serif);
+}
+
+.mac-dropdown__trigger {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid var(--border-color, #dee2e6);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-main, #212529);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.mac-dropdown__trigger:hover {
+  border-color: #b0b8c1;
+}
+
+.mac-dropdown__trigger--open {
+  border-color: var(--accent-color, var(--color-secondary));
+  box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.2);
+}
+
+.mac-dropdown__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mac-dropdown__icon {
+  display: flex;
+  color: var(--text-sub, #6c757d);
+  transition: transform 0.2s ease;
+}
+
+.mac-dropdown__trigger--open .mac-dropdown__icon {
+  transform: rotate(180deg);
+}
+
+.mac-dropdown__menu-container {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  min-width: 200px;
+  z-index: 1000;
+  
+  /* Hiệu ứng kính mờ macOS */
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  border: 0.5px solid rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.15);
+  
+  /* Animation */
+  animation: macDropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top;
+}
+
+.mac-dropdown__menu {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.mac-dropdown__item {
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text-main, #212529);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.1s, color 0.1s;
+}
+
+.mac-dropdown__item:hover {
+  background: #007aff;
+  color: #ffffff;
+}
+
+.mac-dropdown__item--selected {
+  font-weight: 500;
+  background: rgba(0, 122, 255, 0.1);
+  color: #007aff;
+}
+
+.mac-dropdown__item--selected:hover {
+  background: #007aff;
+  color: #ffffff;
+}
+
+@keyframes macDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: scaleY(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}

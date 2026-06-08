@@ -1,63 +1,64 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLayout'
 import CustomerToolbar from '../../components/customer/CustomerToolbar/CustomerToolbar'
 import CustomerTable from '../../components/customer/CustomerTable/CustomerTable'
 import CustomerModal from '../../components/customer/CustomerModal/CustomerModal'
-import Toast from '../../components/common/Toast/Toast'
+import ToastStack from '../../components/common/ToastStack/ToastStack'
+import ManagementPageLayout from '../../components/layout/ManagementPageLayout/ManagementPageLayout'
+import { StaffConfirmModal } from '../../components/staff/StaffConfirmModal'
+import { customerApi } from '../../services/customerApi'
 import './CustomerManagementPage.css'
 import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 
 const ACTIVE_PATH = '/customers'
 
-const INITIAL_CUSTOMERS = [
-  {
-    id: 'BN001',
-    name: 'Nguyễn Văn A',
-    dob: '1995-05-15',
-    phone: '0901234567',
-    cccd: '001234567890',
-    address: 'Hà Nội',
-    email: 'nguyenvana@gmail.com',
-    status: 'active',
-  },
-  {
-    id: 'BN002',
-    name: 'Trần Thị B',
-    dob: '1998-09-20',
-    phone: '0901234568',
-    cccd: '001234567891',
-    address: 'Hải Phòng',
-    email: 'tranthib@gmail.com',
-    status: 'active',
-  },
-]
-
 export default function CustomerManagementPage() {
-  const [customers, setCustomers] = useState(() => {
-    const saved = localStorage.getItem('dental_customers')
-    if (saved) return JSON.parse(saved)
-    // Seed initial patients
-    localStorage.setItem('dental_customers', JSON.stringify(INITIAL_CUSTOMERS))
-    return INITIAL_CUSTOMERS
-  })
+  const [customers, setCustomers] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isError, setIsError] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState(null)
-  const [toast, setToast] = useState({ message: '', type: '' })
+  const [toasts, setToasts] = useState([])
 
-  const filteredCustomers = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    // Ẩn khách hàng có trạng thái "Ngừng hoạt động" (inactive) khỏi danh sách tra cứu thông thường
-    const visibleCustomers = customers.filter((c) => c.status !== 'inactive')
-    if (!q) return visibleCustomers
-    return visibleCustomers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.id.toLowerCase().includes(q) ||
-        c.phone.includes(q) ||
-        c.cccd.includes(q)
-    )
-  }, [customers, searchQuery])
+  const [confirmModalConfig, setConfirmModalConfig] = useState(null)
+  const [isConfirmLoading, setIsConfirmLoading] = useState(false)
+
+  // Get User Role
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('dental_user') || JSON.stringify(DEFAULT_USER))
+    } catch {
+      return DEFAULT_USER
+    }
+  }, [])
+  const showDelete = currentUser.role !== 'Receptionist'
+
+  const fetchCustomers = async () => {
+    setIsLoading(true)
+    setIsError(false)
+    try {
+      const res = await customerApi.getAll({ search: searchQuery })
+      setCustomers(res.data || [])
+    } catch (err) {
+      console.error(err)
+      setIsError(true)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchCustomers()
+  }, [searchQuery])
+
+  const addToast = (message, type = 'success') => {
+    const id = Date.now()
+    setToasts((prev) => [...prev, { id, message, type }])
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id))
+    }, 3000)
+  }
 
   const handleOpenAddModal = () => {
     setSelectedCustomer(null)
@@ -69,92 +70,127 @@ export default function CustomerManagementPage() {
     setIsModalOpen(true)
   }
 
-  const handleSaveCustomer = (formData) => {
-    const cleanPhone = formData.phone.trim().replace(/\s/g, '')
-    const cleanCccd = formData.cccd.trim()
-
-    // Ngoại lệ: Chặn hành động và báo lỗi nếu trùng lặp Số CCCD hoặc Số điện thoại
-    const duplicatePhone = customers.find(
-      (c) => c.phone.trim().replace(/\s/g, '') === cleanPhone && c.id !== formData.id
-    )
-    const duplicateCccd = customers.find(
-      (c) => c.cccd.trim() === cleanCccd && c.id !== formData.id
-    )
-
-    if (duplicatePhone) {
-      setToast({ message: 'Không thể lưu: Số điện thoại này đã tồn tại trên hệ thống cho khách hàng khác!', type: 'error' })
-      return
+  const handleSaveCustomer = async (formData) => {
+    try {
+      if (formData.id) {
+        // Edit
+        await customerApi.update(formData.id, formData)
+        addToast('Cập nhật thông tin khách hàng thành công!')
+      } else {
+        // Create
+        const res = await customerApi.create(formData)
+        if (res && res.needRestore) {
+          setConfirmModalConfig({
+            title: 'Khôi phục tài khoản',
+            message: res.message,
+            confirmLabel: 'Đồng ý khôi phục',
+            variant: 'primary',
+            onConfirm: async () => {
+              setIsConfirmLoading(true)
+              try {
+                await customerApi.restore(res.data.id)
+                addToast('Khôi phục khách hàng thành công!')
+                setConfirmModalConfig(null)
+                setIsModalOpen(false)
+                fetchCustomers()
+              } catch (err) {
+                addToast('Có lỗi xảy ra khi khôi phục.', 'error')
+              } finally {
+                setIsConfirmLoading(false)
+              }
+            }
+          })
+          return;
+        }
+        addToast('🎉 Khởi tạo hồ sơ khách hàng thành công trên hệ thống!')
+      }
+      setIsModalOpen(false)
+      fetchCustomers()
+    } catch (err) {
+      if (err.response?.status === 409) {
+        addToast('Không thể lưu: Số CCCD hoặc Số điện thoại đã được đăng ký trên hệ thống', 'error')
+      } else {
+        addToast('Có lỗi xảy ra khi lưu thông tin.', 'error')
+      }
     }
-    if (duplicateCccd) {
-      setToast({ message: 'Không thể lưu: Số CCCD này đã tồn tại trên hệ thống cho khách hàng khác!', type: 'error' })
-      return
-    }
-
-    let updated
-    if (formData.id) {
-      // Chỉnh sửa thông tin
-      updated = customers.map((c) => (c.id === formData.id ? formData : c))
-    } else {
-      // Thêm mới: tự động sinh mã bệnh nhân BNxxx tăng dần
-      const maxNum = customers.reduce((max, c) => {
-        const num = parseInt(c.id.replace('BN', ''), 10)
-        return !isNaN(num) && num > max ? num : max
-      }, 0)
-      const nextId = `BN${String(maxNum + 1).padStart(3, '0')}`
-      const newCust = { ...formData, id: nextId }
-      updated = [...customers, newCust]
-    }
-
-    setCustomers(updated)
-    localStorage.setItem('dental_customers', JSON.stringify(updated))
-    setIsModalOpen(false)
   }
 
   const handleDeleteCustomer = (id) => {
     const patient = customers.find((c) => c.id === id)
     if (!patient) return
 
-    if (window.confirm(`Bạn có chắc chắn muốn xóa khách hàng ${patient.name} (${id})?`)) {
-      // Áp dụng XÓA LOGIC (Soft Delete).
-      // Chuyển trạng thái thành "Ngừng hoạt động" (inactive) và ẩn khỏi danh sách tra cứu thông thường.
-      const updated = customers.map((c) =>
-        c.id === id ? { ...c, status: 'inactive' } : c
-      )
-      setCustomers(updated)
-      localStorage.setItem('dental_customers', JSON.stringify(updated))
-    }
+    setConfirmModalConfig({
+      title: 'Xác nhận xóa',
+      message: `Bạn có chắc chắn muốn xóa khách hàng ${patient.name} (${id})? Hành động này không thể hoàn tác.`,
+      confirmLabel: 'Xóa',
+      variant: 'danger',
+      onConfirm: async () => {
+        setIsConfirmLoading(true)
+        try {
+          await customerApi.remove(id)
+          addToast('Đã xóa khách hàng thành công!')
+          setConfirmModalConfig(null)
+          fetchCustomers()
+        } catch (err) {
+          addToast('Có lỗi xảy ra khi xóa khách hàng.', 'error')
+        } finally {
+          setIsConfirmLoading(false)
+        }
+      }
+    })
   }
 
+  const toolbar = (
+    <CustomerToolbar
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      onAddClick={handleOpenAddModal}
+    />
+  );
+
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
-      <section className="customer-page">
-        <header className="customer-page__header">
-          <h1 className="customer-page__title">Quản lý khách hàng</h1>
-          <CustomerToolbar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onAddClick={handleOpenAddModal}
+    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={currentUser}>
+      <ManagementPageLayout
+        title="Quản lý khách hàng"
+        subtitle="Quản lý thông tin và hồ sơ bệnh án của khách hàng"
+        toolbar={toolbar}
+      >
+        {isError ? (
+          <div className="customer-table__message customer-table__message--error">
+            Không thể tải danh sách khách hàng. Hãy kiểm tra kết nối tới Backend.
+          </div>
+        ) : (
+          <CustomerTable
+            customers={customers}
+            isLoading={isLoading}
+            onEdit={handleEditCustomer}
+            onDelete={handleDeleteCustomer}
+            showDelete={showDelete}
           />
-        </header>
+        )}
+      </ManagementPageLayout>
 
-        <CustomerTable
-          customers={filteredCustomers}
-          onEdit={handleEditCustomer}
-          onDelete={handleDeleteCustomer}
+      <CustomerModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveCustomer}
+        customer={selectedCustomer}
+      />
+      
+      {confirmModalConfig && (
+        <StaffConfirmModal
+          open={!!confirmModalConfig}
+          title={confirmModalConfig.title}
+          message={confirmModalConfig.message}
+          confirmLabel={confirmModalConfig.confirmLabel}
+          onConfirm={confirmModalConfig.onConfirm}
+          onCancel={() => setConfirmModalConfig(null)}
+          isLoading={isConfirmLoading}
+          variant={confirmModalConfig.variant}
         />
+      )}
 
-        <CustomerModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleSaveCustomer}
-          customer={selectedCustomer}
-        />
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast({ message: '', type: '' })} 
-        />
-      </section>
+      <ToastStack toasts={toasts} />
     </DashboardLayout>
   )
 }

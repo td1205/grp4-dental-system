@@ -1,4 +1,5 @@
 import Icon from '../../common/Icon/Icon'
+import { PrimaryButton } from '../../ui/Button/PrimaryButton'
 import './CustomerToolbar.css'
 
 export default function CustomerToolbar({ searchQuery, onSearchChange, onAddClick }) {
@@ -15,10 +16,10 @@ export default function CustomerToolbar({ searchQuery, onSearchChange, onAddClic
           aria-label="Tìm kiếm khách hàng"
         />
       </div>
-      <button type="button" className="customer-toolbar__add" onClick={onAddClick}>
-        <Icon name="plus" className="customer-toolbar__add-icon" size={18} />
+      <PrimaryButton onClick={onAddClick} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Icon name="plus" size={18} />
         Thêm khách hàng mới
-      </button>
+      </PrimaryButton>
     </div>
   )
 }

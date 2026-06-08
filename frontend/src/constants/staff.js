@@ -8,8 +8,8 @@ export const ROLE_OPTIONS = [
 export const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
   { value: 'active', label: 'Hoạt động' },
-  { value: 'locked', label: 'Tạm khóa' },
-  { value: 'inactive', label: 'Ngưng hoạt động' },
+  { value: 'pending', label: 'Chờ kích hoạt' },
+  { value: 'suspended', label: 'Đã đình chỉ / Nghỉ việc' },
 ];
 
 export const ROLE_LABELS = {
@@ -21,7 +21,7 @@ export const ROLE_LABELS = {
 export const STATUS_LABELS = {
   pending: 'Chờ kích hoạt',
   active: 'Hoạt động',
-  locked: 'Tạm khóa',
+  suspended: 'Thùng rác',
   inactive: 'Ngưng hoạt động',
 };
 

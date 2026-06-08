@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import Icon from '../../common/Icon/Icon'
+import { formatDateForInput } from '../../../utils/staffFormMappers'
+import { PrimaryButton } from '../../ui/Button/PrimaryButton'
 import './CustomerModal.css'
 
 export default function CustomerModal({ isOpen, onClose, onSave, customer = null }) {
@@ -21,7 +23,7 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer = null
         setFormData({
           id: customer.id,
           name: customer.name || '',
-          dob: customer.dob || '',
+          dob: formatDateForInput(customer.dob || customer.dateOfBirth),
           phone: customer.phone || '',
           cccd: customer.cccd || '',
           address: customer.address || '',
@@ -225,9 +227,9 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer = null
             <button type="button" className="customer-btn-cancel" onClick={onClose}>
               Hủy
             </button>
-            <button type="submit" className="customer-btn-submit">
+            <PrimaryButton type="submit">
               {isEdit ? 'Cập nhật' : 'Thêm mới'}
-            </button>
+            </PrimaryButton>
           </footer>
         </form>
       </div>

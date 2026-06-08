@@ -1,7 +1,11 @@
 import Icon from '../../common/Icon/Icon'
 import './CustomerTable.css'
 
-export default function CustomerTable({ customers, onEdit, onDelete }) {
+export default function CustomerTable({ customers, isLoading, onEdit, onDelete, showDelete = true }) {
+  if (isLoading) {
+    return <div className="customer-table__loading">Đang tải dữ liệu...</div>
+  }
+
   return (
     <div className="customer-table-container">
       <table className="customer-table">
@@ -19,11 +23,11 @@ export default function CustomerTable({ customers, onEdit, onDelete }) {
           {customers.length > 0 ? (
             customers.map((customer) => (
               <tr key={customer.id}>
-                <td className="customer-table__id">{customer.id}</td>
-                <td>{customer.name}</td>
-                <td>{customer.phone}</td>
-                <td>{customer.cccd}</td>
-                <td>
+                <td className="customer-table__id" data-label="Mã BN">{customer.id}</td>
+                <td data-label="Họ tên">{customer.name}</td>
+                <td data-label="Số điện thoại">{customer.phone}</td>
+                <td data-label="CCCD">{customer.cccd}</td>
+                <td data-label="Trạng thái">
                   <span className={`customer-badge customer-badge--${customer.status}`}>
                     {customer.status === 'active'
                       ? 'Đang hoạt động'
@@ -32,7 +36,7 @@ export default function CustomerTable({ customers, onEdit, onDelete }) {
                       : 'Tạm khóa'}
                   </span>
                 </td>
-                <td className="customer-table__actions customer-table__align-right">
+                <td className="customer-table__actions customer-table__align-right" data-label="Thao tác">
                   <button 
                     type="button" 
                     className="customer-table__btn customer-table__btn--edit"
@@ -41,14 +45,16 @@ export default function CustomerTable({ customers, onEdit, onDelete }) {
                   >
                     <Icon name="edit" size={16} /> <span>Chỉnh sửa</span>
                   </button>
-                  <button 
-                    type="button" 
-                    className="customer-table__btn customer-table__btn--delete"
-                    onClick={() => onDelete(customer.id)}
-                    title="Xóa"
-                  >
-                    <Icon name="trash" size={16} /> <span>Xóa</span>
-                  </button>
+                  {showDelete && (
+                    <button 
+                      type="button" 
+                      className="customer-table__btn customer-table__btn--delete"
+                      onClick={() => onDelete(customer.id)}
+                      title="Xóa"
+                    >
+                      <Icon name="trash" size={16} /> <span>Xóa</span>
+                    </button>
+                  )}
                 </td>
               </tr>
             ))

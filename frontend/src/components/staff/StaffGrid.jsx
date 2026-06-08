@@ -8,6 +8,7 @@ export function StaffGrid({
   onView,
   onEdit,
   onChangePassword,
+  onResetPassword,
   onToggleLock,
   onDelete,
   onResendMail,
@@ -29,6 +30,7 @@ export function StaffGrid({
           onView={onView}
           onEdit={onEdit}
           onChangePassword={onChangePassword}
+          onResetPassword={onResetPassword}
           onToggleLock={onToggleLock}
           onDelete={onDelete}
           onResendMail={onResendMail}

@@ -32,7 +32,7 @@
   flex-direction: column;
   background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-deep) 100%);
   color: var(--sidebar-text);
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--staff-font);
 }
 
 .sidebar__brand {

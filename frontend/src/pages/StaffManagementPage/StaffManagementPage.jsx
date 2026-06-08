@@ -11,6 +11,8 @@ import { useStaffActions } from '../../hooks/useStaffActions.js';
 import { staffApi } from '../../services/staffApi.js';
 import { exportStaffsToExcel } from '../../utils/exportStaffExcel.js';
 import AddStaffModal from '../../components/staff/AddStaffModal/AddStaffModal.jsx';
+import ManagementPageLayout from '../../components/layout/ManagementPageLayout/ManagementPageLayout';
+import { ReassignDoctorModal } from '../../components/staff/ReassignDoctorModal.jsx';
 import './StaffManagementPage.css';
 
 function CheckCircleIcon() {
@@ -47,6 +49,8 @@ export default function StaffManagementPage() {
     setRole,
     status,
     setStatus,
+    sort,
+    setSort,
     page,
     setPage,
     total,
@@ -54,9 +58,11 @@ export default function StaffManagementPage() {
     staffs,
     isLoading,
     isError,
+    refetch,
   } = useStaffQuery();
 
   const {
+    modalState,
     modalOpen,
     modalConfig,
     openLockModal,
@@ -88,43 +94,54 @@ export default function StaffManagementPage() {
     setIsAddModalOpen(true);
   };
 
+  const currentUser = (() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : DEFAULT_USER;
+    } catch {
+      return DEFAULT_USER;
+    }
+  })();
+
+  const toolbar = (
+    <StaffToolbar
+      search={search}
+      onSearchChange={setSearch}
+      role={role}
+      onRoleChange={setRole}
+      status={status}
+      onStatusChange={setStatus}
+      sort={sort}
+      onSortChange={setSort}
+      onExport={handleExport}
+      onAdd={handleAdd}
+    />
+  );
+
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
-      <div className="staff-page">
-        <header className="staff-page__header">
-          <h1 className="staff-page__title">Quản lý nhân viên & Bác sĩ</h1>
-          <p>Quản lý thông tin nhân viên nội bộ (Admin, Lễ tân, Bác sĩ)</p>
-        </header>
+    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={currentUser}>
+      <ManagementPageLayout
+        title="Quản lý nhân viên & Bác sĩ"
+        subtitle="Quản lý thông tin nhân viên nội bộ (Admin, Lễ tân, Bác sĩ)"
+        toolbar={toolbar}
+      >
+        {exportMessage ? (
+          <p
+            className={`staff-page__toast${
+              exportMessage.includes('Không') ? ' staff-page__toast--error' : ''
+            }`}
+            role="status"
+          >
+            {exportMessage}
+          </p>
+        ) : null}
 
-        <div className="staff-card">
-          <StaffToolbar
-            search={search}
-            onSearchChange={setSearch}
-            role={role}
-            onRoleChange={setRole}
-            status={status}
-            onStatusChange={setStatus}
-            onExport={handleExport}
-            onAdd={handleAdd}
-          />
-
-          {exportMessage ? (
-            <p
-              className={`staff-page__toast${
-                exportMessage.includes('Không') ? ' staff-page__toast--error' : ''
-              }`}
-              role="status"
-            >
-              {exportMessage}
-            </p>
-          ) : null}
-
-          {isError ? (
-            <div className="staff-table__message staff-table__message--error">
-              Không thể tải danh sách nhân viên. Hãy chạy backend tại cổng 3000 (
-              <code>cd backend && npm run dev</code>).
-            </div>
-          ) : (
+        {isError ? (
+          <div className="staff-table__message staff-table__message--error">
+            Không thể tải danh sách nhân viên. Hãy chạy backend tại cổng 3000 (
+            <code>cd backend && npm run dev</code>).
+          </div>
+        ) : (
             <StaffGrid
               staffs={staffs}
               isLoading={isLoading}
@@ -132,9 +149,26 @@ export default function StaffManagementPage() {
               onView={(s) => navigate(`/staff/${s.id}/edit`)}
               onEdit={(s) => navigate(`/staff/${s.id}/edit`)}
               onChangePassword={(s) => console.info('changePassword', s.id)}
+              onResetPassword={(s) => {
+                const confirmed = window.confirm(`Bạn có chắc chắn muốn reset mật khẩu của ${s.fullName} về mặc định (Dentalcare@123)?`);
+                if (confirmed) {
+                  staffApi.resetPassword(s.id).then(() => {
+                    addToast(`Đã reset mật khẩu thành công cho ${s.fullName}.`);
+                  }).catch(() => {
+                    addToast(`Có lỗi xảy ra khi reset mật khẩu cho ${s.fullName}.`);
+                  });
+                }
+              }}
               onToggleLock={openLockModal}
               onDelete={openDeleteModal}
-              onResendMail={(email) => addToast(`Đã gửi lại email thành công tới ${email}!`)}
+              onResendMail={async (s) => {
+                try {
+                  await staffApi.resendEmail(s.id);
+                  addToast(`Đã gửi lại email kích hoạt thực tế đến hòm thư của nhân sự!`);
+                } catch (error) {
+                  addToast(`Có lỗi xảy ra khi gửi email tới ${s.personalEmail || s.fullName}.`);
+                }
+              }}
             />
           )}
 
@@ -146,42 +180,60 @@ export default function StaffManagementPage() {
               onPageChange={setPage}
             />
           )}
-        </div>
+        </ManagementPageLayout>
 
-        {modalConfig ? (
-          <StaffConfirmModal
-            open={modalOpen}
-            title={modalConfig.title}
-            message={modalConfig.message}
-            confirmLabel={modalConfig.confirmLabel}
-            onConfirm={confirmModal}
-            onCancel={closeModal}
-            isLoading={isModalLoading}
-            variant={modalConfig.variant}
-          />
-        ) : null}
+      {modalConfig ? (
+        <StaffConfirmModal
+          open={modalOpen}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          confirmLabel={modalConfig.confirmLabel}
+          onConfirm={confirmModal}
+          onCancel={closeModal}
+          isLoading={isModalLoading}
+          variant={modalConfig.variant}
+        />
+      ) : null}
 
-        <AddStaffModal
-          isOpen={isAddModalOpen}
-          formValues={addStaffFormValues}
-          onFieldChange={(field, value) => setAddStaffFormValues(prev => ({ ...prev, [field]: value }))}
-          onClose={() => setIsAddModalOpen(false)}
-          onSubmit={() => {
-            console.info('Submitting AddStaff form...', addStaffFormValues);
+      <ReassignDoctorModal
+        open={modalState?.type === 'reassign'}
+        staff={modalState?.staff}
+        appointments={modalState?.appointments}
+        reason={modalState?.reason}
+        onClose={closeModal}
+        onSuccess={() => {
+          closeModal();
+          addToast('Bàn giao ca và đình chỉ bác sĩ thành công!');
+          refetch();
+        }}
+      />
+
+      <AddStaffModal
+        isOpen={isAddModalOpen}
+        formValues={addStaffFormValues}
+        onFieldChange={(field, value) => setAddStaffFormValues(prev => ({ ...prev, [field]: value }))}
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={async () => {
+          try {
+            await staffApi.create(addStaffFormValues);
             setIsAddModalOpen(false);
             setAddStaffFormValues({});
-            addToast('Đã lưu thông tin nhân viên mới!');
-          }}
-        />
+            addToast('🎉 Thêm mới nhân sự thành công! Hệ thống đã tự động gửi email kèm liên kết hướng dẫn đổi mật khẩu kích hoạt đến hòm thư cá nhân của nhân sự.');
+            refetch();
+          } catch (error) {
+            const message = error.response?.data?.message || 'Có lỗi xảy ra khi thêm nhân viên';
+            addToast(message);
+          }
+        }}
+      />
 
-        <div className="toast-stack-container">
-          {toasts.map((toast) => (
-            <div key={toast.id} className="toast-item">
-              <CheckCircleIcon />
-              <span className="toast-item__message">{toast.message}</span>
-            </div>
-          ))}
-        </div>
+      <div className="toast-stack-container">
+        {toasts.map((toast) => (
+          <div key={toast.id} className="toast-item">
+            <CheckCircleIcon />
+            <span className="toast-item__message">{toast.message}</span>
+          </div>
+        ))}
       </div>
     </DashboardLayout>
   );

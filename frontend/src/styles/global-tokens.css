@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* --- Hệ màu sắc (Colors) --- */
+  --color-primary: #0077b6;
+  --color-secondary: #03045e;
+  --color-accent: #00b4d8;
+  --color-background: #f0f4f8;
+  --color-text-main: #212529;
+  --color-text-sub: #6c757d;
+  --color-border: #dee2e6;
+  --color-light: #caf0f8;
+  --color-white: #ffffff;
+  
+  /* Trạng thái */
+  --color-success-bg: #e8f5e9;
+  --color-success-text: #2e7d32;
+  --color-warning-bg: #fef9c3;
+  --color-warning-text: #854d0e;
+  --color-danger-bg: #fee2e2;
+  --color-danger-text: #dc2626;
+
+  /* --- Hệ Typography --- */
+  --font-family-main: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-base: 14px;
+  --font-weight-bold: 600;
+
+  /* --- Hệ Spacing & Radius --- */
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-full: 9999px;
+
+  /* --- Hệ Transition --- */
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.15s ease;
+
+  /* --- Hệ Shadow --- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-focus: 0 0 0 3px rgba(0, 119, 182, 0.25);
+}
+
+/* Tắt focus cứng mặc định trên toàn hệ thống */
+input:focus, select:focus, textarea:focus, button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--color-accent) !important;
+  transition: border-color 0.2s ease-in-out;
+}

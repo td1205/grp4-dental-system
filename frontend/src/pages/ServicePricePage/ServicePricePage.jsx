@@ -1,62 +1,34 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import axios from 'axios'
 import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLayout'
+import ModalWrapper from '../../components/common/ModalWrapper/ModalWrapper'
+import { PrimaryButton } from '../../components/ui/Button/PrimaryButton'
 import Icon from '../../components/common/Icon/Icon'
 import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 import './ServicePricePage.css'
 
 const ACTIVE_PATH = '/services/prices'
-
-const SEED_SERVICES = [
-  {
-    id: 'DV001',
-    name: 'Khám tổng quát và lập kế hoạch điều trị',
-    category: 'Khám và tư vấn',
-    status: 'active',
-    priceHistory: [
-      { version: 1, price: '200.000', bhyt: '150.000', effectiveDate: '2026-01-01' }
-    ]
-  },
-  {
-    id: 'DV002',
-    name: 'Cạo vôi răng và đánh bóng',
-    category: 'Vệ sinh răng miệng',
-    status: 'active',
-    priceHistory: [
-      { version: 1, price: '300.000', bhyt: '250.000', effectiveDate: '2026-01-01' }
-    ]
-  },
-  {
-    id: 'DV003',
-    name: 'Tẩy trắng răng công nghệ cao',
-    category: 'Thẩm mỹ',
-    status: 'active',
-    priceHistory: [
-      { version: 1, price: '2.000.000', bhyt: '0', effectiveDate: '2026-01-01' }
-    ]
-  },
-  {
-    id: 'DV004',
-    name: 'Nhổ răng khôn (mọc ngầm/lệch)',
-    category: 'Phẫu thuật',
-    status: 'active',
-    priceHistory: []
-  },
-  {
-    id: 'DV005',
-    name: 'Phẫu thuật cắt chóp răng',
-    category: 'Phẫu thuật',
-    status: 'active',
-    priceHistory: []
-  }
-]
+const API_URL = 'http://localhost:5000/api/services'
 
 export default function ServicePricePage() {
-  const [services, setServices] = useState(() => {
-    const saved = localStorage.getItem('dental_services')
-    if (saved) return JSON.parse(saved)
-    localStorage.setItem('dental_services', JSON.stringify(SEED_SERVICES))
-    return SEED_SERVICES
-  })
+  const [services, setServices] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    fetchServices()
+  }, [])
+
+  const fetchServices = async () => {
+    try {
+      setIsLoading(true)
+      const res = await axios.get(API_URL)
+      setServices(res.data.data || [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const [activeTab, setActiveTab] = useState('all') // 'all' (Tất cả biểu giá) hoặc 'no-price' (Dịch vụ chưa có giá)
   
@@ -100,39 +72,30 @@ export default function ServicePricePage() {
   }
 
   // Lưu biểu giá mới (Sinh ra version mới)
-  const handleSavePrice = (e) => {
+  const handleSavePrice = async (e) => {
     e.preventDefault()
     if (!newPrice.trim()) {
       setAdjustError('Vui lòng nhập đơn giá thường')
       return
     }
 
-    const priceHistory = [...(selectedService.priceHistory || [])]
-    const nextVersion = priceHistory.length + 1
-    const cleanPrice = Number(newPrice.replace(/\D/g, '')).toLocaleString('vi-VN')
-    const cleanBhyt = newBhyt.trim() ? Number(newBhyt.replace(/\D/g, '')).toLocaleString('vi-VN') : '0'
+    try {
+      const cleanPrice = Number(newPrice.replace(/\D/g, '')).toLocaleString('vi-VN')
+      const cleanBhyt = newBhyt.trim() ? Number(newBhyt.replace(/\D/g, '')).toLocaleString('vi-VN') : '0'
 
-    // Tạo phiên bản giá mới (không ghi đè lịch sử giá cũ)
-    const newVersion = {
-      version: nextVersion,
-      price: cleanPrice,
-      bhyt: cleanBhyt,
-      effectiveDate: newEffectiveDate || new Date().toISOString().slice(0, 10)
-    }
-
-    const updated = services.map(s => {
-      if (s.id === selectedService.id) {
-        return {
-          ...s,
-          priceHistory: [...priceHistory, newVersion]
-        }
+      const payload = {
+        price: cleanPrice,
+        bhyt: cleanBhyt,
+        effectiveDate: newEffectiveDate || new Date().toISOString().slice(0, 10)
       }
-      return s
-    })
 
-    setServices(updated)
-    localStorage.setItem('dental_services', JSON.stringify(updated))
-    setIsAdjustModalOpen(false)
+      await axios.post(`${API_URL}/${selectedService.id}/prices`, payload)
+      fetchServices()
+      setIsAdjustModalOpen(false)
+    } catch (err) {
+      console.error(err)
+      setAdjustError('Có lỗi xảy ra khi lưu bảng giá mới')
+    }
   }
 
   // Xem lịch sử giá
@@ -192,12 +155,12 @@ export default function ServicePricePage() {
                       <td className="price-table__id">{item.id}</td>
                       <td className="price-table__name" style={{ fontWeight: 500 }}>{item.name}</td>
                       <td style={{ fontWeight: 600, color: latestPrice ? '#0f172a' : '#94a3b8' }}>
-                        {latestPrice ? latestPrice.price : 'Chưa thiết lập'}
+                        {latestPrice ? (latestPrice.regularPrice || latestPrice.price) : 'Chưa thiết lập'}
                       </td>
-                      <td style={{ color: latestPrice && latestPrice.bhyt !== '0' ? '#2563eb' : '#94a3b8' }}>
-                        {latestPrice ? latestPrice.bhyt : 'Chưa thiết lập'}
+                      <td style={{ color: latestPrice && (latestPrice.insurancePrice || latestPrice.bhyt) !== '0' ? '#2563eb' : '#94a3b8' }}>
+                        {latestPrice ? (latestPrice.insurancePrice || latestPrice.bhyt) : 'Chưa thiết lập'}
                       </td>
-                      <td>{latestPrice ? latestPrice.effectiveDate : '—'}</td>
+                      <td>{latestPrice ? new Date(latestPrice.effectiveDate).toLocaleDateString('vi-VN') : '—'}</td>
                       <td>
                         <span className={`price-badge ${latestPrice ? 'price-badge--active' : 'customer-badge--locked'}`} style={{ fontSize: '11px' }}>
                           {latestPrice ? 'Đang áp dụng' : 'Chưa áp dụng giá'}
@@ -238,120 +201,108 @@ export default function ServicePricePage() {
       </div>
 
       {/* Modal Điều Chỉnh Giá */}
-      {isAdjustModalOpen && selectedService && (
-        <div className="service-modal-overlay">
-          <div className="service-modal" style={{ maxWidth: '460px' }}>
-            <header className="service-modal__header">
-              <h2>Điều chỉnh biểu giá dịch vụ</h2>
-              <button type="button" className="service-modal__close-btn" onClick={() => setIsAdjustModalOpen(false)}>
-                <Icon name="x" size={18} />
-              </button>
-            </header>
-
-            <form onSubmit={handleSavePrice}>
-              <div className="service-modal__body">
-                <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                  Dịch vụ: <strong style={{ color: '#0f172a' }}>{selectedService.name} ({selectedService.id})</strong>
-                </p>
-                
-                {selectedService.priceHistory && selectedService.priceHistory.length > 0 && (
-                  <div style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: '6px', fontSize: '12px', color: '#475569', borderLeft: '3px solid #2563eb' }}>
-                    Phiên bản hiện tại (v{selectedService.priceHistory.length}):{' '}
-                    <strong>{selectedService.priceHistory[selectedService.priceHistory.length - 1].price} VND</strong> (BHYT:{' '}
-                    <strong>{selectedService.priceHistory[selectedService.priceHistory.length - 1].bhyt} VND</strong>)
-                  </div>
-                )}
-
-                {adjustError && (
-                  <p style={{ color: '#ef4444', fontSize: '12px', margin: 0 }}>{adjustError}</p>
-                )}
-
-                <div className="service-modal__field">
-                  <label htmlFor="adj-price">Đơn giá thường mới (VND) <span style={{ color: '#dc2626' }}>*</span></label>
-                  <input
-                    id="adj-price"
-                    type="number"
-                    placeholder="Nhập giá tự túc mới"
-                    value={newPrice}
-                    onChange={(e) => setNewPrice(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="service-modal__field">
-                  <label htmlFor="adj-bhyt">Đơn giá BHYT chi trả mới (VND)</label>
-                  <input
-                    id="adj-bhyt"
-                    type="number"
-                    placeholder="Nhập giá bảo hiểm mới"
-                    value={newBhyt}
-                    onChange={(e) => setNewBhyt(e.target.value)}
-                  />
-                </div>
-
-                <div className="service-modal__field">
-                  <label htmlFor="adj-date">Ngày bắt đầu hiệu lực <span style={{ color: '#dc2626' }}>*</span></label>
-                  <input
-                    id="adj-date"
-                    type="date"
-                    value={newEffectiveDate}
-                    onChange={(e) => setNewEffectiveDate(e.target.value)}
-                    required
-                  />
-                </div>
+      <ModalWrapper
+        isOpen={isAdjustModalOpen && selectedService !== null}
+        onClose={() => setIsAdjustModalOpen(false)}
+        title="Điều chỉnh biểu giá dịch vụ"
+        maxWidth="460px"
+        footer={
+          <>
+            <button type="button" className="customer-btn-cancel" onClick={() => setIsAdjustModalOpen(false)}>Hủy</button>
+            <PrimaryButton onClick={handleSavePrice}>Cập nhật giá</PrimaryButton>
+          </>
+        }
+      >
+        <form onSubmit={handleSavePrice} id="adjust-price-form">
+          <div className="service-modal__body" style={{ padding: 0 }}>
+            <p style={{ margin: 0, fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+              Dịch vụ: <strong style={{ color: '#0f172a' }}>{selectedService?.name} ({selectedService?.id})</strong>
+            </p>
+            
+            {selectedService?.priceHistory && selectedService.priceHistory.length > 0 && (
+              <div style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: '6px', fontSize: '12px', color: '#475569', borderLeft: '3px solid #2563eb', marginBottom: '16px' }}>
+                Phiên bản hiện tại (v{selectedService.priceHistory.length}):{' '}
+                <strong>{selectedService.priceHistory[selectedService.priceHistory.length - 1].regularPrice || selectedService.priceHistory[selectedService.priceHistory.length - 1].price} VND</strong> (BHYT:{' '}
+                <strong>{selectedService.priceHistory[selectedService.priceHistory.length - 1].insurancePrice || selectedService.priceHistory[selectedService.priceHistory.length - 1].bhyt} VND</strong>)
               </div>
+            )}
 
-              <footer className="service-modal__footer">
-                <button type="button" className="customer-btn-cancel" onClick={() => setIsAdjustModalOpen(false)}>Hủy</button>
-                <button type="submit" className="customer-btn-submit">Cập nhật giá</button>
-              </footer>
-            </form>
-          </div>
-        </div>
-      )}
+            {adjustError && (
+              <p style={{ color: '#ef4444', fontSize: '12px', margin: '0 0 16px 0' }}>{adjustError}</p>
+            )}
 
-      {/* Modal Lịch Sử Biểu Giá */}
-      {isHistoryModalOpen && historyService && (
-        <div className="service-modal-overlay">
-          <div className="service-modal" style={{ maxWidth: '500px' }}>
-            <header className="service-modal__header">
-              <h2>Lịch sử thay đổi giá</h2>
-              <button type="button" className="service-modal__close-btn" onClick={() => setIsHistoryModalOpen(false)}>
-                <Icon name="x" size={18} />
-              </button>
-            </header>
-
-            <div className="service-modal__body" style={{ maxHeight: '380px', overflowY: 'auto' }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', marginBottom: '10px' }}>
-                Dịch vụ: <strong style={{ color: '#0f172a' }}>{historyService.name}</strong>
-              </p>
-
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: '#f8fafc', fontWeight: 600, fontSize: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <span>PHIÊN BẢN</span>
-                  <span>ĐƠN GIÁ thường</span>
-                  <span>BHYT</span>
-                  <span>NGÀY HIỆU LỰC</span>
-                </div>
-                
-                {/* Hiển thị các phiên bản từ mới nhất đến cũ nhất */}
-                {[...(historyService.priceHistory || [])].reverse().map((hist) => (
-                  <div className="history-item" key={hist.version}>
-                    <span className="history-item__version">v{hist.version} {hist.version === historyService.priceHistory.length ? '(Hiện tại)' : ''}</span>
-                    <span style={{ fontWeight: 600 }}>{hist.price} VND</span>
-                    <span style={{ color: hist.bhyt !== '0' ? '#2563eb' : '#94a3b8' }}>{hist.bhyt} VND</span>
-                    <span style={{ color: '#64748b' }}>{hist.effectiveDate}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="service-modal__field" style={{ marginBottom: '16px' }}>
+              <label htmlFor="adj-price" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Đơn giá thường mới (VND) <span style={{ color: '#dc2626' }}>*</span></label>
+              <input
+                id="adj-price"
+                type="number"
+                placeholder="Nhập giá tự túc mới"
+                value={newPrice}
+                onChange={(e) => setNewPrice(e.target.value)}
+                required
+              />
             </div>
 
-            <footer className="service-modal__footer">
-              <button type="button" className="customer-btn-submit" onClick={() => setIsHistoryModalOpen(false)}>Đóng</button>
-            </footer>
+            <div className="service-modal__field" style={{ marginBottom: '16px' }}>
+              <label htmlFor="adj-bhyt" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Đơn giá BHYT chi trả mới (VND)</label>
+              <input
+                id="adj-bhyt"
+                type="number"
+                placeholder="Nhập giá bảo hiểm mới"
+                value={newBhyt}
+                onChange={(e) => setNewBhyt(e.target.value)}
+              />
+            </div>
+
+            <div className="service-modal__field">
+              <label htmlFor="adj-date" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Ngày bắt đầu hiệu lực <span style={{ color: '#dc2626' }}>*</span></label>
+              <input
+                id="adj-date"
+                type="date"
+                value={newEffectiveDate}
+                onChange={(e) => setNewEffectiveDate(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+        </form>
+      </ModalWrapper>
+
+      {/* Modal Lịch Sử Biểu Giá */}
+      <ModalWrapper
+        isOpen={isHistoryModalOpen && historyService !== null}
+        onClose={() => setIsHistoryModalOpen(false)}
+        title="Lịch sử thay đổi giá"
+        maxWidth="500px"
+        footer={
+          <PrimaryButton onClick={() => setIsHistoryModalOpen(false)}>Đóng</PrimaryButton>
+        }
+      >
+        <div className="service-modal__body" style={{ maxHeight: '380px', overflowY: 'auto', padding: 0 }}>
+          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+            Dịch vụ: <strong style={{ color: '#0f172a' }}>{historyService?.name}</strong>
+          </p>
+
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: '#f8fafc', fontWeight: 600, fontSize: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+              <span style={{ width: '80px' }}>PHIÊN BẢN</span>
+              <span style={{ flex: 1 }}>ĐƠN GIÁ thường</span>
+              <span style={{ flex: 1 }}>BHYT</span>
+              <span style={{ width: '100px' }}>NGÀY HIỆU LỰC</span>
+            </div>
+            
+            {/* Hiển thị các phiên bản từ mới nhất đến cũ nhất */}
+            {[...(historyService?.priceHistory || [])].reverse().map((hist) => (
+              <div className="history-item" key={hist.version} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
+                <span className="history-item__version" style={{ width: '80px' }}>v{hist.version} {hist.version === historyService.priceHistory.length ? '(Hiện tại)' : ''}</span>
+                <span style={{ fontWeight: 600, flex: 1 }}>{hist.regularPrice || hist.price} VND</span>
+                <span style={{ color: (hist.insurancePrice || hist.bhyt) !== '0' ? '#2563eb' : '#94a3b8', flex: 1 }}>{hist.insurancePrice || hist.bhyt} VND</span>
+                <span style={{ color: '#64748b', width: '100px' }}>{new Date(hist.effectiveDate).toLocaleDateString('vi-VN')}</span>
+              </div>
+            ))}
           </div>
         </div>
-      )}
+      </ModalWrapper>
     </DashboardLayout>
   )
 }

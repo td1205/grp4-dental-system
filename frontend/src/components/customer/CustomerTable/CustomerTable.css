@@ -25,7 +25,7 @@
 .customer-table td {
   padding: 16px 18px;
   border-bottom: 1px solid #f0f0f0;
-  color: #1f2937;
+  color: var(--color-text-main);
 }
 
 .customer-table tr:last-child td {
@@ -61,7 +61,7 @@
 
 .customer-badge--inactive {
   background-color: #f3f4f6;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 /* Các nút bấm thao tác Sửa / Xóa */
@@ -104,4 +104,74 @@
   text-align: center;
   color: #9ca3af;
   padding: 32px !important;
+}
+
+@media (max-width: 768px) {
+  .customer-table-container {
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  
+  .customer-table,
+  .customer-table thead,
+  .customer-table tbody,
+  .customer-table tr,
+  .customer-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .customer-table thead {
+    display: none;
+  }
+  
+  .customer-table tr {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: var(--card-radius, 12px);
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  }
+  
+  .customer-table tr:last-child {
+    margin-bottom: 0;
+  }
+  
+  .customer-table td {
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: right;
+  }
+  
+  .customer-table td:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-top: 12px;
+    justify-content: flex-end;
+  }
+  
+  .customer-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #4b5563;
+    text-align: left;
+  }
+  
+  .customer-table__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .customer-table__btn {
+    padding: 6px 12px;
+  }
 }

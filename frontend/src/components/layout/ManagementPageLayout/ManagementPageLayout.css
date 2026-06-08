@@ -1,0 +1,48 @@
+.management-page {
+  padding: 2rem 2.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--staff-font);
+  color: var(--staff-text);
+}
+
+.management-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: clamp(20px, 2.5vw, 28px);
+  align-items: flex-start;
+}
+
+.management-page__title {
+  margin: 0;
+  font-size: clamp(22px, 2.5vw, 28px);
+  font-weight: 700;
+  color: var(--staff-heading, #0f172a);
+  letter-spacing: -0.02em;
+}
+
+.management-page__subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--staff-text-muted, #64748b);
+}
+
+.management-card {
+  background: var(--staff-card, #ffffff);
+  border-radius: var(--card-radius, 12px);
+  border: 1px solid var(--staff-border, #e5e7eb);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  padding: 1.25rem 1.5rem 1.25rem;
+  box-sizing: border-box;
+}
+
+.management-page__toolbar {
+  margin-bottom: var(--element-gap, 16px);
+}
+
+@media (max-width: 768px) {
+  .management-page {
+    padding: 1.25rem 1rem !important;
+  }
+}

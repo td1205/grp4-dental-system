@@ -1,94 +1,74 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import axios from 'axios'
 import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLayout'
 import ServiceToolbar from '../../components/service/ServiceToolbar/ServiceToolbar'
 import ServiceCategoryBlock from '../../components/service/ServiceCategoryBlock/ServiceCategoryBlock'
+import ModalWrapper from '../../components/common/ModalWrapper/ModalWrapper'
+import { PrimaryButton } from '../../components/ui/Button/PrimaryButton'
 import Icon from '../../components/common/Icon/Icon'
+import ToastStack from '../../components/common/ToastStack/ToastStack'
 import './ServiceCategoryPage.css'
 import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 
 const ACTIVE_PATH = '/services/categories'
 
-const SEED_SERVICES = [
-  {
-    id: 'DV001',
-    name: 'Khám tổng quát và lập kế hoạch điều trị',
-    category: 'Khám và tư vấn',
-    status: 'active',
-    priceHistory: [
-      { version: 1, price: '200.000', bhyt: '150.000', effectiveDate: '2026-01-01' }
-    ]
-  },
-  {
-    id: 'DV002',
-    name: 'Cạo vôi răng và đánh bóng',
-    category: 'Vệ sinh răng miệng',
-    status: 'active',
-    priceHistory: [
-      { version: 1, price: '300.000', bhyt: '250.000', effectiveDate: '2026-01-01' }
-    ]
-  },
-  {
-    id: 'DV003',
-    name: 'Tẩy trắng răng công nghệ cao',
-    category: 'Thẩm mỹ',
-    status: 'active',
-    priceHistory: [
-      { version: 1, price: '2.000.000', bhyt: '0', effectiveDate: '2026-01-01' }
-    ]
-  },
-  {
-    id: 'DV004',
-    name: 'Nhổ răng khôn (mọc ngầm/lệch)',
-    category: 'Phẫu thuật',
-    status: 'active',
-    priceHistory: []
-  },
-  {
-    id: 'DV005',
-    name: 'Phẫu thuật cắt chóp răng',
-    category: 'Phẫu thuật',
-    status: 'active',
-    priceHistory: []
-  }
-]
-
-const CATEGORY_MAP = {
-  kham: 'Khám và tư vấn',
-  'rang-mieng': 'Vệ sinh răng miệng',
-  'tham-my': 'Thẩm mỹ',
-  'phau-thuat': 'Phẫu thuật'
-}
+const API_URL = 'http://localhost:5000/api/services';
 
 export default function ServiceCategoryPage() {
-  const [services, setServices] = useState(() => {
-    const saved = localStorage.getItem('dental_services')
-    if (saved) return JSON.parse(saved)
-    localStorage.setItem('dental_services', JSON.stringify(SEED_SERVICES))
-    return SEED_SERVICES
-  })
+  const [services, setServices] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    fetchServices()
+  }, [])
+
+  const fetchServices = async () => {
+    try {
+      setIsLoading(true)
+      const res = await axios.get(API_URL)
+      setServices(res.data.data || [])
+    } catch (err) {
+      console.error(err)
+      alert('Không thể tải danh sách dịch vụ')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
-  
+  const [showInactive, setShowInactive] = useState(false)
+  const [toasts, setToasts] = useState([])
+
+  const addToast = (message, type = 'success') => {
+    const id = Date.now()
+    setToasts((prev) => [...prev, { id, message, type }])
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id))
+    }, 3000)
+  }
+
   // State form thêm dịch vụ mới
+  const [newServiceId, setNewServiceId] = useState('')
   const [newServiceName, setNewServiceName] = useState('')
   const [newServiceCategory, setNewServiceCategory] = useState('Khám và tư vấn')
-  const [newServicePrice, setNewServicePrice] = useState('')
-  const [newServiceBhyt, setNewServiceBhyt] = useState('')
-  const [newServiceDate, setNewServiceDate] = useState('2026-01-01')
+  const [newServiceDuration, setNewServiceDuration] = useState('30')
+  const [newServiceDescription, setNewServiceDescription] = useState('')
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [editServiceId, setEditServiceId] = useState('')
   const [formError, setFormError] = useState('')
 
   // Lấy danh sách dịch vụ active và lọc theo từ khóa tìm kiếm, bộ lọc
   const filteredServices = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     
-    // Chỉ lấy dịch vụ đang hoạt động
-    let list = services.filter(s => s.status === 'active')
+    let list = showInactive 
+      ? services.filter(s => s.status === 'inactive')
+      : services.filter(s => s.status === 'active')
     
     if (filter !== 'all') {
-      const categoryName = CATEGORY_MAP[filter]
-      list = list.filter(s => s.category === categoryName)
+      list = list.filter(s => s.category === filter)
     }
     
     if (q) {
@@ -119,66 +99,91 @@ export default function ServiceCategoryPage() {
   }, [filteredServices])
 
   // Xóa dịch vụ (Xóa logic)
-  const handleDeleteService = (id) => {
+  const handleDeleteService = async (id) => {
     const item = services.find(s => s.id === id)
     if (!item) return
     
     if (window.confirm(`Bạn có chắc chắn muốn xóa dịch vụ "${item.name}"? Dịch vụ sẽ ngừng hoạt động và ẩn khỏi danh sách.`)) {
-      const updated = services.map(s => s.id === id ? { ...s, status: 'inactive' } : s)
-      setServices(updated)
-      localStorage.setItem('dental_services', JSON.stringify(updated))
+      try {
+        await axios.delete(`${API_URL}/${id}`)
+        fetchServices() // Reload data
+      } catch (err) {
+        console.error(err)
+        alert('Có lỗi xảy ra khi xóa dịch vụ')
+      }
     }
   }
 
   // Mở modal thêm dịch vụ mới
   const handleOpenAddModal = () => {
+    setIsEditMode(false)
+    setNewServiceId('')
     setNewServiceName('')
     setNewServiceCategory('Khám và tư vấn')
-    setNewServicePrice('')
-    setNewServiceBhyt('')
-    setNewServiceDate('2026-01-01')
+    setNewServiceDuration('30')
+    setNewServiceDescription('')
     setFormError('')
     setIsModalOpen(true)
   }
 
-  // Lưu dịch vụ mới
-  const handleAddService = (e) => {
+  // Mở modal sửa dịch vụ
+  const handleOpenEditModal = (item) => {
+    setIsEditMode(true)
+    setEditServiceId(item.id)
+    setNewServiceId(item.id)
+    setNewServiceName(item.name || '')
+    setNewServiceCategory(item.category || 'Khám và tư vấn')
+    setNewServiceDuration(item.duration?.toString() || '30')
+    setNewServiceDescription(item.description || '')
+    setFormError('')
+    setIsModalOpen(true)
+  }
+
+  const handleRestoreService = async (id) => {
+    try {
+      await axios.patch(`${API_URL}/${id}/restore`)
+      fetchServices()
+      addToast('Khôi phục dịch vụ thành công')
+    } catch (err) {
+      console.error(err)
+      alert('Có lỗi xảy ra khi khôi phục dịch vụ')
+    }
+  }
+
+  // Lưu dịch vụ mới hoặc cập nhật
+  const handleAddService = async (e) => {
     e.preventDefault()
     if (!newServiceName.trim()) {
       setFormError('Vui lòng nhập tên dịch vụ')
       return
     }
 
-    // Tự sinh mã dịch vụ tăng dần
-    const maxNum = services.reduce((max, s) => {
-      const num = parseInt(s.id.replace('DV', ''), 10)
-      return !isNaN(num) && num > max ? num : max
-    }, 0)
-    const nextId = `DV${String(maxNum + 1).padStart(3, '0')}`
+    try {
+      const payload = {
+        id: isEditMode ? editServiceId : newServiceId.trim(),
+        name: newServiceName.trim(),
+        category: newServiceCategory,
+        duration: Number(newServiceDuration) || 30,
+        description: newServiceDescription.trim()
+      }
 
-    // Lịch sử giá (nếu điền đơn giá thường)
-    const priceHistory = []
-    if (newServicePrice.trim()) {
-      priceHistory.push({
-        version: 1,
-        price: Number(newServicePrice.replace(/\D/g, '')).toLocaleString('vi-VN'),
-        bhyt: newServiceBhyt.trim() ? Number(newServiceBhyt.replace(/\D/g, '')).toLocaleString('vi-VN') : '0',
-        effectiveDate: newServiceDate || new Date().toISOString().slice(0, 10)
-      })
+      if (isEditMode) {
+        await axios.put(`${API_URL}/${editServiceId}`, payload)
+        addToast('Cập nhật thông tin dịch vụ thành công')
+      } else {
+        await axios.post(API_URL, payload)
+        addToast('Thêm mới dịch vụ thành công. Vui lòng thiết lập bảng giá cho dịch vụ này')
+      }
+      fetchServices()
+      setIsModalOpen(false)
+    } catch (err) {
+      if (err.response?.status === 409) {
+        setFormError('Mã dịch vụ đã tồn tại trong hệ thống')
+        addToast('Mã dịch vụ đã tồn tại trong hệ thống', 'error')
+      } else {
+        setFormError(`Lỗi kết nối server khi ${isEditMode ? 'cập nhật' : 'tạo'} dịch vụ`)
+      }
     }
-
-    const newService = {
-      id: nextId,
-      name: newServiceName.trim(),
-      category: newServiceCategory,
-      status: 'active',
-      priceHistory
-    }
-
-    const updated = [...services, newService]
-    setServices(updated)
-    localStorage.setItem('dental_services', JSON.stringify(updated))
-    setIsModalOpen(false)
   }
 
   // Thống kê
@@ -201,6 +206,17 @@ export default function ServiceCategoryPage() {
             onFilterChange={setFilter}
             onAddClick={handleOpenAddModal}
           />
+          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+            <label style={{ display: 'flex', alignItems: 'center', fontSize: '13px', cursor: 'pointer', color: '#64748b' }}>
+              <input 
+                type="checkbox" 
+                checked={showInactive} 
+                onChange={(e) => setShowInactive(e.target.checked)} 
+                style={{ marginRight: '8px' }} 
+              />
+              Hiển thị dịch vụ đã ngừng hoạt động
+            </label>
+          </div>
         </header>
 
         <div className="service-stats">
@@ -224,8 +240,7 @@ export default function ServiceCategoryPage() {
 
         <div className="service-categories-list">
           {Object.entries(groupedCategories).map(([catName, list]) => {
-            // Nếu lọc danh mục cụ thể hoặc không có dịch vụ nào, chỉ hiển thị những cái khớp
-            if (filter !== 'all' && CATEGORY_MAP[filter] !== catName) return null
+            if (filter !== 'all' && filter !== catName) return null
 
             return (
               <ServiceCategoryBlock key={catName} categoryName={catName} itemsCount={list.length}>
@@ -243,36 +258,54 @@ export default function ServiceCategoryPage() {
                         color: '#334155'
                       }}
                     >
-                      <span>
-                        <strong style={{ color: '#0f172a', marginRight: '6px' }}>{item.id}</strong> - {item.name}
-                        {item.priceHistory && item.priceHistory.length > 0 ? (
-                          <span style={{ fontSize: '11px', color: '#16a34a', marginLeft: '8px', background: '#dcfce7', padding: '2px 6px', borderRadius: '4px' }}>
-                            Đã cấu hình giá
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '11px', color: '#d97706', marginLeft: '8px', background: '#fef3c7', padding: '2px 6px', borderRadius: '4px' }}>
-                            Chưa có giá
-                          </span>
-                        )}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <strong style={{ color: '#0f172a' }}>{item.name}</strong>
+                        <span style={{ color: '#94a3b8' }}>|</span>
+                        <span style={{ color: '#64748b' }}>{item.id}</span>
+                        <span style={{ color: '#94a3b8' }}>|</span>
+                        <span style={{ fontSize: '12px', color: '#10b981', background: '#d1fae5', padding: '2px 8px', borderRadius: '12px', fontWeight: 500 }}>
+                          {item.status === 'active' ? 'Hoạt động' : 'Đã ẩn'}
+                        </span>
+                        <span style={{ color: '#94a3b8' }}>|</span>
+                        <span style={{ color: '#64748b', fontSize: '13px' }}>{item.duration || 30} phút</span>
                       </span>
-                      <button
-                        type="button"
-                        className="service-delete-btn"
-                        onClick={() => handleDeleteService(item.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#94a3b8',
-                          cursor: 'pointer',
-                          padding: '6px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
-                        title="Xóa dịch vụ"
-                      >
-                        <Icon name="trash" size={14} />
-                      </button>
+                      {!showInactive ? (
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button
+                            type="button"
+                            className="service-delete-btn"
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
+                            title="Liên kết"
+                          >
+                            <Icon name="link" size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="service-delete-btn"
+                            onClick={() => handleOpenEditModal(item)}
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
+                            title="Sửa dịch vụ"
+                          >
+                            <Icon name="edit" size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="service-delete-btn"
+                            onClick={() => handleDeleteService(item.id)}
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
+                            title="Xóa dịch vụ"
+                          >
+                            <Icon name="trash" size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <PrimaryButton 
+                          onClick={() => handleRestoreService(item.id)}
+                          style={{ fontSize: '12px', padding: '6px 12px' }}
+                        >
+                          Khôi phục
+                        </PrimaryButton>
+                      )}
                     </div>
                   ))
                 ) : (
@@ -284,94 +317,89 @@ export default function ServiceCategoryPage() {
         </div>
       </div>
 
-      {/* Modal Thêm Dịch Vụ Mới */}
-      {isModalOpen && (
-        <div className="service-modal-overlay">
-          <div className="service-modal">
-            <header className="service-modal__header">
-              <h2>Thêm dịch vụ mới</h2>
-              <button type="button" className="service-modal__close-btn" onClick={() => setIsModalOpen(false)}>
-                <Icon name="x" size={18} />
-              </button>
-            </header>
+      {/* Modal Thêm/Sửa Dịch Vụ Mới */}
+      <ModalWrapper
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={isEditMode ? "Chỉnh sửa thông tin dịch vụ" : "Thêm dịch vụ mới"}
+        footer={
+          <>
+            <button type="button" className="customer-btn-cancel" onClick={() => setIsModalOpen(false)}>Hủy</button>
+            <PrimaryButton onClick={handleAddService}>{isEditMode ? "Cập nhật dịch vụ" : "Lưu dịch vụ"}</PrimaryButton>
+          </>
+        }
+      >
+        <form onSubmit={handleAddService} id="add-service-form">
+          <div className="service-modal__body" style={{ padding: 0 }}>
+            {formError && (
+              <p style={{ color: '#ef4444', fontSize: '12px', margin: '0 0 8px 0', padding: '8px', background: '#fef2f2', borderRadius: '4px', borderLeft: '3px solid #ef4444' }}>{formError}</p>
+            )}
             
-            <form onSubmit={handleAddService}>
-              <div className="service-modal__body">
-                {formError && (
-                  <p style={{ color: '#ef4444', fontSize: '12px', margin: '0 0 8px 0' }}>{formError}</p>
-                )}
-                
-                <div className="service-modal__field">
-                  <label htmlFor="svc-name">Tên dịch vụ <span className="required" style={{ color: '#dc2626' }}>*</span></label>
-                  <input
-                    id="svc-name"
-                    type="text"
-                    placeholder="Ví dụ: Trám răng thẩm mỹ công nghệ mới"
-                    value={newServiceName}
-                    onChange={(e) => setNewServiceName(e.target.value)}
-                    required
-                  />
-                </div>
+            <div className="service-modal__field" style={{ marginBottom: '16px' }}>
+              <label htmlFor="svc-id" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Mã dịch vụ {isEditMode ? '' : <span className="required" style={{ color: '#dc2626' }}>*</span>}</label>
+              <input
+                id="svc-id"
+                type="text"
+                placeholder="Ví dụ: DV001 (Để trống hệ thống sẽ tự sinh)"
+                value={newServiceId}
+                onChange={(e) => setNewServiceId(e.target.value)}
+                disabled={isEditMode}
+                title={isEditMode ? "Không thể sửa mã dịch vụ" : ""}
+              />
+            </div>
 
-                <div className="service-modal__field">
-                  <label htmlFor="svc-category">Danh mục dịch vụ</label>
-                  <select
-                    id="svc-category"
-                    value={newServiceCategory}
-                    onChange={(e) => setNewServiceCategory(e.target.value)}
-                  >
-                    <option value="Khám và tư vấn">Khám và tư vấn</option>
-                    <option value="Vệ sinh răng miệng">Vệ sinh răng miệng</option>
-                    <option value="Thẩm mỹ">Thẩm mỹ</option>
-                    <option value="Phẫu thuật">Phẫu thuật</option>
-                  </select>
-                </div>
+            <div className="service-modal__field" style={{ marginBottom: '16px' }}>
+              <label htmlFor="svc-name" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Tên dịch vụ <span className="required" style={{ color: '#dc2626' }}>*</span></label>
+              <input
+                id="svc-name"
+                type="text"
+                placeholder="Ví dụ: Trám răng thẩm mỹ công nghệ mới"
+                value={newServiceName}
+                onChange={(e) => setNewServiceName(e.target.value)}
+                required
+              />
+            </div>
 
-                <div style={{ padding: '8px', background: '#f8fafc', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <p style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, margin: '0 0 4px 0' }}>THIẾT LẬP GIÁ KHỞI TẠO (TÙY CHỌN)</p>
-                  
-                  <div className="service-modal__field">
-                    <label htmlFor="svc-price">Đơn giá thường (VND)</label>
-                    <input
-                      id="svc-price"
-                      type="number"
-                      placeholder="Ví dụ: 500000"
-                      value={newServicePrice}
-                      onChange={(e) => setNewServicePrice(e.target.value)}
-                    />
-                  </div>
+            <div className="service-modal__field" style={{ marginBottom: '16px' }}>
+              <label htmlFor="svc-category" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Danh mục dịch vụ</label>
+              <select
+                id="svc-category"
+                value={newServiceCategory}
+                onChange={(e) => setNewServiceCategory(e.target.value)}
+              >
+                <option value="Khám và tư vấn">Khám và tư vấn</option>
+                <option value="Vệ sinh răng miệng">Vệ sinh răng miệng</option>
+                <option value="Thẩm mỹ">Thẩm mỹ</option>
+                <option value="Phẫu thuật">Phẫu thuật</option>
+              </select>
+            </div>
 
-                  <div className="service-modal__field">
-                    <label htmlFor="svc-bhyt">Đơn giá BHYT chi trả (VND)</label>
-                    <input
-                      id="svc-bhyt"
-                      type="number"
-                      placeholder="Ví dụ: 300000"
-                      value={newServiceBhyt}
-                      onChange={(e) => setNewServiceBhyt(e.target.value)}
-                    />
-                  </div>
+            <div className="service-modal__field" style={{ marginBottom: '16px' }}>
+              <label htmlFor="svc-duration" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Thời gian điều trị (phút)</label>
+              <input
+                id="svc-duration"
+                type="number"
+                placeholder="30"
+                value={newServiceDuration}
+                onChange={(e) => setNewServiceDuration(e.target.value)}
+              />
+            </div>
 
-                  <div className="service-modal__field">
-                    <label htmlFor="svc-date">Ngày bắt đầu hiệu lực</label>
-                    <input
-                      id="svc-date"
-                      type="date"
-                      value={newServiceDate}
-                      onChange={(e) => setNewServiceDate(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <footer className="service-modal__footer">
-                <button type="button" className="customer-btn-cancel" onClick={() => setIsModalOpen(false)}>Hủy</button>
-                <button type="submit" className="customer-btn-submit">Lưu lại</button>
-              </footer>
-            </form>
+            <div className="service-modal__field" style={{ marginBottom: '16px' }}>
+              <label htmlFor="svc-desc" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Mô tả chi tiết</label>
+              <textarea
+                id="svc-desc"
+                placeholder="Nhập mô tả cho dịch vụ..."
+                value={newServiceDescription}
+                onChange={(e) => setNewServiceDescription(e.target.value)}
+                rows={4}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        </form>
+      </ModalWrapper>
+      
+      <ToastStack toasts={toasts} />
     </DashboardLayout>
   )
 }

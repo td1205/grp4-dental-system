@@ -4,8 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -190,4 +189,29 @@
 @keyframes slideUp {
   from { transform: translateY(12px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .customer-modal {
+    width: 92%;
+    max-width: 92%;
+    margin: auto;
+  }
+  
+  .customer-modal__row {
+    grid-template-columns: 1fr;
+    gap: 1.125rem;
+  }
+  
+  .customer-modal__body {
+    padding: 1rem;
+  }
+  
+  .customer-modal__header {
+    padding: 1rem;
+  }
+  
+  .customer-modal__footer {
+    padding: 1rem;
+  }
 }

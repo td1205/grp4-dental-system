@@ -46,12 +46,19 @@
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-text-main);
   line-height: 1.2;
 }
 
+.staff-card-item__tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .staff-card-item__role {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   padding: 2px 8px;
   border-radius: 9999px;
   font-size: 12px;
@@ -59,19 +66,30 @@
   width: fit-content;
 }
 
+.staff-card-item__specialty {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #fce7f3;
+  color: #be185d;
+}
+
 .staff-card-item__role--doctor {
-  background-color: #e0e7ff;
-  color: #4338ca;
+  background-color: #009688;
+  color: #ffffff;
 }
 
 .staff-card-item__role--receptionist {
-  background-color: #f3f4f6;
-  color: #4b5563;
+  background-color: #00897b;
+  color: #ffffff;
 }
 
 .staff-card-item__role--admin {
-  background-color: #dbeafe;
-  color: #1d4ed8;
+  background-color: #00796b;
+  color: #ffffff;
 }
 
 .staff-card-item__divider {
@@ -97,11 +115,11 @@
 }
 
 .staff-card-item__label {
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .staff-card-item__value {
-  color: #1f2937;
+  color: var(--color-text-main);
   font-weight: 500;
   text-align: right;
   word-break: break-all;
@@ -122,8 +140,8 @@
 }
 
 .staff-card-item__status--active {
-  background-color: #ecfdf5;
-  color: #10b981;
+  background-color: var(--staff-success-bg, #e8f5e9);
+  color: var(--staff-success-text, #2e7d32);
 }
 
 .staff-card-item__status--pending {
@@ -131,10 +149,15 @@
   color: #d97706;
 }
 
+.staff-card-item__status--suspended {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
 .staff-card-item__status--inactive,
 .staff-card-item__status--locked {
   background-color: #f3f4f6;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .staff-card-item__resend {
@@ -154,11 +177,34 @@
 
 .staff-card-item__resend:hover {
   background: #f9fafb;
-  color: #1f2937;
+  color: var(--color-text-main);
   border-color: #d1d5db;
 }
 
 .staff-card-item__actions {
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .staff-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .staff-card-item__header {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .staff-card-item__name {
+    font-size: 15px;
+    max-width: 140px;
+    word-break: break-word;
+  }
+
+  .staff-card-item__actions {
+    margin-left: auto;
+  }
 }

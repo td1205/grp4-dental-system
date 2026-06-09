@@ -4,12 +4,12 @@ import { JobInfoSection } from '../components/staff/form/JobInfoSection';
 import { AccountInfoSection } from '../components/staff/form/AccountInfoSection';
 import { StaffFormActions } from '../components/staff/form/StaffFormActions';
 import { useStaffForm } from '../hooks/useStaffForm';
-import DashboardLayout from '../components/layout/DashboardLayout/DashboardLayout';
+
 import { NAV_ITEMS, DEFAULT_USER } from '../constants/navigation';
 
 const ACTIVE_PATH = '/staff';
 
-export default function EditStaffPage() {
+export function EditStaffPage() {
   const { id } = useParams();
   const {
     values,
@@ -25,7 +25,7 @@ export default function EditStaffPage() {
   } = useStaffForm({ mode: 'edit', staffId: id });
 
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
+    <>
       <div className="staff-add-page">
         <Link to="/staff" className="staff-add-page__back">
           <BackIcon />
@@ -95,7 +95,7 @@ export default function EditStaffPage() {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

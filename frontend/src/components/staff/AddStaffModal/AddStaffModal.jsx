@@ -1,5 +1,5 @@
-import Icon from '../../common/Icon/Icon'
-import Modal from '../../common/Modal/Modal'
+import { Icon } from '../../common/Icon/Icon'
+import { Modal } from '../../common/Modal/Modal'
 import { PrimaryButton } from '../../ui/Button/PrimaryButton'
 import './AddStaffModal.css'
 
@@ -30,7 +30,7 @@ function FormField({ label, required, children, fullWidth = false }) {
   )
 }
 
-export default function AddStaffModal({
+export function AddStaffModal({
   isOpen,
   formValues,
   onFieldChange,

@@ -42,7 +42,7 @@ export function FormField({
   if (as === 'select') {
     control = (
       <select {...controlProps}>
-        {options.map((opt) => (
+        {options?.map((opt) => (
           <option key={opt.value || '__empty'} value={opt.value}>
             {opt.label}
           </option>

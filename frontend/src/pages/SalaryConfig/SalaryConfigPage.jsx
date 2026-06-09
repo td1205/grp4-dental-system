@@ -1,10 +1,10 @@
-import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLayout'
+
 import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
-import Icon from '../../components/common/Icon/Icon'
+import { Icon } from '../../components/common/Icon/Icon'
 
 const ACTIVE_PATH = '/salary/config'
 
-export default function SalaryConfigPage() {
+export function SalaryConfigPage() {
   const configs = [
     { id: 1, role: 'Bác sĩ chính', base: '25.000.000', shiftRate: '200.000', patientRate: '5% doanh thu ca bệnh' },
     { id: 2, role: 'Bác sĩ phụ tá', base: '12.000.000', shiftRate: '100.000', patientRate: '2% doanh thu ca bệnh' },
@@ -12,7 +12,7 @@ export default function SalaryConfigPage() {
   ]
 
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
+    <>
       <div className="staff-page" id="salary-config-page">
         <header className="staff-page__header">
           <h1 className="staff-page__title">Cấu hình lương & Hệ số ca bệnh</h1>
@@ -38,7 +38,7 @@ export default function SalaryConfigPage() {
                 </tr>
               </thead>
               <tbody>
-                {configs.map((config) => (
+                {configs?.map((config) => (
                   <tr key={config.id}>
                     <td style={{ fontWeight: 600 }}>{config.role}</td>
                     <td>{config.base}</td>
@@ -60,6 +60,6 @@ export default function SalaryConfigPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   )
 }

@@ -4,35 +4,35 @@
   /* --- Global Tokens đã được chuyển sang global-tokens.css --- */
 
   /* --- Backward Compatibility (Map biến cũ sang global-tokens) --- */
-  --staff-primary: var(--color-primary);
-  --staff-primary-dark: var(--color-secondary);
-  --staff-secondary: var(--color-accent);
-  --staff-primary-light: rgba(0, 119, 182, 0.12);
+  --staff-primary: var(--color-link-active);
+  --staff-primary-dark: var(--color-sidebar);
+  --staff-secondary: var(--color-cta);
+  --staff-primary-light: rgba(46, 95, 163, 0.12); /* Clinical Blue light */
   --staff-primary-focus: var(--shadow-focus);
   --staff-sidebar-active-bg: rgba(255, 255, 255, 0.18);
 
   --staff-border: var(--color-border);
-  --staff-bg: var(--color-background);
-  --staff-surface: var(--color-white);
-  --staff-bg-light: var(--color-light);
+  --staff-bg: var(--color-bg-page);
+  --staff-surface: var(--color-bg-card);
+  --staff-bg-light: #F5F7FA;
   --staff-text: var(--color-text-main);
   --staff-text-muted: var(--color-text-sub);
-  --staff-text-on-primary: var(--color-white);
+  --staff-text-on-primary: var(--color-bg-card);
   --staff-text-sidebar-muted: rgba(255, 255, 255, 0.72);
 
-  --staff-success-bg: #e8f5e9;
-  --staff-success-text: #2e7d32;
-  --staff-warning-bg: #fef9c3;
-  --staff-warning-text: #854d0e;
+  --staff-success-bg: var(--color-state-active-bg);
+  --staff-success-text: var(--color-state-active-text);
+  --staff-warning-bg: var(--color-state-suspended-bg);
+  --staff-warning-text: var(--color-state-suspended-text);
 
-  --staff-badge-implant-bg: #dbeafe;
-  --staff-badge-implant-text: #1d4ed8;
-  --staff-badge-ortho-bg: #ede9fe;
-  --staff-badge-ortho-text: #6d28d9;
-  --staff-badge-reception-bg: #f1f5f9;
-  --staff-badge-reception-text: #475569;
+  --staff-badge-admin-bg: var(--color-role-admin-bg);
+  --staff-badge-admin-text: var(--color-role-admin-text);
+  --staff-badge-doctor-bg: var(--color-role-doctor-bg);
+  --staff-badge-doctor-text: var(--color-role-doctor-text);
+  --staff-badge-receptionist-bg: var(--color-role-receptionist-bg);
+  --staff-badge-receptionist-text: var(--color-role-receptionist-text);
 
-  --staff-avatar-bg: var(--accent-color);
+  --staff-avatar-bg: var(--color-cta);
   --staff-avatar-text: #ffffff;
   --staff-overlay: rgba(15, 23, 42, 0.45);
   --staff-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);

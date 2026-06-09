@@ -1,10 +1,10 @@
-import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLayout'
+
 import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
-import Icon from '../../components/common/Icon/Icon'
+import { Icon } from '../../components/common/Icon/Icon'
 
 const ACTIVE_PATH = '/schedule/shifts'
 
-export default function ScheduleShiftsPage() {
+export function ScheduleShiftsPage() {
   const daysOfWeek = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật']
   const mockShifts = [
     { staff: 'Trần Thị Bình', role: 'Bác sĩ', schedule: ['Sáng', 'Chiều', 'Sáng', 'Chiều', 'Sáng', 'Sáng', 'Nghỉ'] },
@@ -13,7 +13,7 @@ export default function ScheduleShiftsPage() {
   ]
 
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
+    <>
       <div className="staff-page" id="schedule-shifts-page">
         <header className="staff-page__header">
           <h1 className="staff-page__title">Thiết lập ca làm việc</h1>
@@ -33,17 +33,17 @@ export default function ScheduleShiftsPage() {
                 <tr>
                   <th>NHÂN VIÊN</th>
                   <th>VAI TRÒ</th>
-                  {daysOfWeek.map((day) => (
+                  {daysOfWeek?.map((day) => (
                     <th key={day} style={{ textAlign: 'center' }}>{day}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {mockShifts.map((row, idx) => (
+                {mockShifts?.map((row, idx) => (
                   <tr key={idx}>
                     <td style={{ fontWeight: 600 }}>{row.staff}</td>
                     <td>{row.role}</td>
-                    {row.schedule.map((shift, sIdx) => (
+                    {row.schedule?.map((shift, sIdx) => (
                       <td key={sIdx} style={{ textAlign: 'center' }}>
                         <span className={`staff-badge`} style={{
                           backgroundColor: shift === 'Nghỉ' ? '#f1f5f9' : shift.includes('Sáng') ? '#e0f2fe' : shift.includes('Chiều') ? '#dbeafe' : '#dcfce7',
@@ -60,6 +60,6 @@ export default function ScheduleShiftsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   )
 }

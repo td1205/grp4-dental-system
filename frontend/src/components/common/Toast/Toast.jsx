@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
-import Icon from '../Icon/Icon'
+import { Icon } from '../Icon/Icon'
 import './Toast.css'
 
-export default function Toast({ message, type = 'success', onClose, duration = 3000 }) {
+export function Toast({ message, type = 'success', onClose, duration = 3000 }) {
   useEffect(() => {
     if (message && onClose) {
       const timer = setTimeout(() => {

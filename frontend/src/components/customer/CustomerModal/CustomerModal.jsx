@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import Icon from '../../common/Icon/Icon'
+import { Icon } from '../../common/Icon/Icon'
 import { formatDateForInput } from '../../../utils/staffFormMappers'
 import { PrimaryButton } from '../../ui/Button/PrimaryButton'
 import './CustomerModal.css'
 
-export default function CustomerModal({ isOpen, onClose, onSave, customer = null }) {
+export function CustomerModal({ isOpen, onClose, onSave, customer = null }) {
   const isEdit = !!customer
   const [formData, setFormData] = useState({
     name: '',

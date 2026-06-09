@@ -1,10 +1,10 @@
-import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLayout'
+
 import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
-import Icon from '../../components/common/Icon/Icon'
+import { Icon } from '../../components/common/Icon/Icon'
 
 const ACTIVE_PATH = '/schedule/leaves'
 
-export default function ScheduleLeavesPage() {
+export function ScheduleLeavesPage() {
   const mockLeaves = [
     { id: 1, staff: 'Trần Thị Bình', role: 'Bác sĩ', range: '10/06/2026 - 12/06/2026', type: 'Phép năm', status: 'approved' },
     { id: 2, staff: 'Phạm Thu Dung', role: 'Lễ tân', range: '15/06/2026', type: 'Việc riêng', status: 'pending' },
@@ -12,7 +12,7 @@ export default function ScheduleLeavesPage() {
   ]
 
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
+    <>
       <div className="staff-page" id="schedule-leaves-page">
         <header className="staff-page__header">
           <h1 className="staff-page__title">Quản lý lịch nghỉ</h1>
@@ -39,7 +39,7 @@ export default function ScheduleLeavesPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockLeaves.map((leave) => (
+                {mockLeaves?.map((leave) => (
                   <tr key={leave.id}>
                     <td style={{ fontWeight: 600 }}>{leave.staff}</td>
                     <td>{leave.role}</td>
@@ -62,6 +62,6 @@ export default function ScheduleLeavesPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   )
 }

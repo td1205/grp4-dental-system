@@ -174,3 +174,74 @@
   background-color: #f8fafc;
   border-top: 1px solid #f1f5f9;
 }
+
+/* Style for disabled inputs in modal (locked fields) */
+.service-modal__field input:disabled,
+.service-modal__field select:disabled {
+  background-color: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+}
+
+/* Custom Confirm Toast Styling */
+.confirm-toast {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.confirm-toast__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.confirm-toast__text {
+  margin: 0;
+  font-size: 14px;
+  color: #0f172a;
+  line-height: 1.5;
+}
+
+.confirm-toast__subtext {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.confirm-toast__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-toast__btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.confirm-toast__btn--cancel {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.confirm-toast__btn--cancel:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.confirm-toast__btn--confirm {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.confirm-toast__btn--confirm:hover {
+  background-color: #dc2626;
+}

@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLayout';
-import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation';
+
 import { StaffToolbar } from '../../components/staff/StaffToolbar.jsx';
-import { StaffGrid } from '../../components/staff/StaffGrid.jsx';
+import { StaffGrid } from '../../components/staff/StaffGrid/StaffGrid.jsx';
+import { StaffTable } from '../../components/staff/StaffTable.jsx';
+import { SummaryCards } from '../../components/common/SummaryCards/SummaryCards.jsx';
+import { Users, UserCheck, UserX } from 'lucide-react';
 import { PaginationBar } from '../../components/staff/PaginationBar.jsx';
 import { StaffConfirmModal } from '../../components/staff/StaffConfirmModal.jsx';
 import { useStaffQuery } from '../../hooks/useStaffQuery.js';
 import { useStaffActions } from '../../hooks/useStaffActions.js';
 import { staffApi } from '../../services/staffApi.js';
 import { exportStaffsToExcel } from '../../utils/exportStaffExcel.js';
-import AddStaffModal from '../../components/staff/AddStaffModal/AddStaffModal.jsx';
-import ManagementPageLayout from '../../components/layout/ManagementPageLayout/ManagementPageLayout';
+import { AddStaffModal } from '../../components/staff/AddStaffModal/AddStaffModal.jsx';
+import { ManagementPageLayout } from '../../components/layout/ManagementPageLayout/ManagementPageLayout';
 import { ReassignDoctorModal } from '../../components/staff/ReassignDoctorModal.jsx';
 import './StaffManagementPage.css';
 
@@ -26,13 +28,14 @@ function CheckCircleIcon() {
 
 const ACTIVE_PATH = '/staff';
 
-export default function StaffManagementPage() {
+export function StaffManagementPage() {
   const navigate = useNavigate();
   const [exportMessage, setExportMessage] = useState('');
   
   const [toasts, setToasts] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addStaffFormValues, setAddStaffFormValues] = useState({});
+  const [viewMode, setViewMode] = useState('grid');
 
   const addToast = (message) => {
     const id = Date.now();
@@ -94,15 +97,6 @@ export default function StaffManagementPage() {
     setIsAddModalOpen(true);
   };
 
-  const currentUser = (() => {
-    try {
-      const userStr = localStorage.getItem('user');
-      return userStr ? JSON.parse(userStr) : DEFAULT_USER;
-    } catch {
-      return DEFAULT_USER;
-    }
-  })();
-
   const toolbar = (
     <StaffToolbar
       search={search}
@@ -115,11 +109,34 @@ export default function StaffManagementPage() {
       onSortChange={setSort}
       onExport={handleExport}
       onAdd={handleAdd}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
     />
   );
 
+  const summaryItems = [
+    {
+      title: 'Tổng số nhân sự',
+      value: total || 0,
+      icon: <Users size={24} />,
+      color: 'var(--color-link-active)'
+    },
+    {
+      title: 'Đang làm việc (trang hiện tại)',
+      value: staffs.filter(s => s.status === 'active').length,
+      icon: <UserCheck size={24} />,
+      color: 'var(--color-cta)'
+    },
+    {
+      title: 'Đã khóa (trang hiện tại)',
+      value: staffs.filter(s => s.status === 'locked').length,
+      icon: <UserX size={24} />,
+      color: 'var(--color-state-suspended-text)'
+    }
+  ];
+
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={currentUser}>
+    <>
       <ManagementPageLayout
         title="Quản lý nhân viên & Bác sĩ"
         subtitle="Quản lý thông tin nhân viên nội bộ (Admin, Lễ tân, Bác sĩ)"
@@ -142,7 +159,39 @@ export default function StaffManagementPage() {
             <code>cd backend && npm run dev</code>).
           </div>
         ) : (
+          <>
+            <SummaryCards items={summaryItems} />
+            {viewMode === 'grid' ? (
             <StaffGrid
+              staffList={staffs}
+              isLoading={isLoading}
+              isEmpty={!isLoading && staffs.length === 0}
+              onView={(s) => navigate(`/staff/${s.id}/edit`)}
+              onEdit={(s) => navigate(`/staff/${s.id}/edit`)}
+              onChangePassword={(s) => console.info('changePassword', s.id)}
+              onResetPassword={(s) => {
+                const confirmed = window.confirm(`Bạn có chắc chắn muốn reset mật khẩu của ${s.fullName} về mặc định (Dentalcare@123)?`);
+                if (confirmed) {
+                  staffApi.resetPassword(s.id).then(() => {
+                    addToast(`Đã reset mật khẩu thành công cho ${s.fullName}.`);
+                  }).catch(() => {
+                    addToast(`Có lỗi xảy ra khi reset mật khẩu cho ${s.fullName}.`);
+                  });
+                }
+              }}
+              onToggleLock={openLockModal}
+              onDelete={openDeleteModal}
+              onResendMail={async (s) => {
+                try {
+                  await staffApi.resendEmail(s.id);
+                  addToast(`Đã gửi lại email kích hoạt thực tế đến hòm thư của nhân sự!`);
+                } catch (error) {
+                  addToast(`Có lỗi xảy ra khi gửi email tới ${s.personalEmail || s.fullName}.`);
+                }
+              }}
+            />
+            ) : (
+            <StaffTable
               staffs={staffs}
               isLoading={isLoading}
               isEmpty={!isLoading && staffs.length === 0}
@@ -170,6 +219,8 @@ export default function StaffManagementPage() {
                 }
               }}
             />
+            )}
+          </>
           )}
 
           {!isError && !isLoading && (
@@ -228,13 +279,13 @@ export default function StaffManagementPage() {
       />
 
       <div className="toast-stack-container">
-        {toasts.map((toast) => (
+        {toasts?.map((toast) => (
           <div key={toast.id} className="toast-item">
             <CheckCircleIcon />
             <span className="toast-item__message">{toast.message}</span>
           </div>
         ))}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

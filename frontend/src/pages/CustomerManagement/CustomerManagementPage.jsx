@@ -1,18 +1,21 @@
 import { useState, useEffect, useMemo } from 'react'
-import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLayout'
-import CustomerToolbar from '../../components/customer/CustomerToolbar/CustomerToolbar'
-import CustomerTable from '../../components/customer/CustomerTable/CustomerTable'
-import CustomerModal from '../../components/customer/CustomerModal/CustomerModal'
-import ToastStack from '../../components/common/ToastStack/ToastStack'
-import ManagementPageLayout from '../../components/layout/ManagementPageLayout/ManagementPageLayout'
+
+import { CustomerToolbar } from '../../components/customer/CustomerToolbar/CustomerToolbar'
+import { CustomerTable } from '../../components/customer/CustomerTable/CustomerTable'
+import { CustomerGrid } from '../../components/customer/CustomerGrid/CustomerGrid'
+import { CustomerModal } from '../../components/customer/CustomerModal/CustomerModal'
+import { SummaryCards } from '../../components/common/SummaryCards/SummaryCards'
+import { Users, UserCheck, UserX } from 'lucide-react'
+import { ToastStack } from '../../components/common/ToastStack/ToastStack'
+import { ManagementPageLayout } from '../../components/layout/ManagementPageLayout/ManagementPageLayout'
 import { StaffConfirmModal } from '../../components/staff/StaffConfirmModal'
 import { customerApi } from '../../services/customerApi'
 import './CustomerManagementPage.css'
-import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
+import { DEFAULT_USER } from '../../constants/navigation'
 
 const ACTIVE_PATH = '/customers'
 
-export default function CustomerManagementPage() {
+export function CustomerManagementPage() {
   const [customers, setCustomers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isError, setIsError] = useState(false)
@@ -20,6 +23,7 @@ export default function CustomerManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [toasts, setToasts] = useState([])
+  const [viewMode, setViewMode] = useState('grid')
 
   const [confirmModalConfig, setConfirmModalConfig] = useState(null)
   const [isConfirmLoading, setIsConfirmLoading] = useState(false)
@@ -145,11 +149,34 @@ export default function CustomerManagementPage() {
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
       onAddClick={handleOpenAddModal}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
     />
   );
 
+  const summaryItems = [
+    {
+      title: 'Tổng số khách hàng',
+      value: customers.length,
+      icon: <Users size={24} />,
+      color: 'var(--color-link-active)'
+    },
+    {
+      title: 'Đang hoạt động',
+      value: customers.filter(c => c.status === 'active').length,
+      icon: <UserCheck size={24} />,
+      color: 'var(--color-cta)'
+    },
+    {
+      title: 'Đã ngừng hoạt động/Khóa',
+      value: customers.filter(c => c.status !== 'active').length,
+      icon: <UserX size={24} />,
+      color: 'var(--color-state-suspended-text)'
+    }
+  ];
+
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={currentUser}>
+    <>
       <ManagementPageLayout
         title="Quản lý khách hàng"
         subtitle="Quản lý thông tin và hồ sơ bệnh án của khách hàng"
@@ -160,13 +187,26 @@ export default function CustomerManagementPage() {
             Không thể tải danh sách khách hàng. Hãy kiểm tra kết nối tới Backend.
           </div>
         ) : (
-          <CustomerTable
-            customers={customers}
-            isLoading={isLoading}
-            onEdit={handleEditCustomer}
-            onDelete={handleDeleteCustomer}
-            showDelete={showDelete}
-          />
+          <>
+            <SummaryCards items={summaryItems} />
+            {viewMode === 'grid' ? (
+              <CustomerGrid
+                customers={customers}
+                isLoading={isLoading}
+                onEdit={handleEditCustomer}
+                onDelete={handleDeleteCustomer}
+                showDelete={showDelete}
+              />
+            ) : (
+              <CustomerTable
+                customers={customers}
+                isLoading={isLoading}
+                onEdit={handleEditCustomer}
+                onDelete={handleDeleteCustomer}
+                showDelete={showDelete}
+              />
+            )}
+          </>
         )}
       </ManagementPageLayout>
 
@@ -191,6 +231,6 @@ export default function CustomerManagementPage() {
       )}
 
       <ToastStack toasts={toasts} />
-    </DashboardLayout>
+    </>
   )
 }

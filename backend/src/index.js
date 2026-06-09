@@ -383,7 +383,7 @@ app.delete('/api/staffs/:id', async (req, res) => {
   try {
     const staff = await Staff.findOneAndUpdate(
       { id: req.params.id },
-      { status: 'suspended' },
+      { status: 'inactive' },
       { new: true }
     );
     if (!staff) {
@@ -769,6 +769,69 @@ app.patch('/api/leaves/:id/approve', async (req, res) => {
 // -----------------------------
 // SERVICE & PRICE ROUTES
 // -----------------------------
+
+// Helper to determine service prefix based on groupType
+function getPrefix(groupType) {
+  if (!groupType) return 'DV';
+  
+  const explicitMappings = {
+    'khám bệnh': 'KB',
+    'xét nghiệm': 'XN',
+    'cđha': 'CDHA',
+    'phẫu thuật': 'PT',
+    'niềng răng': 'NR',
+    'khám và tư vấn': 'KB',
+    'vệ sinh răng miệng': 'VS',
+    'thẩm mỹ': 'TM'
+  };
+  
+  const normalized = groupType.toLowerCase().trim();
+  if (explicitMappings[normalized]) {
+    return explicitMappings[normalized];
+  }
+  
+  // Fallback: smart abbreviation generator
+  const noAccents = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
+  const words = noAccents.split(/\s+/).filter(Boolean);
+  if (words.length === 1) {
+    return words[0].toUpperCase();
+  }
+  const prefix = words.map(w => w[0]).join('').toUpperCase();
+  return prefix || 'DV';
+}
+
+// Helper to get suggested service code
+async function getSuggestedCode(groupType) {
+  const prefix = getPrefix(groupType);
+  const services = await Service.find({ id: { $regex: `^${prefix}` } }, 'id');
+  
+  let max = 0;
+  for (const s of services) {
+    const numStr = s.id.substring(prefix.length);
+    const num = parseInt(numStr, 10);
+    if (!Number.isNaN(num) && num > max) {
+      max = num;
+    }
+  }
+  
+  return `${prefix}${String(max + 1).padStart(3, '0')}`;
+}
+
+// API to get suggested code
+app.get('/api/services/suggested-code', async (req, res) => {
+  try {
+    const { groupType } = req.query;
+    if (!groupType) {
+      return res.status(400).json({ message: 'Thiếu thông tin loại dịch vụ' });
+    }
+    const suggestedCode = await getSuggestedCode(groupType);
+    res.json({ suggestedCode });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Lỗi server khi sinh mã dịch vụ gợi ý' });
+  }
+});
+
 app.get('/api/services', async (req, res) => {
   try {
     const { status = 'active' } = req.query;
@@ -798,23 +861,35 @@ app.get('/api/services', async (req, res) => {
 
 app.post('/api/services', async (req, res) => {
   try {
-    const { id, name, category, duration, description, price, bhyt, effectiveDate } = req.body;
+    const { id, name, category, department, duration, description, price, bhyt, effectiveDate } = req.body;
     
-    let newId = id;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Tên dịch vụ không được để trống' });
+    }
+    if (!category || !category.trim()) {
+      return res.status(400).json({ message: 'Loại dịch vụ không được để trống' });
+    }
+    if (!department || !department.trim()) {
+      return res.status(400).json({ message: 'Khoa chuyên môn phụ trách không được để trống' });
+    }
+
+    let newId = id?.trim().toUpperCase();
     if (!newId) {
-      const lastService = await Service.findOne().sort({ id: -1 });
-      let nextNum = 1;
-      if (lastService && lastService.id && lastService.id.startsWith('DV')) {
-        const numStr = lastService.id.replace('DV', '');
-        const parsed = parseInt(numStr, 10);
-        if (!isNaN(parsed)) nextNum = parsed + 1;
+      newId = await getSuggestedCode(category);
+    } else {
+      const idRegex = /^[A-ZĐ]{2,4}\d{3}$/;
+      if (!idRegex.test(newId)) {
+        return res.status(400).json({ message: 'Mã dịch vụ không hợp lệ. Định dạng yêu cầu: Tiền tố (2-4 chữ cái hoa) + 3 chữ số (ví dụ: NR001)' });
       }
-      newId = `DV${String(nextNum).padStart(3, '0')}`;
     }
     
     const newService = new Service({
       id: newId,
-      name, category, duration: duration || 30, description
+      name: name.trim(),
+      category: category.trim(),
+      department: department.trim(),
+      duration: duration || 30,
+      description: description ? description.trim() : ''
     });
     newService._performedBy = 'AD20260601';
     await newService.save();
@@ -844,10 +919,18 @@ app.post('/api/services', async (req, res) => {
 
 app.put('/api/services/:id', async (req, res) => {
   try {
-    const { name, category, duration, description } = req.body;
+    const { name, department, description } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Tên dịch vụ không được để trống' });
+    }
+    if (!department || !department.trim()) {
+      return res.status(400).json({ message: 'Khoa chuyên môn phụ trách không được để trống' });
+    }
+
     const service = await Service.findOneAndUpdate(
       { id: req.params.id },
-      { name, category, duration, description },
+      { name: name.trim(), department: department.trim(), description: description ? description.trim() : '' },
       { new: true, performedBy: 'AD20260601' }
     );
     if (!service) return res.status(404).json({ message: 'Không tìm thấy dịch vụ' });
@@ -922,6 +1005,17 @@ app.post('/api/services/:id/prices', async (req, res) => {
     res.status(201).json({ data: newPrice, message: 'Cập nhật giá thành công' });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
+app.get('/api/audit-logs', async (req, res) => {
+  try {
+    const AuditLog = require('./models/AuditLog');
+    const logs = await AuditLog.find().sort({ timestamp: -1 }).limit(5);
+    res.json(logs);
+  } catch (error) {
+    console.error('Lỗi khi lấy audit logs:', error);
     res.status(500).json({ message: 'Lỗi server' });
   }
 });

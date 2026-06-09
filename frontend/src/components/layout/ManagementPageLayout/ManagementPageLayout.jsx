@@ -1,7 +1,7 @@
 import React from 'react';
 import './ManagementPageLayout.css';
 
-export default function ManagementPageLayout({ title, subtitle, toolbar, children }) {
+export function ManagementPageLayout({ title, subtitle, toolbar, children }) {
   return (
     <div className="management-page">
       <header className="management-page__header">

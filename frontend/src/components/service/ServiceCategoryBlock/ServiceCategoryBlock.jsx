@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import Icon from '../../common/Icon/Icon'
+import { Icon } from '../../common/Icon/Icon'
 import './ServiceCategoryBlock.css'
 
-export default function ServiceCategoryBlock({ categoryName, itemsCount, children }) {
+export function ServiceCategoryBlock({ categoryName, itemsCount, children }) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (

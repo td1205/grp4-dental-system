@@ -1,5 +1,5 @@
 import React from 'react';
-import Icon from '../common/Icon/Icon';
+import { Icon } from '../common/Icon/Icon';
 import './ActivationLinkModal.css';
 
 function CopyIcon() {
@@ -11,7 +11,7 @@ function CopyIcon() {
   );
 }
 
-export default function ActivationLinkModal({ isOpen, staff, onClose, onCopySuccess }) {
+export function ActivationLinkModal({ isOpen, staff, onClose, onCopySuccess }) {
   if (!isOpen || !staff) return null;
 
   const activationUrl = `http://localhost:5173/first-time-password?token=${staff.activationToken}&email=${staff.personalEmail || staff.email}`;

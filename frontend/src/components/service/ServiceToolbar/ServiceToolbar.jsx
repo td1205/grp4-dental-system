@@ -1,9 +1,9 @@
-import Icon from '../../common/Icon/Icon'
+import { Icon } from '../../common/Icon/Icon'
 import { PrimaryButton } from '../../ui/Button/PrimaryButton'
 import { MacDropdown } from '../../common/MacDropdown/MacDropdown'
 import './ServiceToolbar.css'
 
-export default function ServiceToolbar({ searchQuery, onSearchChange, selectedFilter, onFilterChange, onAddClick }) {
+export function ServiceToolbar({ searchQuery, onSearchChange, selectedFilter, onFilterChange, onAddClick }) {
   return (
     <div className="service-toolbar">
       <div className="service-toolbar__left">
@@ -23,9 +23,9 @@ export default function ServiceToolbar({ searchQuery, onSearchChange, selectedFi
           <MacDropdown
             options={[
               { value: 'all', label: 'Tất cả danh mục' },
-              { value: 'Khám và tư vấn', label: 'Khám và tư vấn' },
-              { value: 'Vệ sinh răng miệng', label: 'Vệ sinh răng miệng' },
-              { value: 'Thẩm mỹ', label: 'Thẩm mỹ' },
+              { value: 'Khám bệnh', label: 'Khám bệnh' },
+              { value: 'Xét nghiệm', label: 'Xét nghiệm' },
+              { value: 'CĐHA', label: 'CĐHA' },
               { value: 'Phẫu thuật', label: 'Phẫu thuật' },
             ]}
             value={selectedFilter}

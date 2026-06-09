@@ -1,16 +1,16 @@
 import { useState, useMemo, useEffect } from 'react'
 import axios from 'axios'
-import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLayout'
-import ModalWrapper from '../../components/common/ModalWrapper/ModalWrapper'
+
+import { ModalWrapper } from '../../components/common/ModalWrapper/ModalWrapper'
 import { PrimaryButton } from '../../components/ui/Button/PrimaryButton'
-import Icon from '../../components/common/Icon/Icon'
+import { Icon } from '../../components/common/Icon/Icon'
 import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 import './ServicePricePage.css'
 
 const ACTIVE_PATH = '/services/prices'
 const API_URL = 'http://localhost:5000/api/services'
 
-export default function ServicePricePage() {
+export function ServicePricePage() {
   const [services, setServices] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -105,7 +105,7 @@ export default function ServicePricePage() {
   }
 
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
+    <>
       <div className="price-page">
         <header className="price-page__header">
           <h1 className="price-page__title">Bảng giá dịch vụ</h1>
@@ -145,7 +145,7 @@ export default function ServicePricePage() {
             </thead>
             <tbody>
               {displayedServices.length > 0 ? (
-                displayedServices.map((item) => {
+                displayedServices?.map((item) => {
                   const latestPrice = item.priceHistory && item.priceHistory.length > 0
                     ? item.priceHistory[item.priceHistory.length - 1]
                     : null
@@ -303,6 +303,6 @@ export default function ServicePricePage() {
           </div>
         </div>
       </ModalWrapper>
-    </DashboardLayout>
+    </>
   )
 }

@@ -2,6 +2,7 @@ import { ROLE_OPTIONS, STATUS_OPTIONS } from '../../constants/staff';
 import { MacDropdown } from '../common/MacDropdown/MacDropdown.jsx';
 import { Input } from '../ui/Input/Input.jsx';
 import { Button } from '../ui/Button/Button.jsx';
+import { LayoutGrid, List } from 'lucide-react';
 
 export function StaffToolbar({
   search,
@@ -14,6 +15,8 @@ export function StaffToolbar({
   onSortChange,
   onAdd,
   onExport,
+  viewMode,
+  onViewModeChange,
 }) {
   const SORT_OPTIONS = [
     { value: 'createdAt:desc', label: 'Mới nhất' },
@@ -63,6 +66,38 @@ export function StaffToolbar({
         <ExportIcon />
         Xuất Excel
       </Button>
+
+      <div className="view-toggle-group" style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden' }}>
+        <button
+          type="button"
+          onClick={() => onViewModeChange('grid')}
+          style={{
+            padding: '8px 12px',
+            background: viewMode === 'grid' ? 'var(--color-bg-page)' : '#fff',
+            color: viewMode === 'grid' ? 'var(--color-link-active)' : 'var(--color-text-sub)',
+            border: 'none',
+            borderRight: '1px solid var(--color-border)',
+            cursor: 'pointer'
+          }}
+          aria-label="Dạng lưới"
+        >
+          <LayoutGrid size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onViewModeChange('table')}
+          style={{
+            padding: '8px 12px',
+            background: viewMode === 'table' ? 'var(--color-bg-page)' : '#fff',
+            color: viewMode === 'table' ? 'var(--color-link-active)' : 'var(--color-text-sub)',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+          aria-label="Dạng danh sách"
+        >
+          <List size={18} />
+        </button>
+      </div>
 
       <Button variant="primary" onClick={onAdd}>
         <PlusIcon />

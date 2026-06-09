@@ -23,7 +23,7 @@ export function StaffGrid({
 
   return (
     <div className="staff-grid">
-      {staffs.map((staff) => (
+      {staffs?.map((staff) => (
         <StaffCard
           key={staff.id}
           staff={staff}

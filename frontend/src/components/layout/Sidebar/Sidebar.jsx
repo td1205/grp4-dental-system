@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import Icon from '../../common/Icon/Icon'
+import { Icon } from '../../common/Icon/Icon'
 import './Sidebar.css'
 
 const NAV_ICON_MAP = {
@@ -31,7 +31,7 @@ function getInitialExpandedIds(navItems, activePath) {
   return ids
 }
 
-export default function Sidebar({ navItems, activePath, user }) {
+export function Sidebar({ navItems, activePath, user }) {
   const navigate = useNavigate();
   const [expandedIds, setExpandedIds] = useState(() => {
     const saved = sessionStorage.getItem('sidebarExpandedIds');
@@ -44,7 +44,6 @@ export default function Sidebar({ navItems, activePath, user }) {
     }
     return getInitialExpandedIds(navItems, activePath);
   })
-  const [pressedNavId, setPressedNavId] = useState(null)
   const [isCollapsed, setIsCollapsed] = useState(false)
 
   // Lưu state vào sessionStorage
@@ -109,21 +108,23 @@ export default function Sidebar({ navItems, activePath, user }) {
 
       <nav className="sidebar__nav" aria-label="Điều hướng chính">
         <ul className="sidebar__nav-list">
-          {navItems.map((item) => {
+          {navItems?.map((item) => {
             const hasChildren = item.children?.length > 0
             const isExpanded = hasChildren && expandedIds.has(item.id)
-            const isLeafPressed = !hasChildren && pressedNavId === item.id
+            const isActive = !hasChildren && item.path === activePath
 
             return (
               <li key={item.id} className="sidebar__nav-item">
                 <button
                   type="button"
-                  className={`sidebar__nav-link${isLeafPressed ? ' sidebar__nav-link--pressed' : ''}`}
+                  className={`sidebar__nav-link${isActive ? ' sidebar__nav-link--pressed' : ''}`}
                   aria-expanded={hasChildren ? isExpanded : undefined}
                   onClick={
                     hasChildren
                       ? () => toggleExpanded(item.id)
-                      : () => setPressedNavId(item.id)
+                      : () => {
+                          if (item.path) navigate(item.path);
+                        }
                   }
                 >
                   <Icon
@@ -147,7 +148,7 @@ export default function Sidebar({ navItems, activePath, user }) {
                     className={`sidebar__subnav${isExpanded ? ' sidebar__subnav--open' : ''}`}
                     aria-hidden={!isExpanded}
                   >
-                    {item.children.map((child) => (
+                    {item.children?.map((child) => (
                       <li key={child.id} className="sidebar__subnav-item">
                         <Link
                           to={child.path}

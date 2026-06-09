@@ -20,9 +20,9 @@ function escapeCsvCell(value) {
 }
 
 function buildCsvRows(staffs) {
-  const header = EXPORT_COLUMNS.map((c) => escapeCsvCell(c.header)).join(',');
-  const rows = staffs.map((staff) =>
-    EXPORT_COLUMNS.map((col) => {
+  const header = EXPORT_COLUMNS?.map((c) => escapeCsvCell(c.header)).join(',');
+  const rows = staffs?.map((staff) =>
+    EXPORT_COLUMNS?.map((col) => {
       const raw = staff[col.key];
       const val = col.format ? col.format(raw, staff) : raw;
       return escapeCsvCell(val);

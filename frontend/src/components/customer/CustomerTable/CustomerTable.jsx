@@ -1,13 +1,13 @@
-import Icon from '../../common/Icon/Icon'
+import { Icon } from '../../common/Icon/Icon'
 import './CustomerTable.css'
 
-export default function CustomerTable({ customers, isLoading, onEdit, onDelete, showDelete = true }) {
+export function CustomerTable({ customers, isLoading, onEdit, onDelete, showDelete = true }) {
   if (isLoading) {
     return <div className="customer-table__loading">Đang tải dữ liệu...</div>
   }
 
   return (
-    <div className="customer-table-container">
+    <div className="customer-table-container table-responsive">
       <table className="customer-table">
         <thead>
           <tr>
@@ -21,7 +21,7 @@ export default function CustomerTable({ customers, isLoading, onEdit, onDelete, 
         </thead>
         <tbody>
           {customers.length > 0 ? (
-            customers.map((customer) => (
+            customers?.map((customer) => (
               <tr key={customer.id}>
                 <td className="customer-table__id" data-label="Mã BN">{customer.id}</td>
                 <td data-label="Họ tên">{customer.name}</td>

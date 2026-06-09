@@ -38,7 +38,7 @@ function generateEmail(fullName, role, existingEmails = []) {
   let email = `${baseEmailPrefix}@dentalcare.com`;
   
   let counter = 2;
-  const existingSet = new Set(existingEmails.map(e => e.toLowerCase().trim()));
+  const existingSet = new Set(existingEmails?.map(e => e.toLowerCase().trim()));
   while (existingSet.has(email)) {
     email = `${baseEmailPrefix}${counter}@dentalcare.com`;
     counter++;

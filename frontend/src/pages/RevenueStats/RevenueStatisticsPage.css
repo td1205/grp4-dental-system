@@ -1,0 +1,220 @@
+.revenue-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background-color: var(--color-bg-page, #F5F7FA);
+  min-height: 100%;
+}
+
+.revenue-header__title h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-main, #1F2937);
+  margin: 0 0 8px 0;
+}
+
+.revenue-header__title p {
+  margin: 0;
+  color: var(--color-text-sub, #6B7280);
+  font-size: 14px;
+}
+
+/* Toolbar */
+.revenue-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.revenue-filters {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.revenue-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.revenue-filter-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-main, #1F2937);
+}
+
+.revenue-input {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--color-text-main, #1F2937);
+  outline: none;
+  background: #FFFFFF;
+  transition: border-color 0.2s;
+}
+
+.revenue-input:focus {
+  border-color: var(--color-cta, #0D8A72);
+}
+
+.revenue-btn-export {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: var(--color-cta, #0D8A72);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  height: 40px; /* match input height roughly */
+}
+
+.revenue-btn-export:hover {
+  background-color: #0b735f;
+}
+
+/* KPI Grid */
+.revenue-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.revenue-kpi-card {
+  background: #FFFFFF;
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.revenue-kpi-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.revenue-kpi-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.revenue-kpi-label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-sub, #6B7280);
+}
+
+.revenue-kpi-value {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-main, #1F2937);
+}
+
+/* Cards (Chart & Table) */
+.revenue-chart-card,
+.revenue-table-card {
+  background: #FFFFFF;
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.revenue-card-title {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-main, #1F2937);
+}
+
+/* Tooltip */
+.revenue-tooltip {
+  background: #FFFFFF;
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.revenue-tooltip__label {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-sub, #6B7280);
+}
+
+.revenue-tooltip__value {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-main, #1F2937);
+}
+
+/* Table */
+.revenue-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.revenue-table th,
+.revenue-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border, #E5E7EB);
+  font-size: 14px;
+}
+
+.revenue-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-sub, #6B7280);
+  background-color: #F9FAFB;
+}
+
+.revenue-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.text-right {
+  text-align: right !important;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.text-cta {
+  color: var(--color-cta, #0D8A72);
+}
+
+.text-muted {
+  color: var(--color-text-sub, #6B7280);
+}
+
+@media (max-width: 640px) {
+  .revenue-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .revenue-btn-export {
+    justify-content: center;
+  }
+}

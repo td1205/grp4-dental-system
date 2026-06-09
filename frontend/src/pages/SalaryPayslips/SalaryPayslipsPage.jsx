@@ -1,10 +1,10 @@
-import DashboardLayout from '../../components/layout/DashboardLayout/DashboardLayout'
+
 import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
-import Icon from '../../components/common/Icon/Icon'
+import { Icon } from '../../components/common/Icon/Icon'
 
 const ACTIVE_PATH = '/salary/payslips'
 
-export default function SalaryPayslipsPage() {
+export function SalaryPayslipsPage() {
   const payslips = [
     { id: 'PL001', doctor: 'Trần Thị Bình', month: '05/2026', base: '25.000.000', commissions: '8.400.000', allowance: '1.200.000', total: '34.600.000', status: 'paid' },
     { id: 'PL002', doctor: 'Lê Minh Cường', month: '05/2026', base: '25.000.000', commissions: '11.500.000', allowance: '1.000.000', total: '37.500.000', status: 'paid' },
@@ -12,7 +12,7 @@ export default function SalaryPayslipsPage() {
   ]
 
   return (
-    <DashboardLayout navItems={NAV_ITEMS} activePath={ACTIVE_PATH} user={DEFAULT_USER}>
+    <>
       <div className="staff-page" id="salary-payslips-page">
         <header className="staff-page__header">
           <h1 className="staff-page__title">Phiếu lương bác sĩ</h1>
@@ -42,7 +42,7 @@ export default function SalaryPayslipsPage() {
                 </tr>
               </thead>
               <tbody>
-                {payslips.map((payslip) => (
+                {payslips?.map((payslip) => (
                   <tr key={payslip.id}>
                     <td style={{ fontWeight: 600 }}>{payslip.id}</td>
                     <td style={{ fontWeight: 600 }}>{payslip.doctor}</td>
@@ -68,6 +68,6 @@ export default function SalaryPayslipsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   )
 }

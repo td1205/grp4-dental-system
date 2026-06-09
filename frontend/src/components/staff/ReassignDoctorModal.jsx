@@ -67,7 +67,7 @@ export function ReassignDoctorModal({ open, staff, appointments, reason, onClose
                 className="form-control"
               >
                 <option value="">-- Chọn bác sĩ --</option>
-                {doctors.map(d => (
+                {doctors?.map(d => (
                   <option key={d.id} value={d.id}>
                     {d.fullName} ({d.specialty || 'Đa khoa'})
                   </option>

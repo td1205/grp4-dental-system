@@ -6,7 +6,7 @@ import './ModalWrapper.css';
  * Modal Wrapper (Enterprise Standard)
  * Thay thế các modal thô kệch ở các trang. Bỏ hiệu ứng blur gắt.
  */
-export default function ModalWrapper({ 
+export function ModalWrapper({ 
   isOpen, 
   onClose, 
   title, 

@@ -48,7 +48,7 @@ export function MacDropdown({ options, value, onChange, placeholder = "Chọn...
       {isOpen && (
         <div className="mac-dropdown__menu-container">
           <ul className="mac-dropdown__menu">
-            {options.map(opt => (
+            {options?.map(opt => (
               <li 
                 key={opt.value || 'all'}
                 className={`mac-dropdown__item ${opt.value === value ? 'mac-dropdown__item--selected' : ''}`}

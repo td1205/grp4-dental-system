@@ -1,4 +1,4 @@
-export default function PlaceholderPage({ title, description }) {
+export function PlaceholderPage({ title, description }) {
   return (
     <div className="placeholder-page">
       <h1>{title}</h1>

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { staffApi } from '../../services/staffApi';
 import './AuthPages.css';
 
-export default function FirstTimePasswordPage() {
+export function FirstTimePasswordPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const email = searchParams.get('email');

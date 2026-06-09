@@ -1,21 +1,23 @@
 /* Staff management — dental clinic palette */
 :root {
-  --staff-primary: #1d4ed8;
-  --staff-primary-hover: #1e40af;
-  --staff-bg: #f1f5f9;
-  --staff-card: #ffffff;
-  --staff-border: #e2e8f0;
-  --staff-text: #334155;
-  --staff-text-muted: #64748b;
-  --staff-heading: #0f172a;
-  --staff-success-bg: #dcfce7;
-  --staff-success-text: #15803d;
-  --staff-warning-bg: #ffedd5;
-  --staff-warning-text: #c2410c;
-  --staff-role-admin-bg: #dbeafe;
-  --staff-role-admin-text: #1d4ed8;
-  --staff-role-staff-bg: #e0f2fe;
-  --staff-role-staff-text: #0369a1;
+  --staff-primary: var(--color-link-active);
+  --staff-primary-hover: var(--color-sidebar);
+  --staff-bg: var(--color-bg-page);
+  --staff-card: var(--color-bg-card);
+  --staff-border: var(--color-border);
+  --staff-text: var(--color-text-main);
+  --staff-text-muted: var(--color-text-sub);
+  --staff-heading: var(--color-sidebar);
+  --staff-success-bg: var(--color-state-active-bg);
+  --staff-success-text: var(--color-state-active-text);
+  --staff-warning-bg: var(--color-state-suspended-bg);
+  --staff-warning-text: var(--color-state-suspended-text);
+  --staff-role-admin-bg: var(--color-role-admin-bg);
+  --staff-role-admin-text: var(--color-role-admin-text);
+  --staff-role-doctor-bg: var(--color-role-doctor-bg);
+  --staff-role-doctor-text: var(--color-role-doctor-text);
+  --staff-role-receptionist-bg: var(--color-role-receptionist-bg);
+  --staff-role-receptionist-text: var(--color-role-receptionist-text);
 }
 
 #root {
@@ -239,10 +241,14 @@
   color: var(--staff-role-admin-text);
 }
 
-.staff-badge--role-doctor,
+.staff-badge--role-doctor {
+  background: var(--staff-role-doctor-bg);
+  color: var(--staff-role-doctor-text);
+}
+
 .staff-badge--role-receptionist {
-  background: var(--staff-role-staff-bg);
-  color: var(--staff-role-staff-text);
+  background: var(--staff-role-receptionist-bg);
+  color: var(--staff-role-receptionist-text);
 }
 
 .staff-badge--status-active {

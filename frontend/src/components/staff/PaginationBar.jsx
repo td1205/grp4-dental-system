@@ -17,7 +17,7 @@ export function PaginationBar({ total, page, totalPages, onPageChange }) {
           Trước
         </button>
 
-        {pages.map((p, i) =>
+        {pages?.map((p, i) =>
           p === '…' ? (
             <span key={`ellipsis-${i}`} className="staff-pagination__ellipsis">
               …

@@ -7,7 +7,7 @@
   margin: 0;
   font-size: clamp(22px, 2.5vw, 28px);
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-text-main);
   letter-spacing: -0.02em;
 }
 
@@ -29,14 +29,14 @@
   padding: 10px 0;
   font-size: 14px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--color-text-muted);
   cursor: pointer;
   position: relative;
   transition: color 0.2s ease;
 }
 
 .price-page__tab:hover {
-  color: #1f2937;
+  color: var(--color-text-main);
 }
 
 .price-page__tab--active {
@@ -85,7 +85,7 @@
 .price-table td {
   padding: 16px 18px;
   border-bottom: 1px solid #f0f0f0;
-  color: #1f2937;
+  color: var(--color-text-main);
 }
 
 .price-table tr:last-child td {
@@ -137,4 +137,22 @@
   text-align: center;
   color: #9ca3af;
   padding: 32px !important;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px dashed #e2e8f0;
+  font-size: 13px;
+  color: #334155;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-item__version {
+  font-weight: 600;
+  color: #2563eb;
 }

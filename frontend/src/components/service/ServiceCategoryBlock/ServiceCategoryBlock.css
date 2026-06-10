@@ -26,12 +26,12 @@
 .service-category-block__title {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text-main);
 }
 
 .service-category-block__count {
   font-weight: 400;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-left: 4px;
 }
 

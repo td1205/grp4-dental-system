@@ -44,7 +44,7 @@ export const EMPTY_ACCOUNT_INFO = {
   username: '',
   password: '',
   confirmPassword: '',
-  status: 'active',
+  status: 'pending',
 };
 
 export const EMPTY_STAFF_FORM = {
@@ -68,12 +68,14 @@ export const FORM_ROLE_OPTIONS = [
 ];
 
 export const FORM_STATUS_OPTIONS = [
+  { value: 'pending', label: 'Chờ kích hoạt' },
   { value: 'active', label: 'Hoạt động' },
   { value: 'locked', label: 'Tạm khóa' },
 ];
 
 /** Edit form: inactive accounts shown but typically not selectable for new edits */
 export const FORM_STATUS_OPTIONS_EDIT = [
+  { value: 'pending', label: 'Chờ kích hoạt' },
   { value: 'active', label: 'Hoạt động' },
   { value: 'locked', label: 'Tạm khóa' },
   { value: 'inactive', label: 'Ngưng hoạt động' },

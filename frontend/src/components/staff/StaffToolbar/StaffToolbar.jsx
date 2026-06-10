@@ -1,7 +1,7 @@
-import Icon from '../../common/Icon/Icon'
+import { Icon } from '../../common/Icon/Icon'
 import './StaffToolbar.css'
 
-export default function StaffToolbar({ searchQuery, onSearchChange, onAddClick }) {
+export function StaffToolbar({ searchQuery, onSearchChange, onAddClick }) {
   return (
     <div className="staff-toolbar">
       <div className="staff-toolbar__search-wrap">

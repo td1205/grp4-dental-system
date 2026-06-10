@@ -1,32 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 :root {
-  --staff-primary: #1d4ed8;
-  --staff-primary-dark: #1e40af;
-  --staff-primary-light: rgba(255, 255, 255, 0.12);
-  --staff-primary-focus: rgba(29, 78, 216, 0.2);
+  /* --- Global Tokens đã được chuyển sang global-tokens.css --- */
+
+  /* --- Backward Compatibility (Map biến cũ sang global-tokens) --- */
+  --staff-primary: var(--color-link-active);
+  --staff-primary-dark: var(--color-sidebar);
+  --staff-secondary: var(--color-cta);
+  --staff-primary-light: rgba(46, 95, 163, 0.12); /* Clinical Blue light */
+  --staff-primary-focus: var(--shadow-focus);
   --staff-sidebar-active-bg: rgba(255, 255, 255, 0.18);
 
-  --staff-border: #e2e8f0;
-  --staff-bg: #f8fafc;
-  --staff-surface: #ffffff;
-  --staff-text: #0f172a;
-  --staff-text-muted: #64748b;
-  --staff-text-on-primary: #ffffff;
+  --staff-border: var(--color-border);
+  --staff-bg: var(--color-bg-page);
+  --staff-surface: var(--color-bg-card);
+  --staff-bg-light: #F5F7FA;
+  --staff-text: var(--color-text-main);
+  --staff-text-muted: var(--color-text-sub);
+  --staff-text-on-primary: var(--color-bg-card);
   --staff-text-sidebar-muted: rgba(255, 255, 255, 0.72);
 
-  --staff-success-bg: #dcfce7;
-  --staff-success-text: #166534;
-  --staff-warning-bg: #fef9c3;
-  --staff-warning-text: #854d0e;
+  --staff-success-bg: var(--color-state-active-bg);
+  --staff-success-text: var(--color-state-active-text);
+  --staff-warning-bg: var(--color-state-suspended-bg);
+  --staff-warning-text: var(--color-state-suspended-text);
 
-  --staff-badge-implant-bg: #dbeafe;
-  --staff-badge-implant-text: #1d4ed8;
-  --staff-badge-ortho-bg: #ede9fe;
-  --staff-badge-ortho-text: #6d28d9;
-  --staff-badge-reception-bg: #f1f5f9;
-  --staff-badge-reception-text: #475569;
+  --staff-badge-admin-bg: var(--color-role-admin-bg);
+  --staff-badge-admin-text: var(--color-role-admin-text);
+  --staff-badge-doctor-bg: var(--color-role-doctor-bg);
+  --staff-badge-doctor-text: var(--color-role-doctor-text);
+  --staff-badge-receptionist-bg: var(--color-role-receptionist-bg);
+  --staff-badge-receptionist-text: var(--color-role-receptionist-text);
 
-  --staff-avatar-bg: #dbeafe;
-  --staff-avatar-text: #1d4ed8;
+  --staff-avatar-bg: var(--color-cta);
+  --staff-avatar-text: #ffffff;
   --staff-overlay: rgba(15, 23, 42, 0.45);
   --staff-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
   --staff-toast-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
@@ -43,5 +50,19 @@
   --staff-content-padding-x: clamp(16px, 3vw, 32px);
   --staff-content-padding-y: clamp(20px, 2.5vw, 28px);
 
-  --staff-font: 'Segoe UI', system-ui, Roboto, sans-serif;
+  /* Shared spacing and radius tokens */
+  --layout-padding: 24px;
+  --element-gap: 16px;
+  --card-radius: 12px;
+  --input-radius: 8px;
+
+  --staff-font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* --- Global Focus Overrides --- */
+input:focus, select:focus, textarea:focus, button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--accent-color, var(--color-secondary)) !important;
+  transition: border-color 0.2s ease-in-out;
 }

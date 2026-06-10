@@ -1,7 +1,7 @@
-import Icon from '../Icon/Icon'
+import { Icon } from '../Icon/Icon'
 import './Modal.css'
 
-export default function Modal({
+export function Modal({
   isOpen,
   title,
   subtitle,

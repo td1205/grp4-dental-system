@@ -1,7 +1,9 @@
-import Icon from '../../common/Icon/Icon'
+import { Icon } from '../../common/Icon/Icon'
+import { PrimaryButton } from '../../ui/Button/PrimaryButton'
+import { LayoutGrid, List } from 'lucide-react';
 import './CustomerToolbar.css'
 
-export default function CustomerToolbar({ searchQuery, onSearchChange, onAddClick }) {
+export function CustomerToolbar({ searchQuery, onSearchChange, onAddClick, viewMode, onViewModeChange }) {
   return (
     <div className="customer-toolbar">
       <div className="customer-toolbar__search-wrap">
@@ -15,10 +17,42 @@ export default function CustomerToolbar({ searchQuery, onSearchChange, onAddClic
           aria-label="Tìm kiếm khách hàng"
         />
       </div>
-      <button type="button" className="customer-toolbar__add" onClick={onAddClick}>
-        <Icon name="plus" className="customer-toolbar__add-icon" size={18} />
+      <div className="view-toggle-group" style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden' }}>
+        <button
+          type="button"
+          onClick={() => onViewModeChange('grid')}
+          style={{
+            padding: '8px 12px',
+            background: viewMode === 'grid' ? 'var(--color-bg-page)' : '#fff',
+            color: viewMode === 'grid' ? 'var(--color-link-active)' : 'var(--color-text-sub)',
+            border: 'none',
+            borderRight: '1px solid var(--color-border)',
+            cursor: 'pointer'
+          }}
+          aria-label="Dạng lưới"
+        >
+          <LayoutGrid size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onViewModeChange('table')}
+          style={{
+            padding: '8px 12px',
+            background: viewMode === 'table' ? 'var(--color-bg-page)' : '#fff',
+            color: viewMode === 'table' ? 'var(--color-link-active)' : 'var(--color-text-sub)',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+          aria-label="Dạng danh sách"
+        >
+          <List size={18} />
+        </button>
+      </div>
+
+      <PrimaryButton onClick={onAddClick} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Icon name="plus" size={18} />
         Thêm khách hàng mới
-      </button>
+      </PrimaryButton>
     </div>
   )
 }

@@ -1,14 +1,18 @@
 .dashboard-layout {
   display: flex;
-  min-height: 100svh;
+  height: 100vh;
   width: 100%;
+  overflow: hidden;
 }
 
 .dashboard-layout__main {
   flex: 1;
   min-width: 0;
-  background: var(--staff-bg);
-  overflow: auto;
+  width: 100%;
+  background: var(--color-background, var(--staff-bg));
+  overflow-x: hidden;
+  overflow-y: auto;
+  transition: var(--transition-smooth, all 0.3s cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .dashboard-layout__content {

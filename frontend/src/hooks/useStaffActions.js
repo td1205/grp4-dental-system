@@ -16,7 +16,7 @@ export function useStaffActions() {
   const closeModal = useCallback(() => setModal(INITIAL_MODAL), []);
 
   const lockMutation = useMutation({
-    mutationFn: (id) => staffApi.toggleLock(id),
+    mutationFn: ({ id, reason }) => staffApi.toggleLock({ id, reason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staffs'] });
       closeModal();
@@ -39,10 +39,17 @@ export function useStaffActions() {
     setModal({ open: true, type: 'delete', staff });
   }, []);
 
-  const confirmModal = useCallback(() => {
+  const confirmModal = useCallback(async (reason) => {
     if (!modal.staff) return;
     if (modal.type === 'lock') {
-      lockMutation.mutate(modal.staff.id);
+      if (modal.staff.role === 'doctor' && modal.staff.status !== 'suspended') {
+        const data = await staffApi.checkAppointments(modal.staff.id);
+        if (data.hasAppointments) {
+          setModal({ open: true, type: 'reassign', staff: modal.staff, appointments: data.appointments, reason });
+          return;
+        }
+      }
+      lockMutation.mutate({ id: modal.staff.id, reason });
     } else if (modal.type === 'delete') {
       deleteMutation.mutate(modal.staff.id);
     }
@@ -53,24 +60,26 @@ export function useStaffActions() {
   const modalConfig =
     modal.type === 'lock' && modal.staff
       ? {
-          title: modal.staff.status === 'locked' ? 'Mở khóa tài khoản' : 'Tạm khóa tài khoản',
-          message:
-            modal.staff.status === 'locked'
-              ? `Bạn có chắc muốn mở khóa tài khoản của ${modal.staff.fullName}?`
-              : `Bạn có chắc muốn tạm khóa tài khoản của ${modal.staff.fullName}?`,
-          confirmLabel: modal.staff.status === 'locked' ? 'Mở khóa' : 'Tạm khóa',
-          variant: 'default',
-        }
+        title: modal.staff.status === 'suspended' ? 'Khôi phục tài khoản' : 'Đình chỉ tài khoản',
+        message:
+          modal.staff.status === 'suspended'
+            ? `Bạn có chắc muốn khôi phục tài khoản của ${modal.staff.fullName}?`
+            : `Bạn có chắc muốn đình chỉ tài khoản của ${modal.staff.fullName}?`,
+        confirmLabel: modal.staff.status === 'suspended' ? 'Khôi phục' : 'Đình chỉ',
+        variant: 'default',
+        requireReason: modal.staff.status !== 'suspended',
+      }
       : modal.type === 'delete' && modal.staff
         ? {
-            title: 'Xóa tài khoản nhân viên',
-            message: `Bạn có chắc chắn muốn xóa tài khoản "${modal.staff.fullName}"? Thao tác này sẽ chuyển trạng thái sang "${STATUS_LABELS.inactive}" (xóa logic).`,
-            confirmLabel: 'Xác nhận',
-            variant: 'danger',
-          }
+          title: 'Xóa tài khoản nhân viên',
+          message: `Bạn có chắc chắn muốn xóa tài khoản "${modal.staff.fullName}"? Thao tác này sẽ chuyển trạng thái sang "${STATUS_LABELS.inactive}".`,
+          confirmLabel: 'Xác nhận',
+          variant: 'danger',
+        }
         : null;
 
   return {
+    modalState: modal,
     modalOpen: modal.open,
     modalConfig,
     openLockModal,

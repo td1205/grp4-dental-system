@@ -1,7 +1,7 @@
-import Toast from '../Toast/Toast'
+import { Toast } from '../Toast/Toast'
 import './ToastStack.css'
 
-export default function ToastStack({ toasts }) {
+export function ToastStack({ toasts }) {
   if (!toasts.length) return null
 
   const visibleToasts = toasts.slice(-3)
@@ -12,9 +12,9 @@ export default function ToastStack({ toasts }) {
         className="toast-stack__list"
         style={{ minHeight: `${52 + Math.max(0, visibleToasts.length - 1) * 10}px` }}
       >
-        {visibleToasts.map((toast) => (
+        {visibleToasts?.map((toast) => (
           <div key={toast.id} className="toast-stack__item">
-            <Toast message={toast.message} />
+            <Toast message={toast.message} type={toast.type} />
           </div>
         ))}
       </div>

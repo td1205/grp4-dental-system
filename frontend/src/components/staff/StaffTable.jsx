@@ -31,17 +31,17 @@ export function StaffTable({
   }
 
   return (
-    <div className="staff-table-wrap">
+    <div className="staff-table-wrap table-responsive">
       <table className="staff-table">
         <thead>
           <tr>
-            {COLUMNS.map((col) => (
+            {COLUMNS?.map((col) => (
               <th key={col}>{col}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {staffs.map((staff) => (
+          {staffs?.map((staff) => (
             <StaffRow
               key={staff.id}
               staff={staff}

@@ -1,8 +1,39 @@
+import { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
+import { Bell } from 'lucide-react';
+import axios from 'axios';
 import { NAV_ITEMS } from '../../constants/navigation';
 import { NavIcon } from './NavIcon';
 
 export function Sidebar({ user }) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (isDropdownOpen) {
+      axios.get('http://localhost:5000/api/audit-logs')
+        .then(res => setAuditLogs(res.data))
+        .catch(err => console.error('Failed to fetch audit logs', err));
+    }
+  }, [isDropdownOpen]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const formatLog = (log) => {
+    const actionMap = { CREATE: 'TẠO MỚI', UPDATE: 'CẬP NHẬT', DELETE: 'XÓA' };
+    const date = new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    return `${log.performedBy} vừa ${actionMap[log.action]} ${log.collectionName} - ${date}`;
+  };
+
   return (
     <aside className="sidebar" aria-label="Điều hướng chính">
       <div className="sidebar__brand">
@@ -14,7 +45,7 @@ export function Sidebar({ user }) {
 
       <nav className="sidebar__nav">
         <ul className="sidebar__nav-list">
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS?.map((item) => (
             <li key={item.path}>
               <NavLink
                 to={item.path}
@@ -40,6 +71,35 @@ export function Sidebar({ user }) {
         <div className="sidebar__user-info">
           <span className="sidebar__user-name">{user.name}</span>
           <span className="sidebar__user-role">{user.role}</span>
+        </div>
+        <div className="sidebar__notification" ref={dropdownRef}>
+          <button 
+            className="sidebar__bell-btn" 
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            aria-label="Thông báo"
+          >
+            <Bell size={20} />
+            <span className="sidebar__bell-dot"></span>
+          </button>
+          
+          {isDropdownOpen && (
+            <div className="sidebar__notification-dropdown">
+              <div className="sidebar__notification-header">
+                <h4>Hoạt động gần đây</h4>
+              </div>
+              <div className="sidebar__notification-list">
+                {auditLogs.length > 0 ? (
+                  auditLogs?.map(log => (
+                    <div key={log._id} className="sidebar__notification-item">
+                      <p>{formatLog(log)}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="sidebar__notification-empty">Không có hoạt động nào</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </aside>

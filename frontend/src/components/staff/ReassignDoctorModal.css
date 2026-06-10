@@ -1,0 +1,36 @@
+.staff-modal--reassign {
+  max-width: 500px;
+}
+
+.reassign-alert {
+  background-color: var(--staff-warning-bg);
+  color: var(--staff-warning-text);
+  padding: 12px;
+  border-radius: var(--staff-radius);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--staff-border);
+  border-radius: var(--staff-radius);
+  font-family: var(--staff-font);
+}
+
+.form-error {
+  color: #ef4444;
+  margin-bottom: 16px;
+  font-size: 14px;
+}

@@ -42,7 +42,7 @@ export function FormField({
   if (as === 'select') {
     control = (
       <select {...controlProps}>
-        {options.map((opt) => (
+        {options?.map((opt) => (
           <option key={opt.value || '__empty'} value={opt.value}>
             {opt.label}
           </option>
@@ -58,7 +58,7 @@ export function FormField({
   return (
     <div className={`staff-form-field${error ? ' staff-form-field--error' : ''}`}>
       <label className="staff-form-field__label" htmlFor={id}>
-        {label}
+        {label.toLowerCase()}
         {required && (
           <span className="staff-form-field__required" aria-hidden="true">
             {' '}

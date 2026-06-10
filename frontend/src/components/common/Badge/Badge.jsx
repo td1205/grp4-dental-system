@@ -8,7 +8,7 @@ const VARIANT_CLASS = {
   reception: 'badge--specialty-reception',
 }
 
-export default function Badge({ label, variant = 'success', className = '' }) {
+export function Badge({ label, variant = 'success', className = '' }) {
   const modifier = VARIANT_CLASS[variant] ?? VARIANT_CLASS.success
 
   return (

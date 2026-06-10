@@ -1,4 +1,8 @@
 import { ROLE_OPTIONS, STATUS_OPTIONS } from '../../constants/staff';
+import { MacDropdown } from '../common/MacDropdown/MacDropdown.jsx';
+import { Input } from '../ui/Input/Input.jsx';
+import { Button } from '../ui/Button/Button.jsx';
+import { LayoutGrid, List } from 'lucide-react';
 
 export function StaffToolbar({
   search,
@@ -7,60 +11,98 @@ export function StaffToolbar({
   onRoleChange,
   status,
   onStatusChange,
-  onExport,
+  sort,
+  onSortChange,
   onAdd,
+  onExport,
+  viewMode,
+  onViewModeChange,
 }) {
+  const SORT_OPTIONS = [
+    { value: 'createdAt:desc', label: 'Mới nhất' },
+    { value: 'createdAt:asc', label: 'Cũ nhất' },
+    { value: 'fullName:asc', label: 'Tên: A-Z' },
+    { value: 'fullName:desc', label: 'Tên: Z-A' },
+    { value: 'role:asc', label: 'Theo chức vụ' },
+  ];
+
   return (
     <div className="staff-toolbar">
       <div className="staff-toolbar__search">
-        <span className="staff-toolbar__search-icon" aria-hidden="true">
-          <SearchIcon />
-        </span>
-        <input
+        <Input
+          icon={<SearchIcon />}
           type="search"
-          className="staff-toolbar__input"
-          placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+          placeholder="Tìm kiếm nhân viên..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           aria-label="Tìm kiếm nhân viên"
         />
       </div>
 
-      <select
-        className="staff-toolbar__select"
+      <MacDropdown
+        options={ROLE_OPTIONS}
         value={role}
-        onChange={(e) => onRoleChange(e.target.value)}
-        aria-label="Lọc theo vai trò"
-      >
-        {ROLE_OPTIONS.map((opt) => (
-          <option key={opt.value || 'all'} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+        onChange={onRoleChange}
+        placeholder="Tất cả vai trò"
+        ariaLabel="Lọc theo vai trò"
+      />
 
-      <select
-        className="staff-toolbar__select"
+      <MacDropdown
+        options={STATUS_OPTIONS}
         value={status}
-        onChange={(e) => onStatusChange(e.target.value)}
-        aria-label="Lọc theo trạng thái"
-      >
-        {STATUS_OPTIONS.map((opt) => (
-          <option key={opt.value || 'all'} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+        onChange={onStatusChange}
+        placeholder="Tất cả trạng thái"
+        ariaLabel="Lọc theo trạng thái"
+      />
 
-      <button type="button" className="staff-btn staff-btn--outline" onClick={onExport}>
+      <MacDropdown
+        options={SORT_OPTIONS}
+        value={sort}
+        onChange={onSortChange}
+        ariaLabel="Sắp xếp nhân viên"
+      />
+
+      <Button variant="secondary" onClick={onExport}>
         <ExportIcon />
         Xuất Excel
-      </button>
+      </Button>
 
-      <button type="button" className="staff-btn staff-btn--primary" onClick={onAdd}>
+      <div className="view-toggle-group" style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden' }}>
+        <button
+          type="button"
+          onClick={() => onViewModeChange('grid')}
+          style={{
+            padding: '8px 12px',
+            background: viewMode === 'grid' ? 'var(--color-bg-page)' : '#fff',
+            color: viewMode === 'grid' ? 'var(--color-link-active)' : 'var(--color-text-sub)',
+            border: 'none',
+            borderRight: '1px solid var(--color-border)',
+            cursor: 'pointer'
+          }}
+          aria-label="Dạng lưới"
+        >
+          <LayoutGrid size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onViewModeChange('table')}
+          style={{
+            padding: '8px 12px',
+            background: viewMode === 'table' ? 'var(--color-bg-page)' : '#fff',
+            color: viewMode === 'table' ? 'var(--color-link-active)' : 'var(--color-text-sub)',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+          aria-label="Dạng danh sách"
+        >
+          <List size={18} />
+        </button>
+      </div>
+
+      <Button variant="primary" onClick={onAdd}>
         <PlusIcon />
         Thêm nhân viên mới
-      </button>
+      </Button>
     </div>
   );
 }

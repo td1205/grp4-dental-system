@@ -110,3 +110,24 @@
 .modal__btn--primary:hover {
   background: var(--staff-primary-dark);
 }
+
+@media (max-width: 768px) {
+  .modal {
+    padding: 16px;
+  }
+  .modal__container {
+    width: 92%;
+    max-width: 92%;
+    margin: auto;
+    max-height: calc(100svh - 32px);
+  }
+  .modal__header {
+    padding: 16px 16px 0;
+  }
+  .modal__body {
+    padding: 16px;
+  }
+  .modal__footer {
+    padding: 0 16px 16px;
+  }
+}

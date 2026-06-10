@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* --- Hệ màu sắc Clinical Professional (Colors) --- */
+  --color-sidebar: #1B2E5E;        /* Navy Deep - Nền Sidebar & Header */
+  --color-link-active: #2E5FA3;    /* Clinical Blue - Link & Icon active */
+  --color-cta: #0D8A72;            /* Medical Teal - Nút hành động chính */
+  
+  --color-bg-page: #F5F7FA;        /* Cool White - Nền toàn trang */
+  --color-bg-card: #FFFFFF;        /* Pure White - Nền các thẻ/bảng */
+  
+  --color-text-main: #1F2937;
+  --color-text-sub: #6B7280;       /* Slate xám - Cho ID, Email, SĐT */
+  
+  --color-border: #E5E7EB;
+  --color-danger: #EF4444;         /* Chỉ dùng cho Xóa/Lỗi */
+
+  /* --- Trạng thái hệ thống (Semantic Colors) --- */
+  --color-state-active-bg: #E8F5F0;
+  --color-state-active-text: #0F6E56;
+  
+  --color-state-suspended-bg: #FEF3E2;
+  --color-state-suspended-text: #854F0B;
+  
+  --color-state-inactive-bg: #FDECEA;
+  --color-state-inactive-text: #A32D2D;
+
+  /* --- Phân quyền (Role Colors) --- */
+  --color-role-admin-bg: #EEF2FF;
+  --color-role-admin-text: #3730A3;
+  
+  --color-role-doctor-bg: #F0F9FF;
+  --color-role-doctor-text: #0369A1;
+  
+  --color-role-receptionist-bg: #F8FAFC;
+  --color-role-receptionist-text: #475569;
+
+  /* --- Hệ Typography --- */
+  --font-family-main: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-base: 14px;
+  --font-weight-bold: 600;
+
+  /* --- Hệ Spacing & Radius --- */
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-full: 9999px;
+
+  /* --- Hệ Transition --- */
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.15s ease;
+
+  /* --- Hệ Shadow --- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-focus: 0 0 0 3px rgba(13, 138, 114, 0.25); /* Teal focus */
+}
+
+/* Tắt focus cứng mặc định trên toàn hệ thống */
+input:focus, select:focus, textarea:focus, button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--color-accent) !important;
+  transition: border-color 0.2s ease-in-out;
+}

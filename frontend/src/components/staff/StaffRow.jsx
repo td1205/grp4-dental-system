@@ -21,6 +21,14 @@ export function StaffRow({ staff, onView, onEdit, onChangePassword, onToggleLock
       <td>{formatCreatedDate(staff.createdAt)}</td>
       <td>
         <div className="staff-row__actions">
+          {staff.status === 'pending' && (
+            <ActionButton
+              label="Gửi lại mail xác thực"
+              onClick={() => alert(`Đã gửi lại email xác thực thành công tới ${staff.email}`)}
+            >
+              <MailIcon />
+            </ActionButton>
+          )}
           <ActionButton label="Xem" onClick={() => onView?.(staff)}>
             <EyeIcon />
           </ActionButton>
@@ -51,10 +59,9 @@ function ActionButton({ label, onClick, children, variant }) {
       type="button"
       className={`staff-action-btn${variant === 'danger' ? ' staff-action-btn--danger' : ''}`}
       onClick={onClick}
-      aria-label={label}
       title={label}
     >
-      {children}
+      {children} <span>{label}</span>
     </button>
   );
 }
@@ -97,6 +104,15 @@ function TrashIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+    </svg>
+  );
+}
+
+function MailIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+      <rect x="2" y="4" width="20" height="16" rx="2" />
     </svg>
   );
 }

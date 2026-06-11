@@ -10,6 +10,7 @@ const Service = require('./models/Service');
 
 
 const staffRoutes = require('./routes/staffRoutes');
+const customerRoutes = require('./routes/customerRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -58,11 +59,8 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 // 🌟 CHUYỂN GIAO TOÀN BỘ QUYỀN XỬ LÝ NHÂN SỰ CHO ROUTER
 app.use('/api/staffs', staffRoutes);
+app.use('/api/customers', customerRoutes);
 
-app.get('/api/customers', async (req, res) => {
-    const data = await Customer.find({ status: { $ne: 'inactive' } });
-    res.json({ data });
-});
 app.get('/api/services', async (req, res) => {
     const data = await Service.find();
     res.json({ data });

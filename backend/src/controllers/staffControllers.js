@@ -36,20 +36,72 @@ const generateStaffId = async (role) => {
 
     return baseString + stt.toString().padStart(2, '0');
 };
-
-// --- 2. API LẤY DANH SÁCH ---
+// --- 2. API LẤY DANH SÁCH (HỖ TRỢ LỌC, TÌM KIẾM & SẮP XẾP) ---
 const getAllStaff = async (req, res) => {
     try {
-        const staffs = await User.find();
+        const { search: keyword, role, status, sort } = req.query;
+
+        // 1. TẠO BỘ LỌC GỐC: Loại bỏ Khách hàng
+        let query = {
+            role: { $in: ['Admin', 'Doctor', 'Receptionist', 'Bác sĩ', 'Lễ tân', 'admin', 'doctor', 'receptionist'] }
+        };
+
+        // 2. Xử lý Thanh tìm kiếm
+        if (keyword) {
+            query.$or = [
+                { name: { $regex: keyword, $options: 'i' } },
+                { phone: { $regex: keyword, $options: 'i' } },
+                { email_noi_bo: { $regex: keyword, $options: 'i' } },
+                { ma_nhan_vien: { $regex: keyword, $options: 'i' } }
+            ];
+        }
+
+        // 3. MÁY PHIÊN DỊCH VAI TRÒ (Frontend Tiếng Việt -> DB Tiếng Anh)
+        if (role && role !== 'Tất cả vai trò' && role !== '') {
+            const roleMap = {
+                'Quản trị viên': 'Admin',
+                'Bác sĩ': 'Doctor',
+                'Lễ tân': 'Receptionist'
+            };
+            query.role = roleMap[role] || role; // Nếu không có trong từ điển thì dùng y nguyên
+        }
+
+        // 4. MÁY PHIÊN DỊCH TRẠNG THÁI
+        if (status && status !== 'Tất cả trạng thái' && status !== '') {
+            const statusMap = {
+                'Hoạt động': 'Đang hoạt động',
+                'Chờ kích hoạt': 'Chờ kích hoạt',
+                'Đã đình chỉ / Nghỉ việc': 'Ngừng hoạt động', // Hoặc 'Đã khóa' tùy bạn lưu trong DB
+            };
+            query.trang_thai = statusMap[status] || status;
+        }
+
+        // 5. CẤU HÌNH SẮP XẾP (SORTING)
+        let sortOptions = { createdAt: -1 }; // Mặc định: Mới nhất lên đầu
+
+        if (sort === 'Cũ nhất') {
+            sortOptions = { createdAt: 1 };
+        } else if (sort === 'Tên: A-Z' || sort === 'Tên A-Z') {
+            sortOptions = { name: 1 }; // 1 là A->Z
+        } else if (sort === 'Tên: Z-A' || sort === 'Tên Z-A') {
+            sortOptions = { name: -1 }; // -1 là Z->A
+        }
+
+        // 6. Truy vấn và Sắp xếp
+        const staffs = await User.find(query).sort(sortOptions);
+
         return res.status(200).json({
             message: 'Lấy danh sách thành công',
             total: staffs.length,
             data: staffs
         });
     } catch (error) {
+        console.error("Lỗi khi lấy danh sách nhân viên:", error);
         return res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 };
+
+// --- 3. API THÊM MỚI NHÂN VIÊN ---
 const createStaff = async (req, res) => {
     try {
         const data = req.body;
@@ -64,7 +116,7 @@ const createStaff = async (req, res) => {
         else if (data.role === 'Receptionist') domain = 'LT.dentalcare.com';
         else if (data.role === 'Admin') domain = 'AD.dentalcare.com';
 
-        // Ép mã nhân viên thành chữ thường + @ + domain (VD: bs20260601@BS.dentalcare.com)
+        // Ép mã nhân viên thành chữ thường + @ + domain
         data.email_noi_bo = `${data.ma_nhan_vien.toLowerCase()}@${domain}`;
 
         // 3. Token bảo mật
@@ -106,7 +158,7 @@ const createStaff = async (req, res) => {
             `;
 
             await sendEmail({
-                email: data.email, // Vẫn gửi về email cá nhân thật
+                email: data.email,
                 subject: `[DentalCare] Thông tin tài khoản nội bộ - ${data.ma_nhan_vien}`,
                 html: emailHtml
             });
@@ -124,6 +176,8 @@ const createStaff = async (req, res) => {
         return res.status(400).json({ message: 'Lỗi khi tạo nhân viên', error: error.message });
     }
 };
+
+// --- 4. API KÍCH HOẠT NHÂN VIÊN ---
 const activateStaff = async (req, res) => {
     try {
         const { token, newPassword } = req.body;
@@ -132,21 +186,18 @@ const activateStaff = async (req, res) => {
             return res.status(400).json({ message: 'Vui lòng cung cấp đủ token và mật khẩu mới' });
         }
 
-        // Tìm nhân viên có mã token khớp và token chưa hết hạn
         const user = await User.findOne({
             activationToken: token,
-            activationExpires: { $gt: Date.now() } // Kểm tra hạn 24h
+            activationExpires: { $gt: Date.now() }
         });
 
         if (!user) {
             return res.status(400).json({ message: 'Đường dẫn kích hoạt không hợp lệ hoặc đã hết hạn.' });
         }
 
-        // Mã hóa mật khẩu mới
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
 
-        // Cập nhật trạng thái và xóa token để không dùng lại được nữa
         user.trang_thai = 'Đang hoạt động';
         user.activationToken = undefined;
         user.activationExpires = undefined;
@@ -158,7 +209,8 @@ const activateStaff = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server khi kích hoạt', error: error.message });
     }
 };
-// --- 4. API ĐĂNG NHẬP ---
+
+// --- 5. API ĐĂNG NHẬP ---
 const loginStaff = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -201,7 +253,6 @@ const loginStaff = async (req, res) => {
     }
 };
 
-// Đảm bảo module.exports nằm ở DƯỚI CÙNG của file
 module.exports = {
     getAllStaff,
     createStaff,

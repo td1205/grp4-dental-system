@@ -1,4 +1,43 @@
 export const NAV_ITEMS = [
+  // =================================================================
+  // PHÂN HỆ LỄ TÂN (CỦA BẠN - CHỈ HIỂN THỊ ĐÚNG 5 MỤC NÀY TRÊN MENU)
+  // =================================================================
+  {
+    id: 'reception',
+    label: 'Tiếp đón & Hàng đợi',
+    icon: 'schedule', 
+    path: '/reception'
+  },
+  {
+    id: 'schedule',
+    label: 'Quản lý lịch hẹn',
+    icon: 'schedule',
+    path: '/schedule'
+  },
+  {
+    id: 'billing',
+    label: 'Thanh toán Viện phí',
+    icon: 'salary', 
+    path: '/billing'
+  },
+  {
+    id: 'personal-schedule',
+    label: 'Lịch làm việc của tôi',
+    icon: 'schedule',
+    path: '/personal-schedule'
+  },
+  { 
+    id: 'revenue', 
+    label: 'Quản lý khách hàng', // <-- Trang Khách hàng của bạn đã được thêm lại ở đây
+    icon: 'users', // Dùng icon chung hệ thống để tránh lỗi
+    path: '/revenue' 
+  }
+
+  // =================================================================
+  // CÁC MỤC CỦA ADMIN (ĐÃ ĐƯỢC TẠM ẨN ĐI ĐỂ TRÁNH LỖI GIAO DIỆN)
+  // =================================================================
+  /*
+  ,
   {
     id: 'users',
     label: 'Quản lý người dùng',
@@ -6,44 +45,34 @@ export const NAV_ITEMS = [
     path: '/users',
     children: [
       { id: 'staff', label: 'Quản lý nhân viên', path: '/staff' },
-      { id: 'customers', label: 'Quản lý khách hàng', path: '/customers' },
-    ],
+      { id: 'customers', label: 'Quản lý khách hàng', path: '/customers' }
+    ]
   },
   {
-    id: 'services',
-    label: 'Dịch vụ',
-    icon: 'services',
-    path: '/services',
-    children: [
-      { id: 'service-categories', label: 'Danh mục dịch vụ', path: '/services/categories' },
-      { id: 'service-prices', label: 'Bảng giá dịch vụ', path: '/services/prices' },
-    ],
-  },
-  {
-    id: 'schedule',
-    label: 'Lịch làm việc',
+    id: 'admin-schedule',
+    label: 'Quản Lý Lịch Hẹn (Admin)',
     icon: 'schedule',
-    path: '/schedule',
+    path: '/schedule-admin',
     children: [
       { id: 'schedule-leaves', label: 'Quản lý lịch nghỉ', path: '/schedule/leaves' },
-      { id: 'schedule-shifts', label: 'Thiết lập ca làm việc', path: '/schedule/shifts' },
-    ],
+      { id: 'schedule-shifts', label: 'Thiết lập ca làm việc', path: '/schedule/shifts' }
+    ]
   },
   {
     id: 'salary',
-    label: 'Lương',
+    label: 'Quản Lý Lương',
     icon: 'salary',
     path: '/salary',
     children: [
       { id: 'salary-config', label: 'Cấu hình lương & Hệ số ca bệnh', path: '/salary/config' },
-      { id: 'salary-payslips', label: 'Phiếu lương bác sĩ', path: '/salary/payslips' },
-    ],
-  },
-  { id: 'revenue', label: 'Thống kê doanh thu', icon: 'stats', path: '/revenue' },
-]
+      { id: 'salary-payslips', label: 'Phiếu lương bác sĩ', path: '/salary/payslips' }
+    ]
+  }
+  */
+];
 
 export const DEFAULT_USER = {
-  initials: 'AU',
-  name: 'Admin User',
-  email: 'admin@dentalcare.vn',
-}
+  initials: 'LT',
+  name: 'Lê Tân',
+  email: 'letan@dentalcare.vn'
+};

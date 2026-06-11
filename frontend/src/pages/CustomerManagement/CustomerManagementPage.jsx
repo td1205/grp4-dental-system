@@ -9,7 +9,7 @@ import { Users, UserCheck, UserX } from 'lucide-react'
 import { ToastStack } from '../../components/common/ToastStack/ToastStack'
 import { ManagementPageLayout } from '../../components/layout/ManagementPageLayout/ManagementPageLayout'
 import { StaffConfirmModal } from '../../components/staff/StaffConfirmModal'
-import { customerApi } from '../../services/customerApi'
+import { customerApi } from '../../services'
 import './CustomerManagementPage.css'
 import { DEFAULT_USER } from '../../constants/navigation'
 
@@ -42,7 +42,7 @@ export function CustomerManagementPage() {
     setIsLoading(true)
     setIsError(false)
     try {
-      const res = await customerApi.getAll({ search: searchQuery })
+      const res = await customerApi.getAll({ search: searchQuery });
       setCustomers(res.data || [])
     } catch (err) {
       console.error(err)
@@ -216,7 +216,7 @@ export function CustomerManagementPage() {
         onSave={handleSaveCustomer}
         customer={selectedCustomer}
       />
-      
+
       {confirmModalConfig && (
         <StaffConfirmModal
           open={!!confirmModalConfig}

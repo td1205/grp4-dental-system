@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: 'http://localhost:5001/api'
 });
 
 export const staffApi = {
@@ -13,8 +13,8 @@ export const staffApi = {
   remove: (id) => api.delete(`/staffs/${id}`).then((r) => r.data),
   resendEmail: (id) => api.post(`/staffs/${id}/resend-email`).then((r) => r.data),
   resetPassword: (id) => api.patch(`/staffs/${id}/reset-password`).then((r) => r.data),
-  login: (payload) => api.post('/auth/login', payload).then((r) => r.data),
-  activate: (payload) => api.post('/auth/activate', payload).then((r) => r.data),
+  login: (payload) => api.post('/staffs/login', payload).then((r) => r.data),
+  activate: (payload) => api.post('/staffs/activate', payload).then((r) => r.data),
   checkAppointments: (id) => api.get(`/staffs/${id}/check-appointments`).then((r) => r.data),
   reassignAndSuspend: (id, payload) => api.post(`/staffs/${id}/reassign-suspend`, payload).then((r) => r.data),
 };

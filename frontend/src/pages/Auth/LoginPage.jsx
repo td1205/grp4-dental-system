@@ -22,19 +22,19 @@ export function LoginPage() {
     try {
       setIsLoading(true);
       const response = await staffApi.login({ email, password });
-      
+
       // Lưu thông tin vào localStorage
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
-      
+
       const user = response.user;
       if (user.status === 'pending') {
-        navigate('/first-time-password');
+        navigate('/activate');
         return;
       }
 
       const userRole = user.role || user.position;
-      
+
       if (userRole === 'admin') {
         navigate('/admin/dashboard');
       } else if (userRole === 'doctor') {
@@ -57,30 +57,30 @@ export function LoginPage() {
       <div className="auth-card">
         <h2>Đăng nhập Hệ thống</h2>
         <p>Quản lý nha khoa DentalCare</p>
-        
+
         <form onSubmit={handleLogin} className="auth-form">
           {error && <div className="auth-error">{error}</div>}
-          
+
           <div className="auth-field">
             <label>Email đăng nhập</label>
-            <input 
-              type="text" 
-              value={email} 
+            <input
+              type="text"
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="VD: bs.nguyenvan@dentalcare.vn"
             />
           </div>
-          
+
           <div className="auth-field">
             <label>Mật khẩu</label>
-            <input 
-              type="password" 
-              value={password} 
+            <input
+              type="password"
+              value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Nhập mật khẩu"
             />
           </div>
-          
+
           <button type="submit" className="auth-submit" disabled={isLoading}>
             {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>

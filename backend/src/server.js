@@ -11,9 +11,10 @@ const Service = require('./models/Service');
 
 const staffRoutes = require('./routes/staffRoutes');
 const customerRoutes = require('./routes/customerRoutes');
+const serviceRoutes = require('./routes/serviceRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(express.json());
@@ -57,10 +58,10 @@ async function seedAdminAccount() {
 // --- API ROUTES CỦA HỆ THỐNG ---
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-// 🌟 CHUYỂN GIAO TOÀN BỘ QUYỀN XỬ LÝ NHÂN SỰ CHO ROUTER
+
 app.use('/api/staffs', staffRoutes);
 app.use('/api/customers', customerRoutes);
-
+app.use('/api/services', serviceRoutes);
 app.get('/api/services', async (req, res) => {
     const data = await Service.find();
     res.json({ data });

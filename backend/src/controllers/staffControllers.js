@@ -56,25 +56,33 @@ const getAllStaff = async (req, res) => {
             ];
         }
 
-        // 3. MÁY PHIÊN DỊCH VAI TRÒ (Frontend Tiếng Việt -> DB Tiếng Anh)
-        if (role && role !== 'Tất cả vai trò' && role !== '') {
-            const roleMap = {
-                'Quản trị viên': 'Admin',
-                'Bác sĩ': 'Doctor',
-                'Lễ tân': 'Receptionist'
-            };
-            query.role = roleMap[role] || role; // Nếu không có trong từ điển thì dùng y nguyên
+
+        // 3. MÁY PHIÊN DỊCH VAI TRÒ (Siêu cấp chống lỗi)
+        if (role && role !== 'Tất cả vai trò' && role !== 'all' && role !== '') {
+            // Chuyển mọi thứ về chữ thường để dễ soi
+            const r = role.toLowerCase();
+
+            if (r.includes('quản trị') || r === 'admin') query.role = 'Admin';
+            else if (r.includes('bác sĩ') || r === 'doctor') query.role = 'Doctor';
+            else if (r.includes('lễ tân') || r === 'receptionist') query.role = 'Receptionist';
+            else query.role = role; // Dự phòng
         }
 
-        // 4. MÁY PHIÊN DỊCH TRẠNG THÁI
-        if (status && status !== 'Tất cả trạng thái' && status !== '') {
-            const statusMap = {
-                'Hoạt động': 'Đang hoạt động',
-                'Chờ kích hoạt': 'Chờ kích hoạt',
-                'Đã đình chỉ / Nghỉ việc': 'Ngừng hoạt động', // Hoặc 'Đã khóa' tùy bạn lưu trong DB
-            };
-            query.trang_thai = statusMap[status] || status;
+        // 4. MÁY PHIÊN DỊCH TRẠNG THÁI (Siêu cấp chống lỗi)
+        if (status && status !== 'Tất cả trạng thái' && status !== 'all' && status !== '') {
+            const s = status.toLowerCase();
+
+            if (s === 'active' || (s.includes('hoạt động') && !s.includes('ngừng'))) {
+                query.trang_thai = 'Đang hoạt động';
+            }
+            else if (s === 'pending' || s.includes('chờ')) {
+                query.trang_thai = 'Chờ kích hoạt';
+            }
+            else if (s === 'locked' || s === 'inactive' || s.includes('khóa') || s.includes('đình chỉ')) {
+                query.trang_thai = 'Ngừng hoạt động'; // Hoặc sửa thành 'Đã khóa' nếu DB bạn lưu thế
+            }
         }
+
 
         // 5. CẤU HÌNH SẮP XẾP (SORTING)
         let sortOptions = { createdAt: -1 }; // Mặc định: Mới nhất lên đầu
@@ -105,7 +113,14 @@ const getAllStaff = async (req, res) => {
 const createStaff = async (req, res) => {
     try {
         const data = req.body;
+        console.log("📦 GÓI HÀNG FRONTEND GỬI LÊN LÀ:", data);
+        if (data.role) {
+            const r = String(data.role).trim().toLowerCase();
 
+            if (r.includes('bác') || r.includes('doctor')) data.role = 'Doctor';
+            else if (r.includes('lễ') || r.includes('receptionist')) data.role = 'Receptionist';
+            else if (r.includes('quản') || r.includes('admin')) data.role = 'Admin';
+        }
         // 1. Tự sinh mã nhân viên và trạng thái
         data.ma_nhan_vien = await generateStaffId(data.role);
         data.trang_thai = 'Chờ kích hoạt';
@@ -163,6 +178,7 @@ const createStaff = async (req, res) => {
                 html: emailHtml
             });
             console.log(`✉️ ĐÃ GỬI EMAIL THÀNH CÔNG ĐẾN: ${data.email}`);
+            console.log("📦 GÓI HÀNG FRONTEND GỬI LÊN LÀ:", data);
         }
 
         return res.status(201).json({

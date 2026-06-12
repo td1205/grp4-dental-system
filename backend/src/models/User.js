@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema({
     birthday: { type: Date, required: true },
     phone: { type: String, required: true, unique: true },
     cccd: { type: String, unique: true, sparse: true },
-
+    gender: { type: String, enum: ['Nam', 'Nữ', 'Khác'], required: true },
     email: { type: String, unique: true, sparse: true },
     email_noi_bo: { type: String, unique: true, sparse: true },
     password: { type: String },

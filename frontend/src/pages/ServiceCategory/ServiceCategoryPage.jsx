@@ -380,16 +380,25 @@ export function ServiceCategoryPage() {
               <p style={{ color: '#ef4444', fontSize: '12px', margin: '0 0 8px 0', padding: '8px', background: '#fef2f2', borderRadius: '4px', borderLeft: '3px solid #ef4444' }}>{formError}</p>
             )}
 
+
             <div className="service-modal__field" style={{ marginBottom: '16px' }}>
-              <label htmlFor="svc-id" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Mã dịch vụ {isEditMode ? '' : <span className="required" style={{ color: '#dc2626' }}>*</span>}</label>
+              <label htmlFor="svc-id" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>
+                Mã dịch vụ
+              </label>
               <input
                 id="svc-id"
                 type="text"
-                placeholder="Ví dụ: DV001 (Để trống hệ thống sẽ tự sinh)"
+
+                placeholder={isEditMode ? "" : "Hệ thống tự sinh mã sau khi lưu..."}
                 value={newServiceId}
                 onChange={(e) => setNewServiceId(e.target.value)}
-                disabled={isEditMode}
-                title={isEditMode ? "Không thể sửa mã dịch vụ" : ""}
+                disabled
+                style={{
+                  backgroundColor: '#f8fafc',
+                  cursor: 'not-allowed',
+                  border: '1px solid #e2e8f0',
+                  color: '#94a3b8'
+                }}
               />
             </div>
 

@@ -1,33 +1,16 @@
 const mongoose = require('mongoose');
 
 const leaveRequestSchema = new mongoose.Schema({
-  staffId: {
-    type: String,
-    required: true,
-  },
-  date: {
-    type: Date,
-    required: true,
-  },
-  reason: {
-    type: String,
-    required: true,
-  },
-  status: {
-    type: String,
-    default: 'pending',
-    enum: ['pending', 'approved', 'rejected'],
-  },
-  approvedBy: {
-    type: String,
-    default: null,
-  }
-}, {
-  timestamps: true
-});
+  staffId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, required: true },
+  leaveType: { type: String, enum: ['Phép năm', 'Việc riêng', 'Nghỉ bệnh', 'Nghỉ lễ'], required: true },
+  reason: { type: String, required: true },
+  status: { type: String, default: 'Chờ duyệt', enum: ['Chờ duyệt', 'Đã duyệt', 'Từ chối', 'Đã hủy'] },
+  rejectionReason: { type: String, default: '' },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
+}, { timestamps: true });
 
-leaveRequestSchema.index({ staffId: 1, date: 1 });
+leaveRequestSchema.index({ staffId: 1, startDate: 1 });
 
-const LeaveRequest = mongoose.model('LeaveRequest', leaveRequestSchema);
-
-module.exports = LeaveRequest;
+module.exports = mongoose.model('LeaveRequest', leaveRequestSchema);

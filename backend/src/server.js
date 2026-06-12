@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-
+const leaveRoutes = require('./routes/leaveRoutes');
 const User = require('./models/User');
 const Customer = require('./models/Customer');
 const Service = require('./models/Service');
@@ -59,6 +59,7 @@ async function seedAdminAccount() {
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 
+app.use('/api/leaves', leaveRoutes);
 app.use('/api/staffs', staffRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/services', serviceRoutes);

@@ -1,13 +1,14 @@
 import { ROLE_LABELS, STATUS_LABELS, formatCreatedDate } from '../constants/staff';
 
+
 const EXPORT_COLUMNS = [
-  { key: 'id', header: 'Mã NV' },
-  { key: 'fullName', header: 'Họ tên' },
-  { key: 'email', header: 'Email' },
+  { key: 'ma_nhan_vien', header: 'Mã NV' },
+  { key: 'name', header: 'Họ tên' },
+  { key: 'email_noi_bo', header: 'Email nội bộ' },
   { key: 'phone', header: 'SĐT' },
   { key: 'role', header: 'Vai trò', format: (v) => ROLE_LABELS[v] ?? v },
-  { key: 'degree', header: 'Bằng cấp', format: (v) => v || '—' },
-  { key: 'status', header: 'Trạng thái', format: (v) => STATUS_LABELS[v] ?? v },
+  { key: 'academicDegree', header: 'Bằng cấp', format: (v) => v || '—' }, // Thay degree
+  { key: 'trang_thai', header: 'Trạng thái', format: (v) => STATUS_LABELS[v] ?? v }, // Thay status
   { key: 'createdAt', header: 'Ngày tạo', format: (v) => formatCreatedDate(v) },
 ];
 

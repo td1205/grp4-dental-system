@@ -12,7 +12,7 @@ export function Sidebar({ user }) {
 
   useEffect(() => {
     if (isDropdownOpen) {
-      axios.get('http://localhost:5000/api/audit-logs')
+      axios.get('http://localhost:5001/api/audit-logs')
         .then(res => setAuditLogs(res.data))
         .catch(err => console.error('Failed to fetch audit logs', err));
     }
@@ -73,15 +73,15 @@ export function Sidebar({ user }) {
           <span className="sidebar__user-role">{user.role}</span>
         </div>
         <div className="sidebar__notification" ref={dropdownRef}>
-          <button 
-            className="sidebar__bell-btn" 
+          <button
+            className="sidebar__bell-btn"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             aria-label="Thông báo"
           >
             <Bell size={20} />
             <span className="sidebar__bell-dot"></span>
           </button>
-          
+
           {isDropdownOpen && (
             <div className="sidebar__notification-dropdown">
               <div className="sidebar__notification-header">

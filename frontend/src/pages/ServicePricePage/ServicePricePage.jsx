@@ -8,7 +8,7 @@ import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 import './ServicePricePage.css'
 
 const ACTIVE_PATH = '/services/prices'
-const API_URL = 'http://localhost:5000/api/services'
+const API_URL = 'http://localhost:5001/api/services'
 
 export function ServicePricePage() {
   const [services, setServices] = useState([])
@@ -31,7 +31,7 @@ export function ServicePricePage() {
   }
 
   const [activeTab, setActiveTab] = useState('all') // 'all' (Tất cả biểu giá) hoặc 'no-price' (Dịch vụ chưa có giá)
-  
+
   // Trạng thái modal Điều chỉnh giá
   const [selectedService, setSelectedService] = useState(null)
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false)
@@ -47,7 +47,7 @@ export function ServicePricePage() {
   // Chỉ hiển thị các dịch vụ đang hoạt động (active)
   const displayedServices = useMemo(() => {
     const activeServices = services.filter(s => s.status === 'active')
-    
+
     if (activeTab === 'all') {
       // Có ít nhất một biểu giá trong lịch sử
       return activeServices.filter(s => s.priceHistory && s.priceHistory.length > 0)
@@ -63,7 +63,7 @@ export function ServicePricePage() {
     const latestPrice = service.priceHistory && service.priceHistory.length > 0
       ? service.priceHistory[service.priceHistory.length - 1]
       : null
-    
+
     setNewPrice(latestPrice ? latestPrice.price.replace(/\D/g, '') : '')
     setNewBhyt(latestPrice ? latestPrice.bhyt.replace(/\D/g, '') : '')
     setNewEffectiveDate(new Date().toISOString().slice(0, 10))
@@ -218,7 +218,7 @@ export function ServicePricePage() {
             <p style={{ margin: 0, fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
               Dịch vụ: <strong style={{ color: '#0f172a' }}>{selectedService?.name} ({selectedService?.id})</strong>
             </p>
-            
+
             {selectedService?.priceHistory && selectedService.priceHistory.length > 0 && (
               <div style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: '6px', fontSize: '12px', color: '#475569', borderLeft: '3px solid #2563eb', marginBottom: '16px' }}>
                 Phiên bản hiện tại (v{selectedService.priceHistory.length}):{' '}
@@ -290,7 +290,7 @@ export function ServicePricePage() {
               <span style={{ flex: 1 }}>BHYT</span>
               <span style={{ width: '100px' }}>NGÀY HIỆU LỰC</span>
             </div>
-            
+
             {/* Hiển thị các phiên bản từ mới nhất đến cũ nhất */}
             {[...(historyService?.priceHistory || [])].reverse().map((hist) => (
               <div className="history-item" key={hist.version} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>

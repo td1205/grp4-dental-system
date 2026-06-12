@@ -11,20 +11,26 @@ export function staffToFormValues(staff) {
   if (!staff) return { ...EMPTY_STAFF_FORM };
 
   return {
-    fullName: staff.fullName ?? '',
-    dob: formatDateForInput(staff.dob) ?? '',
+    name: staff.name ?? '',
+    birthday: formatDateForInput(staff.birthday) ?? '',
     gender: staff.gender ?? '',
-    idNumber: staff.idNumber ?? '',
+    cccd: staff.cccd ?? '',
     address: staff.address ?? '',
     phone: staff.phone ?? '',
     email: staff.email ?? '',
     role: staff.role ?? '',
     workplace: staff.workplace ?? '',
-    degree: staff.degree ?? '',
+
+
+    academicDegree: staff.academicDegree ?? '',
+    academicTitle: staff.academicTitle ?? '',
+    qualification: staff.qualification ?? '',
+    doctorID: staff.doctorID ?? '',
+
     startDate: formatDateForInput(staff.startDate) ?? formatDateForInput(staff.createdAt) ?? '',
     username: staff.username ?? '',
     password: '',
     confirmPassword: '',
-    status: staff.status ?? 'active',
+    status: staff.trang_thai ?? 'Chờ kích hoạt',
   };
 }

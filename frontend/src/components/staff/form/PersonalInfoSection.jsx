@@ -6,7 +6,7 @@ import { FormSection, FormSectionRow } from './FormSection';
  * Personal info card — pure, controlled via props.
  *
  * @param {Object} props
- * @param {{ fullName: string, dob: string, gender: string, idNumber: string, address: string, phone: string, email: string }} props.values
+ * @param {{ name: string, birthday: string, gender: string, cccd: string, address: string, phone: string, email: string }} props.values
  * @param {Partial<Record<keyof typeof props.values, string>>} [props.errors]
  * @param {(field: string, value: string) => void} props.onChange
  * @param {(field: string) => void} [props.onBlur]
@@ -30,21 +30,21 @@ export function PersonalInfoSection({
   return (
     <FormSection title="Thông tin cá nhân">
       <FormField
-        id="fullName"
+        id="name"
         label="Họ tên"
         required
         placeholder="Nhập họ và tên"
         autoComplete="name"
-        {...bind('fullName')}
+        {...bind('name')}
       />
 
       <FormSectionRow>
         <FormField
-          id="dob"
+          id="birthday"
           label="Ngày sinh"
           type="date"
           required
-          {...bind('dob')}
+          {...bind('birthday')}
         />
         <FormField
           id="gender"
@@ -57,12 +57,12 @@ export function PersonalInfoSection({
       </FormSectionRow>
 
       <FormField
-        id="idNumber"
+        id="cccd"
         label="CCCD/CMND"
         required
         placeholder="Nhập số CCCD hoặc CMND"
         autoComplete="off"
-        {...bind('idNumber')}
+        {...bind('cccd')}
       />
 
       <FormField

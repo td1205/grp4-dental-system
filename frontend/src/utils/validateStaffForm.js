@@ -4,11 +4,12 @@ const CCCD_RE = /^[0-9]{9,12}$/;
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,50}$/;
 const PASSWORD_RE = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/;
 
+
 const CREATE_REQUIRED = [
-  'fullName',
-  'dob',
+  'name',
+  'birthday',
   'gender',
-  'idNumber',
+  'cccd',
   'address',
   'phone',
   'email',
@@ -28,12 +29,12 @@ export function validateStaffField(field, values, mode = 'create') {
   const v = values[field]?.trim?.() ?? values[field] ?? '';
 
   switch (field) {
-    case 'fullName':
+    case 'name': // Đã sửa
       if (!v) return 'Vui lòng nhập họ tên';
       if (v.length < 2) return 'Họ tên phải có ít nhất 2 ký tự';
       return '';
 
-    case 'dob':
+    case 'birthday': // Đã sửa
       if (!v) return 'Vui lòng chọn ngày sinh';
       if (new Date(v) > new Date()) return 'Ngày sinh không được ở tương lai';
       return '';
@@ -42,7 +43,7 @@ export function validateStaffField(field, values, mode = 'create') {
       if (!v) return 'Vui lòng chọn giới tính';
       return '';
 
-    case 'idNumber':
+    case 'cccd': // Đã sửa
       if (!v) return 'Vui lòng nhập CCCD/CMND';
       if (!CCCD_RE.test(v)) return 'CCCD/CMND phải gồm 9–12 chữ số';
       return '';
@@ -67,8 +68,12 @@ export function validateStaffField(field, values, mode = 'create') {
       if (!v) return 'Vui lòng chọn vai trò';
       return '';
 
+    // Cập nhật bỏ trường 'degree' cũ, khai báo các trường chuyên môn mới
     case 'workplace':
-    case 'degree':
+    case 'academicDegree':
+    case 'academicTitle':
+    case 'qualification':
+    case 'doctorID':
       return '';
 
     case 'startDate':
@@ -133,12 +138,11 @@ export function validateStaffForm(values, mode = 'create') {
   return { valid, errors };
 }
 
-/** Map API 409 field errors onto form keys */
+
 export function mapServerErrors(apiFields = {}) {
   const mapped = {};
-  if (apiFields.idNumber || apiFields.cccd) {
-    mapped.idNumber = apiFields.idNumber || apiFields.cccd;
-  }
+
+  if (apiFields.cccd) mapped.cccd = apiFields.cccd;
   if (apiFields.phone) mapped.phone = apiFields.phone;
   if (apiFields.email) mapped.email = apiFields.email;
   if (apiFields.username) mapped.username = apiFields.username;

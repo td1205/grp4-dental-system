@@ -12,7 +12,7 @@ import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 
 const ACTIVE_PATH = '/services/categories'
 
-const API_URL = 'http://localhost:5000/api/services';
+const API_URL = 'http://localhost:5001/api/services';
 
 export function ServiceCategoryPage() {
   const [services, setServices] = useState([])
@@ -56,7 +56,7 @@ export function ServiceCategoryPage() {
     if (isModalOpen && !isEditMode && newServiceCategory) {
       const fetchSuggestedCode = async () => {
         try {
-          const res = await axios.get(`http://localhost:5000/api/services/suggested-code?groupType=${encodeURIComponent(newServiceCategory)}`)
+          const res = await axios.get(`http://localhost:5001/api/services/suggested-code?groupType=${encodeURIComponent(newServiceCategory)}`)
           if (res.data && res.data.suggestedCode) {
             setNewServiceId(res.data.suggestedCode)
           }
@@ -71,19 +71,19 @@ export function ServiceCategoryPage() {
   // Lấy danh sách dịch vụ active và lọc theo từ khóa tìm kiếm, bộ lọc
   const filteredServices = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    
-    let list = showInactive 
+
+    let list = showInactive
       ? services.filter(s => s.status === 'inactive')
       : services.filter(s => s.status === 'active')
-    
+
     if (filter !== 'all') {
       list = list.filter(s => s.category === filter)
     }
-    
+
     if (q) {
       list = list.filter(s => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q))
     }
-    
+
     return list
   }, [services, searchQuery, filter])
 
@@ -95,7 +95,7 @@ export function ServiceCategoryPage() {
       'CĐHA': [],
       'Phẫu thuật': []
     }
-    
+
     filteredServices.forEach(s => {
       const cat = s.category || 'Khám bệnh'
       if (groups[cat]) {
@@ -104,7 +104,7 @@ export function ServiceCategoryPage() {
         groups[cat] = [s]
       }
     })
-    
+
     return groups
   }, [filteredServices])
 
@@ -112,7 +112,7 @@ export function ServiceCategoryPage() {
   const handleDeleteService = (id) => {
     const item = services.find(s => s.id === id)
     if (!item) return
-    
+
     toast((t) => (
       <div className="confirm-toast">
         <div className="confirm-toast__body">
@@ -122,14 +122,14 @@ export function ServiceCategoryPage() {
           <p className="confirm-toast__subtext">Dịch vụ sẽ ngừng hoạt động và ẩn khỏi danh sách.</p>
         </div>
         <div className="confirm-toast__footer">
-          <button 
-            className="confirm-toast__btn confirm-toast__btn--cancel" 
+          <button
+            className="confirm-toast__btn confirm-toast__btn--cancel"
             onClick={() => toast.dismiss(t.id)}
           >
             Hủy
           </button>
-          <button 
-            className="confirm-toast__btn confirm-toast__btn--confirm" 
+          <button
+            className="confirm-toast__btn confirm-toast__btn--confirm"
             onClick={async () => {
               toast.dismiss(t.id)
               try {
@@ -251,11 +251,11 @@ export function ServiceCategoryPage() {
           />
           <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
             <label style={{ display: 'flex', alignItems: 'center', fontSize: '13px', cursor: 'pointer', color: '#64748b' }}>
-              <input 
-                type="checkbox" 
-                checked={showInactive} 
-                onChange={(e) => setShowInactive(e.target.checked)} 
-                style={{ marginRight: '8px' }} 
+              <input
+                type="checkbox"
+                checked={showInactive}
+                onChange={(e) => setShowInactive(e.target.checked)}
+                style={{ marginRight: '8px' }}
               />
               Hiển thị dịch vụ đã ngừng hoạt động
             </label>
@@ -344,7 +344,7 @@ export function ServiceCategoryPage() {
                           </button>
                         </div>
                       ) : (
-                        <PrimaryButton 
+                        <PrimaryButton
                           onClick={() => handleRestoreService(item.id)}
                           style={{ fontSize: '12px', padding: '6px 12px' }}
                         >
@@ -379,7 +379,7 @@ export function ServiceCategoryPage() {
             {formError && (
               <p style={{ color: '#ef4444', fontSize: '12px', margin: '0 0 8px 0', padding: '8px', background: '#fef2f2', borderRadius: '4px', borderLeft: '3px solid #ef4444' }}>{formError}</p>
             )}
-            
+
             <div className="service-modal__field" style={{ marginBottom: '16px' }}>
               <label htmlFor="svc-id" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Mã dịch vụ {isEditMode ? '' : <span className="required" style={{ color: '#dc2626' }}>*</span>}</label>
               <input
@@ -459,7 +459,7 @@ export function ServiceCategoryPage() {
           </div>
         </form>
       </ModalWrapper>
-      
+
       <Toaster />
     </>
   )

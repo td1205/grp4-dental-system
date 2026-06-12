@@ -67,20 +67,20 @@ export function RevenueStatisticsPage() {
         <div className="revenue-filters">
           <div className="revenue-filter-group">
             <label htmlFor="startDate">Từ ngày</label>
-            <input 
-              type="date" 
-              id="startDate" 
-              value={startDate} 
+            <input
+              type="date"
+              id="startDate"
+              value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               className="revenue-input"
             />
           </div>
           <div className="revenue-filter-group">
             <label htmlFor="endDate">Đến ngày</label>
-            <input 
-              type="date" 
-              id="endDate" 
-              value={endDate} 
+            <input
+              type="date"
+              id="endDate"
+              value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               className="revenue-input"
             />
@@ -131,10 +131,10 @@ export function RevenueStatisticsPage() {
             <BarChart data={mockData} margin={{ top: 20, right: 30, left: 40, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#6B7280' }} dy={10} />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#6B7280' }} 
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#6B7280' }}
                 tickFormatter={(value) => `${value / 1000000}M`}
                 dx={-10}
               />

@@ -20,30 +20,31 @@ function removeAccents(str) {
     .toLowerCase();
 }
 
-function generateEmail(fullName, role, existingEmails = []) {
-  if (!fullName || !role) return '';
-  const cleanName = removeAccents(fullName)
+function generateEmail(name, role, existingEmails = []) {
+  if (!name || !role) return '';
+  const cleanName = removeAccents(name)
     .replace(/[^a-z0-9\s]/g, '')
     .trim();
   if (!cleanName) return '';
-  
+
   const nameParts = cleanName.split(/\s+/);
   const nameJoined = nameParts.join('');
-  
+
   let prefix = 'nv';
-  if (role === 'doctor') prefix = 'bs';
-  else if (role === 'admin') prefix = 'admin';
-  
+  const roleLower = role.toLowerCase();
+  if (roleLower === 'doctor') prefix = 'bs';
+  else if (roleLower === 'admin') prefix = 'admin';
+  else if (roleLower === 'receptionist') prefix = 'lt';
+
   const baseEmailPrefix = `${prefix}.${nameJoined}`;
   let email = `${baseEmailPrefix}@dentalcare.com`;
-  
+
   let counter = 2;
   const existingSet = new Set(existingEmails?.map(e => e.toLowerCase().trim()));
   while (existingSet.has(email)) {
     email = `${baseEmailPrefix}${counter}@dentalcare.com`;
     counter++;
   }
-  
   return email;
 }
 
@@ -75,28 +76,23 @@ export function useStaffForm({ mode = 'create', staffId } = {}) {
     }
   }, [staffQuery.data]);
 
-  // Tự động sinh email dựa trên họ tên và vai trò (chỉ khi đang thêm mới và chưa sửa email thủ công)
+  // Tự động sinh email dựa trên name và role mới
   useEffect(() => {
-    if (!isEdit && !isEmailDirty && values.fullName && values.role) {
+    if (!isEdit && !isEmailDirty && values.name && values.role) {
       const existingEmails = allStaffQuery.data?.data?.map((s) => s.email) || [];
-      const generated = generateEmail(values.fullName, values.role, existingEmails);
+      const generated = generateEmail(values.name, values.role, existingEmails);
       if (generated) {
         setValues((prev) => ({ ...prev, email: generated }));
       }
     }
-  }, [values.fullName, values.role, allStaffQuery.data, isEmailDirty, isEdit]);
+  }, [values.name, values.role, allStaffQuery.data, isEmailDirty, isEdit]);
 
   const onMutationError = (err) => {
     const data = err.response?.data;
     if (data?.fields) {
       setErrors((prev) => ({ ...prev, ...mapServerErrors(data.fields) }));
     }
-    setSubmitError(
-      data?.message ||
-        (isEdit
-          ? 'Không thể cập nhật nhân viên. Vui lòng kiểm tra lại thông tin.'
-          : 'Không thể tạo nhân viên. Vui lòng kiểm tra lại thông tin.'),
-    );
+    setSubmitError(data?.message || 'Có lỗi xảy ra khi lưu thông tin.');
   };
 
   const createMutation = useMutation({
@@ -119,9 +115,7 @@ export function useStaffForm({ mode = 'create', staffId } = {}) {
   });
 
   const handleChange = useCallback((field, value) => {
-    if (field === 'email') {
-      setIsEmailDirty(true);
-    }
+    if (field === 'email') setIsEmailDirty(true);
     setValues((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => {
       if (!prev[field]) return prev;
@@ -132,61 +126,39 @@ export function useStaffForm({ mode = 'create', staffId } = {}) {
     setSubmitError('');
   }, []);
 
-  const handleBlur = useCallback(
-    (field) => {
-      setValues((current) => {
-        const message = validateStaffField(field, current, mode);
-        setErrors((prev) => ({ ...prev, [field]: message || undefined }));
-        return current;
-      });
-    },
-    [mode],
-  );
+  const handleBlur = useCallback((field) => {
+    setValues((current) => {
+      const message = validateStaffField(field, current, mode);
+      setErrors((prev) => ({ ...prev, [field]: message || undefined }));
+      return current;
+    });
+  }, [mode]);
 
-  const handleSubmit = useCallback(
-    (e) => {
-      e.preventDefault();
-      const { valid, errors: validationErrors } = validateStaffForm(values, mode);
-      const cleaned = Object.fromEntries(
-        Object.entries(validationErrors).filter(([, msg]) => msg),
-      );
-      setErrors(cleaned);
-      if (!valid) {
-        setSubmitError('Vui lòng sửa các lỗi trong biểu mẫu trước khi lưu.');
-        return;
-      }
-      setSubmitError('');
-      const payload = { ...values };
-      if (isEdit && !payload.password) {
-        delete payload.password;
-        delete payload.confirmPassword;
-      }
-      if (isEdit) {
-        updateMutation.mutate(payload);
-      } else {
-        createMutation.mutate(payload);
-      }
-    },
-    [values, mode, isEdit, createMutation, updateMutation],
-  );
+  const handleSubmit = useCallback((e) => {
+    e.preventDefault();
+    const { valid, errors: validationErrors } = validateStaffForm(values, mode);
+    setErrors(validationErrors);
 
-  const handleCancel = useCallback(() => {
-    navigate('/staff');
-  }, [navigate]);
+    if (!valid) {
+      setSubmitError('Vui lòng sửa các lỗi trong biểu mẫu trước khi lưu.');
+      return;
+    }
+    setSubmitError('');
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+    // GỬI THẲNG 'values' VÌ ĐÃ ĐỒNG BỘ KEY VỚI BACKEND
+    if (isEdit) {
+      updateMutation.mutate(values);
+    } else {
+      createMutation.mutate(values);
+    }
+  }, [values, mode, isEdit, createMutation, updateMutation]);
+
+  const handleCancel = useCallback(() => navigate('/staff'), [navigate]);
 
   return {
-    values,
-    errors,
-    submitError,
-    handleChange,
-    handleBlur,
-    handleSubmit,
-    handleCancel,
-    isSubmitting,
+    values, errors, submitError, handleChange, handleBlur,
+    handleSubmit, handleCancel, isSubmitting: createMutation.isPending || updateMutation.isPending,
     isLoading: isEdit && staffQuery.isLoading,
-    loadError: isEdit && staffQuery.isError,
     isEdit,
   };
 }

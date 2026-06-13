@@ -14,7 +14,7 @@ function CopyIcon() {
 export function ActivationLinkModal({ isOpen, staff, onClose, onCopySuccess }) {
   if (!isOpen || !staff) return null;
 
-  const activationUrl = `http://localhost:5173/first-time-password?token=${staff.activationToken}&email=${staff.personalEmail || staff.email}`;
+  const activationUrl = `http://localhost:5174/first-time-password?token=${staff.activationToken}&email=${staff.personalEmail || staff.email}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(activationUrl)
@@ -41,7 +41,7 @@ export function ActivationLinkModal({ isOpen, staff, onClose, onCopySuccess }) {
             Dưới đây là đường dẫn kích hoạt tài khoản dành cho <strong>{staff.fullName}</strong>.
             Bạn có thể sao chép và dán vào tab ẩn danh khác để thực hiện thiết lập mật khẩu lần đầu:
           </p>
-          
+
           <div className="activation-modal__link-box">
             <textarea
               className="activation-modal__link-text"

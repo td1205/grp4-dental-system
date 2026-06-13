@@ -7,7 +7,7 @@ const leaveRoutes = require('./routes/leaveRoutes');
 const User = require('./models/User');
 const Customer = require('./models/Customer');
 const Service = require('./models/Service');
-
+const shift = require('./models/Shift');
 
 const staffRoutes = require('./routes/staffRoutes');
 const customerRoutes = require('./routes/customerRoutes');
@@ -58,6 +58,7 @@ async function seedAdminAccount() {
 // --- API ROUTES CỦA HỆ THỐNG ---
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+app.use('/api/shifts', require('./routes/shiftRoutes'));
 
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/staffs', staffRoutes);

@@ -268,10 +268,27 @@ const loginStaff = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server khi đăng nhập', error: error.message });
     }
 };
+// --- 6. API LẤY DANH SÁCH NHÂN VIÊN ĐỂ XẾP LỊCH (BR1.2.1) ---
+const getStaffForScheduling = async (req, res) => {
+    try {
+        // Chỉ lấy nhân viên đang hoạt động, phục vụ cho việc phân ca
+        const staffList = await User.find({
+            trang_thai: 'Đang hoạt động',
+            role: { $in: ['Admin', 'Doctor', 'Receptionist'] } // Chỉ lấy các role có ca trực
+        })
+            .select('name role ma_nhan_vien') // Tối ưu hóa dữ liệu trả về
+            .sort({ role: 1, name: 1 }); // Sắp xếp theo vai trò và tên
 
+        return res.status(200).json(staffList);
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách nhân sự để xếp lịch:", error);
+        return res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
 module.exports = {
     getAllStaff,
     createStaff,
     activateStaff,
-    loginStaff
+    loginStaff,
+    getStaffForScheduling
 };

@@ -7,6 +7,7 @@ import {
 } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import './ScheduleShiftsPage.css';
+import { MiniCalendar } from '../../components/common/MiniCalendar/MiniCalendar.jsx';
 
 import { ShiftFormModal } from '../../components/staff/form/shiftFromModal';
 const HOUR_HEIGHT = 80;
@@ -26,6 +27,10 @@ const getRoleColor = (role) => {
 };
 
 export function ScheduleShiftsPage() {
+  // Lấy thông tin user hiện tại để phân quyền hiển thị nút
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = currentUser.role === 'admin';
+
   const [shifts, setShifts] = useState([]);
   const [staffList, setStaffList] = useState([]); // State cho danh sách nhân viên
   const [currentWeek, setCurrentWeek] = useState(new Date());
@@ -54,14 +59,22 @@ export function ScheduleShiftsPage() {
 
   useEffect(() => {
     fetchShifts();
-    // Lấy danh sách nhân viên cho dropdown
-    const fetchStaff = async () => {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/api/staffs/for-scheduling', { headers: { Authorization: `Bearer ${token}` } });
-      setStaffList(res.data);
-    };
-    fetchStaff();
-  }, [currentWeek]);
+
+    if (isAdmin) {
+      const fetchStaff = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await axios.get('/api/staffs/for-scheduling', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setStaffList(res.data);
+        } catch (err) {
+          console.error("Lỗi lấy danh sách nhân viên:", err);
+        }
+      };
+      fetchStaff();
+    }
+  }, [currentWeek, isAdmin]);
 
   return (
     <div className="schedule-wrapper">
@@ -70,9 +83,13 @@ export function ScheduleShiftsPage() {
           <div className="calendar-title">
             <Icon name="calendar" size={20} /> Lịch làm việc
           </div>
-          <button className="btn-add-shift" onClick={() => setIsAddModalOpen(true)}>
-            <Icon name="plus" size={16} /> Thêm ca trực
-          </button>
+
+          {/* 👉 CHỈ RENDER NÚT NÀY NẾU USER LÀ ADMIN */}
+          {isAdmin && (
+            <button className="btn-add-shift" onClick={() => setIsAddModalOpen(true)}>
+              <Icon name="plus" size={16} /> Thêm ca trực
+            </button>
+          )}
         </div>
 
         <div className="calendar-body-scroll">
@@ -114,7 +131,10 @@ export function ScheduleShiftsPage() {
       </div>
 
       <div className="mini-calendar-sidebar">
-        {/* Nội dung Sidebar Mini Lịch như cũ */}
+        <MiniCalendar
+          selectedDate={currentWeek}
+          onDateClick={(date) => setCurrentWeek(date)}
+        />
       </div>
 
       {/* MODALS */}
@@ -126,12 +146,14 @@ export function ScheduleShiftsPage() {
         </div>
       )}
 
-      <ShiftFormModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSave={() => { setIsAddModalOpen(false); fetchShifts(); }}
-        staffList={staffList}
-      />
+      {isAddModalOpen && (
+        <ShiftFormModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onSave={() => { setIsAddModalOpen(false); fetchShifts(); }}
+          staffList={staffList}
+        />
+      )}
     </div>
   );
 }

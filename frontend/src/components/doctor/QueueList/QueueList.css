@@ -1,0 +1,18 @@
+.queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: calc(100vh - 200px);
+    overflow-y: auto;
+    /* Cho phép cuộn nếu danh sách quá dài */
+    padding-right: 8px;
+}
+
+.queue-list-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px dashed #cbd5e1;
+}

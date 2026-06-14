@@ -8,7 +8,6 @@ import { PrimaryButton } from '../../components/ui/Button/PrimaryButton'
 import { Icon } from '../../components/common/Icon/Icon'
 import toast, { Toaster } from 'react-hot-toast'
 import './ServiceCategoryPage.css'
-import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 
 const ACTIVE_PATH = '/services/categories'
 

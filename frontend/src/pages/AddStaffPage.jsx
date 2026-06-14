@@ -5,8 +5,6 @@ import { AccountInfoSection } from '../components/staff/form/AccountInfoSection'
 import { StaffFormActions } from '../components/staff/form/StaffFormActions';
 import { useStaffForm } from '../hooks/useStaffForm';
 
-import { NAV_ITEMS, DEFAULT_USER } from '../constants/navigation';
-
 const ACTIVE_PATH = '/staff';
 
 export function AddStaffPage() {

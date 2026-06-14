@@ -1,0 +1,63 @@
+.mini-calendar {
+    background: white;
+    padding: 1.5rem;
+    /* Tăng padding để rộng rãi hơn */
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    width: 320px;
+    /* Cố định kích thước vừa mắt */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.mini-header {
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #1e293b;
+    text-align: center;
+}
+
+.mini-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    text-align: center;
+}
+
+.mini-day {
+    padding: 10px 0;
+    cursor: pointer;
+    border-radius: 8px;
+    /* Bo góc nhẹ */
+    font-size: 0.95rem;
+    transition: 0.2s;
+}
+
+.mini-day:hover {
+    background: #f1f5f9;
+}
+
+/* MÀU SẮC THEO YÊU CẦU */
+.mini-day.today {
+    background: #f97316;
+    /* Màu cam: Ngày hiện tại cố định */
+    color: white;
+    font-weight: bold;
+}
+
+.mini-day.selected {
+    background: #1e293b;
+    /* Màu xanh than: Ngày đang chọn thay đổi */
+    color: white;
+}
+
+.mini-day.dimmed {
+    color: #cbd5e1;
+}
+
+.mini-day-label {
+    font-weight: 600;
+    color: #64748b;
+    font-size: 0.85rem;
+    padding-bottom: 5px;
+}

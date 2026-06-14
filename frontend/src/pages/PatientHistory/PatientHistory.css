@@ -1,0 +1,136 @@
+.patient-history-page {
+    padding: 1.5rem;
+    background-color: #f8fafc;
+    min-height: 100vh;
+}
+
+.history-header {
+    margin-bottom: 1.5rem;
+}
+
+.history-header h2 {
+    font-size: 1.5rem;
+    color: #0f172a;
+    margin: 0 0 0.25rem 0;
+}
+
+.history-subtitle {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    background-color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.search-box {
+    flex: 2;
+}
+
+.date-box {
+    flex: 1;
+}
+
+.filter-bar input {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.filter-bar input:focus {
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.history-table-container {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+.history-table th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.history-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+.history-table tr:hover {
+    background-color: #f8fafc;
+}
+
+.txt-bold {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.txt-name {
+    font-weight: 500;
+    color: #0ea5e9;
+}
+
+.txt-diagnosis {
+    color: #ef4444;
+    font-weight: 500;
+}
+
+.treatment-tag {
+    background-color: #f1f5f9;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    border: 1px solid #e2e8f0;
+}
+
+.no-data {
+    text-align: center;
+    color: #94a3b8;
+    padding: 3rem !important;
+    font-style: italic;
+}
+
+.btn-view {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #0ea5e9;
+    background-color: #e0f2fe;
+    border: 1px solid #bae6fd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-view:hover {
+    background-color: #0ea5e9;
+    color: white;
+    border-color: #0ea5e9;
+}

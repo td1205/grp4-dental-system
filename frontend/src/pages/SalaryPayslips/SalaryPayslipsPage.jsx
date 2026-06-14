@@ -1,5 +1,4 @@
 
-import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 import { Icon } from '../../components/common/Icon/Icon'
 
 const ACTIVE_PATH = '/salary/payslips'

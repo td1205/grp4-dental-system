@@ -2,10 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import axios from 'axios';
-import { NAV_ITEMS } from '../../constants/navigation';
 import { NavIcon } from './NavIcon';
 
-export function Sidebar({ user }) {
+export function Sidebar({ user, navItems, activePath }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const dropdownRef = useRef(null);
@@ -45,7 +44,7 @@ export function Sidebar({ user }) {
 
       <nav className="sidebar__nav">
         <ul className="sidebar__nav-list">
-          {NAV_ITEMS?.map((item) => (
+          {navItems?.map((item) => (
             <li key={item.path}>
               <NavLink
                 to={item.path}

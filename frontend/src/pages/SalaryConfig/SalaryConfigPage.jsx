@@ -1,10 +1,10 @@
 
-import { NAV_ITEMS, DEFAULT_USER } from '../../constants/navigation'
 import { Icon } from '../../components/common/Icon/Icon'
 
 const ACTIVE_PATH = '/salary/config'
 
 export function SalaryConfigPage() {
+
   const configs = [
     { id: 1, role: 'Bác sĩ chính', base: '25.000.000', shiftRate: '200.000', patientRate: '5% doanh thu ca bệnh' },
     { id: 2, role: 'Bác sĩ phụ tá', base: '12.000.000', shiftRate: '100.000', patientRate: '2% doanh thu ca bệnh' },

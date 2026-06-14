@@ -1,6 +1,8 @@
-// Cấu hình menu cho từng vai trò (GIỮ NGUYÊN HOÀN TOÀN CỦA BẠN)
+import { ROLES } from './roles';
+
+// Cấu hình menu cho từng vai trò
 const MENU_CONFIG = {
-  Admin: [
+  [ROLES.ADMIN]: [
     {
       id: 'users', label: 'Quản lý người dùng', icon: 'users', path: '/users', children: [
         { id: 'staff', label: 'Quản lý nhân viên', path: '/staff' },
@@ -27,45 +29,44 @@ const MENU_CONFIG = {
     },
     { id: 'revenue', label: 'Thống kê doanh thu', icon: 'stats', path: '/revenue' },
   ],
-  Receptionist: [
+  [ROLES.RECEPTIONIST]: [
+    { id: 'reception', label: 'Tiếp đón & Hàng đợi', icon: 'schedule', path: '/reception' },
+    { id: 'schedule', label: 'Quản lý lịch hẹn', icon: 'schedule', path: '/schedule' },
+    { id: 'billing', label: 'Thanh toán Viện phí', icon: 'salary', path: '/billing' },
+    { id: 'personal-schedule', label: 'Lịch làm việc của tôi', icon: 'schedule', path: '/personal-schedule' },
     { id: 'customers', label: 'Quản lý khách hàng', icon: 'users', path: '/customers' },
-    { id: 'appointment', label: 'Đặt lịch hẹn', icon: 'schedule', path: '/appointments' },
-    { id: 'queue', label: 'Hàng đợi', icon: 'services', path: '/queue' },
   ],
-  Doctor: [
+  [ROLES.DOCTOR]: [
     { id: 'dashboard', label: 'Hàng đợi khám', icon: 'stetho', path: '/doctor/dashboard' },
     { id: 'history', label: 'Lịch sử bệnh án', icon: 'history', path: '/doctor/history' },
-    // Bổ sung các chức năng còn thiếu theo đặc tả:
     {
       id: 'schedule',
-      label: 'Lịch trực cá nhân', // Phục vụ UC2.2 (Xem lịch) và UC2.3 (Xin nghỉ phép)
+      label: 'Lịch trực cá nhân',
       icon: 'schedule',
-      path: '/schedule/shifts' // Điều chỉnh lại path này cho khớp với route Lịch làm việc của bạn
+      path: '/schedule/shifts' 
     },
     {
       id: 'income-report',
-      label: 'Báo cáo thu nhập', // Phục vụ UC4.6 (Báo cáo tiền lương của một bác sĩ trong một năm)
+      label: 'Báo cáo thu nhập', 
       icon: 'salary',
       path: '/doctor/payslips'
     }
   ]
 };
 
-// ĐÂY LÀ PHẦN HÀM ĐÃ ĐƯỢC LÀM CHO THÔNG MINH HƠN
 export const getNavItems = (role) => {
   if (!role) return [];
 
-  // Chuẩn hóa chuỗi về chữ thường để không bị lỗi nhận diện
   const currentRole = role.toLowerCase();
 
   if (currentRole.includes('admin') || currentRole.includes('quản trị')) {
-    return MENU_CONFIG.Admin;
+    return MENU_CONFIG[ROLES.ADMIN];
   }
   if (currentRole.includes('doctor') || currentRole.includes('bác sĩ')) {
-    return MENU_CONFIG.Doctor;
+    return MENU_CONFIG[ROLES.DOCTOR];
   }
   if (currentRole.includes('receptionist') || currentRole.includes('lễ tân')) {
-    return MENU_CONFIG.Receptionist;
+    return MENU_CONFIG[ROLES.RECEPTIONIST];
   }
 
   return [];

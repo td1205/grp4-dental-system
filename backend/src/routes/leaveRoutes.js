@@ -10,7 +10,10 @@ router.use(protect);
 router.get('/', leaveRequestController.getLeaveRequests);
 router.post('/register', leaveRequestController.createLeaveRequest);
 router.post('/system-leave', restrictTo('Admin'), leaveRequestController.createSystemLeave);
+router.post('/emergency-leave', restrictTo('Admin'), leaveRequestController.createEmergencyLeave);
 router.put('/:id/approve', restrictTo('Admin'), leaveRequestController.approveLeave);
 router.put('/:id/reject', restrictTo('Admin'), leaveRequestController.rejectLeave);
+router.put('/:id/cancel', leaveRequestController.cancelLeave);
+router.put('/:id/approve-cancel', restrictTo('Admin'), leaveRequestController.approveCancelLeave);
 
 module.exports = router;

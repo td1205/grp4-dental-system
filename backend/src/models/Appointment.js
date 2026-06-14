@@ -1,17 +1,19 @@
 const mongoose = require('mongoose');
 
 const appointmentSchema = new mongoose.Schema({
-  id: {
-    type: String,
-    required: true,
-    unique: true,
-  },
   customerId: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Customer',
     required: true,
   },
   doctorId: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  serviceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Service',
     required: true,
   },
   date: {
@@ -22,12 +24,20 @@ const appointmentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  endTime: {
+    type: String,
+    required: true,
+  },
   status: {
     type: String,
-    default: 'pending',
-    enum: ['pending', 'confirmed', 'completed', 'cancelled'],
+    default: 'Chờ tiếp đón',
+    enum: ['Chờ tiếp đón', 'Chờ khám', 'Đang khám', 'Đã xác nhận', 'Đã dời', 'Đã hủy', 'Không đến', 'Hoàn thành'],
   },
   notes: {
+    type: String,
+    default: '',
+  },
+  cancelReason: {
     type: String,
     default: '',
   }

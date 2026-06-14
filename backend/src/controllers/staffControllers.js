@@ -2,18 +2,22 @@ const User = require('../models/User');
 const Admin = require('../models/Admin');
 const Doctor = require('../models/Doctor');
 const Receptionist = require('../models/Receptionist');
+const Customer = require('../models/Customer');
+const Appointment = require('../models/Appointment');
 const crypto = require('crypto');
 const sendEmail = require('../utils/mailer');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const ROLES = require('../constants/roles');
 
 // --- 1. HÀM TỰ ĐỘNG SINH MÃ NHÂN VIÊN ---
 const generateStaffId = async (role) => {
     let prefix = 'NV';
-    if (role === 'Doctor') {
+    if (role === ROLES.DOCTOR) {
         prefix = 'BS';
-    } else if (role === 'Receptionist') {
+    } else if (role === ROLES.RECEPTIONIST) {
         prefix = 'LT';
-    } else if (role === 'Admin') {
+    } else if (role === ROLES.ADMIN) {
         prefix = 'AD';
     }
 
@@ -43,7 +47,7 @@ const getAllStaff = async (req, res) => {
 
         // 1. TẠO BỘ LỌC GỐC: Loại bỏ Khách hàng
         let query = {
-            role: { $in: ['Admin', 'Doctor', 'Receptionist', 'Bác sĩ', 'Lễ tân', 'admin', 'doctor', 'receptionist'] }
+            role: { $in: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, 'Bác sĩ', 'Lễ tân', 'admin', 'doctor', 'receptionist'] }
         };
 
         // 2. Xử lý Thanh tìm kiếm
@@ -62,9 +66,9 @@ const getAllStaff = async (req, res) => {
             // Chuyển mọi thứ về chữ thường để dễ soi
             const r = role.toLowerCase();
 
-            if (r.includes('quản trị') || r === 'admin') query.role = 'Admin';
-            else if (r.includes('bác sĩ') || r === 'doctor') query.role = 'Doctor';
-            else if (r.includes('lễ tân') || r === 'receptionist') query.role = 'Receptionist';
+            if (r.includes('quản trị') || r === 'admin') query.role = ROLES.ADMIN;
+            else if (r.includes('bác sĩ') || r === 'doctor') query.role = ROLES.DOCTOR;
+            else if (r.includes('lễ tân') || r === 'receptionist') query.role = ROLES.RECEPTIONIST;
             else query.role = role; // Dự phòng
         }
 
@@ -117,19 +121,46 @@ const createStaff = async (req, res) => {
         if (data.role) {
             const r = String(data.role).trim().toLowerCase();
 
-            if (r.includes('bác') || r.includes('doctor')) data.role = 'Doctor';
-            else if (r.includes('lễ') || r.includes('receptionist')) data.role = 'Receptionist';
-            else if (r.includes('quản') || r.includes('admin')) data.role = 'Admin';
+            if (r.includes('bác') || r.includes('doctor')) data.role = ROLES.DOCTOR;
+            else if (r.includes('lễ') || r.includes('receptionist')) data.role = ROLES.RECEPTIONIST;
+            else if (r.includes('quản') || r.includes('admin')) data.role = ROLES.ADMIN;
         }
+        // Kiểm tra độ tuổi (>= 18)
+        if (data.birthday) {
+            const birthDate = new Date(data.birthday);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            if (age < 18) {
+                return res.status(400).json({ message: 'Nhân sự phải đủ 18 tuổi hợp pháp' });
+            }
+        }
+
+        // Quét trùng lặp CCCD/SĐT bên bảng Khách hàng
+        if (data.phone || data.cccd) {
+            const query = [];
+            if (data.phone) query.push({ phone: data.phone });
+            if (data.cccd) query.push({ cccd: data.cccd });
+            if (query.length > 0) {
+                const existingCustomer = await Customer.findOne({ $or: query });
+                if (existingCustomer) {
+                    return res.status(400).json({ message: 'Thông tin CCCD hoặc Số điện thoại đã được đăng ký (Khách hàng)' });
+                }
+            }
+        }
+
         // 1. Tự sinh mã nhân viên và trạng thái
         data.ma_nhan_vien = await generateStaffId(data.role);
         data.trang_thai = 'Chờ kích hoạt';
 
         // 🌟 2. TỰ SINH EMAIL NỘI BỘ THEO ĐÚNG ROLE
         let domain = 'dentalcare.com';
-        if (data.role === 'Doctor') domain = 'BS.dentalcare.com';
-        else if (data.role === 'Receptionist') domain = 'LT.dentalcare.com';
-        else if (data.role === 'Admin') domain = 'AD.dentalcare.com';
+        if (data.role === ROLES.DOCTOR) domain = 'BS.dentalcare.com';
+        else if (data.role === ROLES.RECEPTIONIST) domain = 'LT.dentalcare.com';
+        else if (data.role === ROLES.ADMIN) domain = 'AD.dentalcare.com';
 
         // Ép mã nhân viên thành chữ thường + @ + domain
         data.email_noi_bo = `${data.ma_nhan_vien.toLowerCase()}@${domain}`;
@@ -141,9 +172,9 @@ const createStaff = async (req, res) => {
 
         // 4. Lưu vào DB
         let newStaff;
-        if (data.role === 'Admin') newStaff = new Admin(data);
-        else if (data.role === 'Doctor') newStaff = new Doctor(data);
-        else if (data.role === 'Receptionist') newStaff = new Receptionist(data);
+        if (data.role === ROLES.ADMIN) newStaff = new Admin(data);
+        else if (data.role === ROLES.DOCTOR) newStaff = new Doctor(data);
+        else if (data.role === ROLES.RECEPTIONIST) newStaff = new Receptionist(data);
         else return res.status(400).json({ message: 'Vai trò (role) không hợp lệ.' });
 
         await newStaff.save();
@@ -208,7 +239,13 @@ const activateStaff = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(400).json({ message: 'Đường dẫn kích hoạt không hợp lệ hoặc đã hết hạn.' });
+            return res.status(400).json({ message: 'Liên kết kích hoạt không hợp lệ hoặc đã hết hạn. Vui lòng liên hệ Quản trị viên' });
+        }
+
+        // Kiểm tra độ mạnh mật khẩu (>= 8 ký tự, 1 hoa, 1 số, 1 ký tự đặc biệt)
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            return res.status(400).json({ message: 'Mật khẩu phải dài tối thiểu 8 ký tự, có ít nhất 1 chữ cái viết hoa, 1 chữ số và 1 ký tự đặc biệt' });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -252,9 +289,15 @@ const loginStaff = async (req, res) => {
             return res.status(401).json({ message: 'Mật khẩu không chính xác' });
         }
 
+        const token = jwt.sign(
+            { id: user._id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '8h' }
+        );
+
         return res.status(200).json({
             message: 'Đăng nhập thành công',
-            token: 'fake-jwt-token-for-now',
+            token,
             user: {
                 id: user._id,
                 ma_nhan_vien: user.ma_nhan_vien,
@@ -274,7 +317,7 @@ const getStaffForScheduling = async (req, res) => {
         // Chỉ lấy nhân viên đang hoạt động, phục vụ cho việc phân ca
         const staffList = await User.find({
             trang_thai: 'Đang hoạt động',
-            role: { $in: ['Admin', 'Doctor', 'Receptionist'] } // Chỉ lấy các role có ca trực
+            role: { $in: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST] } // Chỉ lấy các role có ca trực
         })
             .select('name role ma_nhan_vien') // Tối ưu hóa dữ liệu trả về
             .sort({ role: 1, name: 1 }); // Sắp xếp theo vai trò và tên
@@ -285,10 +328,175 @@ const getStaffForScheduling = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 };
+// --- 7. GỬI LẠI EMAIL KÍCH HOẠT (AF1.2.2) ---
+const resendEmail = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'Không tìm thấy nhân sự' });
+
+        if (user.trang_thai === 'Đang hoạt động') {
+            return res.status(400).json({ message: 'Tài khoản này đã được kích hoạt, không thể gửi lại thư kích hoạt.' });
+        }
+
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        user.activationToken = resetToken;
+        user.activationExpires = Date.now() + 24 * 60 * 60 * 1000;
+        await user.save();
+
+        const inviteLink = `http://localhost:5174/activate?token=${resetToken}&email=${user.email_noi_bo}`;
+        const emailHtml = `
+            <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
+                <h2>Gửi lại liên kết kích hoạt</h2>
+                <p>Xin chào <strong>${user.name}</strong>,</p>
+                <p>Quản trị viên đã yêu cầu gửi lại liên kết kích hoạt cho bạn.</p>
+                <a href="${inviteLink}" style="display: inline-block; padding: 12px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    KÍCH HOẠT TÀI KHOẢN
+                </a>
+            </div>
+        `;
+
+        await sendEmail({
+            email: user.email,
+            subject: `[DentalCare] Gửi lại thư kích hoạt - ${user.ma_nhan_vien}`,
+            html: emailHtml
+        });
+
+        return res.status(200).json({ message: 'Đã gửi lại email kích hoạt thành công.' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// --- 8. RESET MẬT KHẨU (AF1.2.3) ---
+const resetPassword = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'Không tìm thấy nhân sự' });
+
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        user.activationToken = resetToken;
+        user.activationExpires = Date.now() + 24 * 60 * 60 * 1000;
+        user.trang_thai = 'Chờ kích hoạt'; // Đưa về trạng thái chờ kích hoạt để bắt buộc đổi mật khẩu
+        await user.save();
+
+        const inviteLink = `http://localhost:5174/activate?token=${resetToken}&email=${user.email_noi_bo}`;
+        const emailHtml = `
+            <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
+                <h2>Khôi phục mật khẩu</h2>
+                <p>Xin chào <strong>${user.name}</strong>,</p>
+                <p>Quản trị viên đã yêu cầu khôi phục mật khẩu cho tài khoản của bạn.</p>
+                <a href="${inviteLink}" style="display: inline-block; padding: 12px 20px; background-color: #007BFF; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    ĐẶT LẠI MẬT KHẨU
+                </a>
+            </div>
+        `;
+
+        await sendEmail({
+            email: user.email,
+            subject: `[DentalCare] Yêu cầu khôi phục mật khẩu - ${user.ma_nhan_vien}`,
+            html: emailHtml
+        });
+
+        return res.status(200).json({ message: 'Đã gửi email khôi phục mật khẩu thành công. Tài khoản đã chuyển về trạng thái Chờ kích hoạt.' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// --- 9. KIỂM TRA LỊCH LÀM VIÊC TRƯỚC KHI ĐÌNH CHỈ (Luồng 4) ---
+const checkAppointments = async (req, res) => {
+    try {
+        const { id } = req.params; // Staff ID
+        const affectedAppointments = await Appointment.find({ 
+            doctor: id, 
+            date: { $gte: new Date() }, 
+            status: { $in: ['Scheduled', 'Confirmed', 'Rescheduled'] } 
+        });
+        
+        return res.status(200).json({ 
+            hasAppointments: affectedAppointments.length > 0,
+            appointments: affectedAppointments 
+        });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// --- 10. ĐÌNH CHỈ & BÀN GIAO CA (Luồng 4) ---
+const reassignAndSuspend = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { targetDoctorId } = req.body;
+        
+        if (targetDoctorId) {
+            await Appointment.updateMany(
+                { doctor: id, date: { $gte: new Date() }, status: { $in: ['Scheduled', 'Confirmed', 'Rescheduled'] } },
+                { $set: { doctor: targetDoctorId } }
+            );
+        }
+        
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'Không tìm thấy nhân sự' });
+        
+        user.trang_thai = 'Ngừng hoạt động';
+        user.activationToken = undefined;
+        user.activationExpires = undefined;
+        await user.save();
+
+        return res.status(200).json({ message: 'Đã đình chỉ nhân viên thành công' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// These functions were correctly declared above.
+// --- 11. KHÓA / MỞ KHÓA TÀI KHOẢN ---
+const toggleLockStaff = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'Không tìm thấy nhân sự' });
+
+        if (user.trang_thai === 'Đang hoạt động') {
+            user.trang_thai = 'Ngừng hoạt động'; // Bị đình chỉ
+        } else {
+            user.trang_thai = 'Đang hoạt động'; // Khôi phục
+        }
+        await user.save();
+        return res.status(200).json({ message: 'Đã cập nhật trạng thái tài khoản' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// --- 12. XÓA TÀI KHOẢN (SOFT DELETE) ---
+const deleteStaff = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'Không tìm thấy nhân sự' });
+        
+        user.trang_thai = 'Ngừng hoạt động'; // Soft delete
+        await user.save();
+        return res.status(200).json({ message: 'Đã xóa tài khoản thành công' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
 module.exports = {
     getAllStaff,
     createStaff,
     activateStaff,
     loginStaff,
-    getStaffForScheduling
+    getStaffForScheduling,
+    resendEmail,
+    resetPassword,
+    checkAppointments,
+    reassignAndSuspend,
+    toggleLockStaff,
+    deleteStaff
 };

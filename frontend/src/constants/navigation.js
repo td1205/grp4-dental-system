@@ -40,10 +40,10 @@ const MENU_CONFIG = {
     { id: 'dashboard', label: 'Hàng đợi khám', icon: 'stetho', path: '/doctor/dashboard' },
     { id: 'history', label: 'Lịch sử bệnh án', icon: 'history', path: '/doctor/history' },
     {
-      id: 'schedule',
+      id: 'personal-schedule',
       label: 'Lịch trực cá nhân',
       icon: 'schedule',
-      path: '/schedule/shifts' 
+      path: '/personal-schedule' 
     },
     {
       id: 'income-report',

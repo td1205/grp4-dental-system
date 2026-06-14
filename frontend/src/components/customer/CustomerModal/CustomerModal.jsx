@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Icon } from '../../common/Icon/Icon'
 import { formatDateForInput } from '../../../utils/staffFormMappers'
 import { PrimaryButton } from '../../ui/Button/PrimaryButton'
+import { SharedPersonForm } from '../../common/SharedForm/SharedPersonForm'
 import './CustomerModal.css'
 
 export function CustomerModal({ isOpen, onClose, onSave, customer = null }) {
@@ -21,6 +22,7 @@ export function CustomerModal({ isOpen, onClose, onSave, customer = null }) {
     if (isOpen) {
       if (customer) {
         setFormData({
+          _id: customer._id,
           id: customer.id,
           name: customer.name || '',
           dob: formatDateForInput(customer.dob || customer.dateOfBirth),
@@ -55,7 +57,7 @@ export function CustomerModal({ isOpen, onClose, onSave, customer = null }) {
     if (!formData.dob) tempErrors.dob = 'Vui lòng chọn ngày sinh'
     else {
       const dobDate = new Date(formData.dob)
-      if (dobDate > new Date()) tempErrors.dob = 'Ngày sinh không thể ở tương lai'
+      if (dobDate > new Date()) tempErrors.dob = 'Ngày sinh không hợp lệ'
     }
 
     const phoneRegex = /^(0|\+84)[0-9]{8,10}$/
@@ -112,100 +114,22 @@ export function CustomerModal({ isOpen, onClose, onSave, customer = null }) {
         </header>
 
         <form onSubmit={handleSubmit} className="customer-modal__form">
-          <div className="customer-modal__body">
-            <div className="customer-modal__field">
-              <label htmlFor="cust-name">họ và tên <span className="required">*</span></label>
-              <input
-                id="cust-name"
-                type="text"
-                placeholder="Nhập họ tên khách hàng"
-                value={formData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-                className={errors.name ? 'input-error' : ''}
-              />
-              {errors.name && <span className="error-message">{errors.name}</span>}
-            </div>
-
-            <div className="customer-modal__row">
-              <div className="customer-modal__field">
-                <label htmlFor="cust-dob">ngày sinh <span className="required">*</span></label>
-                <input
-                  id="cust-dob"
-                  type="date"
-                  value={formData.dob}
-                  onChange={(e) => handleChange('dob', e.target.value)}
-                  className={errors.dob ? 'input-error' : ''}
-                />
-                {errors.dob && <span className="error-message">{errors.dob}</span>}
-              </div>
-
-              <div className="customer-modal__field">
-                <label htmlFor="cust-phone">số điện thoại <span className="required">*</span></label>
-                <input
-                  id="cust-phone"
-                  type="tel"
-                  placeholder="Nhập số điện thoại"
-                  value={formData.phone}
-                  onChange={(e) => handleChange('phone', e.target.value)}
-                  className={errors.phone ? 'input-error' : ''}
-                />
-                {errors.phone && <span className="error-message">{errors.phone}</span>}
-              </div>
-            </div>
-
+          <div className="customer-modal__body" style={{ padding: '0 24px' }}>
             {isEdit && (
-              <div className="customer-modal__field">
+              <div className="customer-modal__field" style={{ marginBottom: '16px' }}>
                 <label htmlFor="cust-id">mã bệnh nhân <span className="required">*</span></label>
                 <input
                   id="cust-id"
                   type="text"
-                  value={formData.id}
+                  value={formData.id || ''}
                   disabled={true}
                   title="Không cho phép chỉnh sửa Mã bệnh nhân"
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc', color: '#64748b' }}
                 />
               </div>
             )}
 
-            <div className="customer-modal__field">
-              <label htmlFor="cust-cccd">số CCCD <span className="required">*</span></label>
-              <input
-                id="cust-cccd"
-                type="text"
-                placeholder="Nhập số căn cước công dân"
-                value={formData.cccd}
-                onChange={(e) => handleChange('cccd', e.target.value)}
-                disabled={isEdit}
-                className={errors.cccd ? 'input-error' : ''}
-                title={isEdit ? 'Không cho phép chỉnh sửa Số CCCD' : ''}
-              />
-              {errors.cccd && <span className="error-message">{errors.cccd}</span>}
-            </div>
-
-            <div className="customer-modal__field">
-              <label htmlFor="cust-email">email</label>
-              <input
-                id="cust-email"
-                type="email"
-                placeholder="Ví dụ: benhnhan@gmail.com (không bắt buộc)"
-                value={formData.email}
-                onChange={(e) => handleChange('email', e.target.value)}
-                className={errors.email ? 'input-error' : ''}
-              />
-              {errors.email && <span className="error-message">{errors.email}</span>}
-            </div>
-
-            <div className="customer-modal__field">
-              <label htmlFor="cust-address">địa chỉ thường trú <span className="required">*</span></label>
-              <textarea
-                id="cust-address"
-                placeholder="Nhập địa chỉ của khách hàng"
-                value={formData.address}
-                onChange={(e) => handleChange('address', e.target.value)}
-                rows={3}
-                className={errors.address ? 'input-error' : ''}
-              />
-              {errors.address && <span className="error-message">{errors.address}</span>}
-            </div>
+            <SharedPersonForm formData={formData} onFieldChange={handleChange} errors={errors} isCustomer={true} />
 
             {isEdit && (
               <div className="customer-modal__field">

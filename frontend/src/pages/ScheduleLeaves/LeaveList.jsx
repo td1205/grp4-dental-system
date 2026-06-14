@@ -1,67 +1,72 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+import apiClient from '../../services/apiClient'
 import { Icon } from '../../components/common/Icon/Icon'
-import { Badge } from '../../components/common/Badge/Badge' // Import ở đây
+import { LeaveTable } from '../../components/common/LeaveTable/LeaveTable'
+import toast from 'react-hot-toast'
+import { EmergencyLeaveModal } from '../../components/staff/form/EmergencyLeaveModal'
 
 export function LeaveList() {
     const [leaves, setLeaves] = useState([])
+    const [isEmergencyOpen, setIsEmergencyOpen] = useState(false)
 
     useEffect(() => { fetchLeaves() }, [])
 
     const fetchLeaves = async () => {
         try {
-            const res = await axios.get('/api/leaves')
+            const res = await apiClient.get('/leaves')
             setLeaves(res.data.data.filter(l => l.leaveType !== 'Nghỉ lễ'))
         } catch (err) { console.error(err) }
     }
+    const handleApprove = async (id, isCancelRequest = false) => {
+        try {
+            if (isCancelRequest) {
+                await apiClient.put(`/leaves/${id}/approve-cancel`)
+                toast.success('Đã xác nhận hủy đơn')
+            } else {
+                await apiClient.put(`/leaves/${id}/approve`)
+                toast.success('Đã duyệt đơn nghỉ phép')
+            }
+            fetchLeaves()
+        } catch (err) { toast.error('Lỗi khi duyệt') }
+    }
 
-    const handleApprove = async (id) => {
-        await axios.put(`/api/leaves/${id}/approve`)
-        fetchLeaves()
+    const handleReject = async (id) => {
+        const reason = window.prompt('Vui lòng nhập lý do từ chối:');
+        if (!reason) return; // Cancelled or empty
+        try {
+            await apiClient.put(`/leaves/${id}/reject`, { rejectionReason: reason })
+            toast.success('Đã từ chối đơn')
+            fetchLeaves()
+        } catch (err) { toast.error('Lỗi khi từ chối') }
     }
 
     return (
         <div className="staff-table-wrap">
             {/* Toolbar đồng bộ */}
-            <div className="staff-toolbar" style={{ marginBottom: '16px' }}>
-                <button type="button" className="staff-btn staff-btn--primary">
-                    <Icon name="plus" size={16} /> Đăng ký nghỉ phép
+            <div className="staff-toolbar" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button 
+                    type="button" 
+                    className="staff-btn staff-btn--danger"
+                    onClick={() => setIsEmergencyOpen(true)}
+                >
+                    <Icon name="plus" size={16} /> Ghi nhận vắng mặt khẩn cấp
                 </button>
             </div>
 
-            <table className="staff-table">
-                <thead>
-                    <tr>
-                        <th>NHÂN VIÊN</th>
-                        <th>THỜI GIAN</th>
-                        <th>LOẠI PHÉP</th>
-                        <th>TRẠNG THÁI</th>
-                        <th style={{ textAlign: 'right' }}>THAO TÁC</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {leaves.map((leave) => (
-                        <tr key={leave._id}>
-                            <td style={{ fontWeight: 600 }}>{leave.staffId?.name || 'N/A'}</td>
-                            <td>{new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}</td>
-                            <td>{leave.leaveType}</td>
-                            <td>
-                                <Badge variant={leave.status === 'Đã duyệt' ? 'success' : 'warning'}>
-                                    {leave.status}
-                                </Badge>
-                            </td>
-                            <td style={{ textAlign: 'right' }}>
-                                {leave.status === 'Chờ duyệt' && (
-                                    <>
-                                        <button onClick={() => handleApprove(leave._id)} className="staff-btn staff-btn--success" style={{ marginRight: '8px' }}>Duyệt</button>
-                                        <button className="staff-btn staff-btn--danger">Từ chối</button>
-                                    </>
-                                )}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            <LeaveTable 
+                leaves={leaves} 
+                role="Admin" 
+                onApprove={handleApprove} 
+                onReject={handleReject} 
+            />
+
+            {isEmergencyOpen && (
+                <EmergencyLeaveModal 
+                    isOpen={isEmergencyOpen}
+                    onClose={() => setIsEmergencyOpen(false)}
+                    onSuccess={fetchLeaves}
+                />
+            )}
         </div>
     )
 }

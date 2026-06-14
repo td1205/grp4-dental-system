@@ -1,13 +1,16 @@
 import { Icon } from '../../common/Icon/Icon'
 import { Modal } from '../../common/Modal/Modal'
 import { PrimaryButton } from '../../ui/Button/PrimaryButton'
+import { FormField } from '../../common/FormField/FormField'
+import { SharedPersonForm } from '../../common/SharedForm/SharedPersonForm'
+import { ROLES } from '../../../constants/roles'
 import './AddStaffModal.css'
 
 
 const ROLE_OPTIONS = [
-  { value: 'Doctor', label: 'Bác sĩ' },
-  { value: 'Receptionist', label: 'Lễ tân' },
-  { value: 'Admin', label: 'Quản trị viên' }
+  { value: ROLES.DOCTOR, label: 'Bác sĩ' },
+  { value: ROLES.RECEPTIONIST, label: 'Lễ tân' },
+  { value: ROLES.ADMIN, label: 'Quản trị viên' }
 ]
 
 const SPECIALTY_OPTIONS = [
@@ -18,17 +21,7 @@ const SPECIALTY_OPTIONS = [
   { value: 'General', label: 'Tổng quát' },
 ]
 
-function FormField({ label, required, children, fullWidth = false }) {
-  return (
-    <div className={`add-staff-form__field${fullWidth ? ' add-staff-form__field--full' : ''}`}>
-      <label className="add-staff-form__label">
-        {label}
-        {required ? <span className="add-staff-form__required"> *</span> : null}
-      </label>
-      {children}
-    </div>
-  )
-}
+
 
 export function AddStaffModal({
   isOpen,
@@ -54,14 +47,14 @@ export function AddStaffModal({
     onFieldChange('role', selectedRole);
 
     // Tự động gán phòng ban
-    if (selectedRole === 'Receptionist') {
+    if (selectedRole === ROLES.RECEPTIONIST) {
       onFieldChange('department', 'Quầy Lễ Tân');
     } else if (formValues.department === 'Quầy Lễ Tân') {
       onFieldChange('department', '');
     }
   };
 
-  const isDoctor = formValues.role === 'Doctor';
+  const isDoctor = formValues.role === ROLES.DOCTOR;
 
   return (
     <Modal
@@ -79,99 +72,8 @@ export function AddStaffModal({
         }}
       >
         <fieldset className="add-staff-form__section">
-          <legend className="add-staff-form__section-title">Thông tin định danh</legend>
-          <div className="add-staff-form__grid">
-            <FormField label="Họ tên" required>
-              <input
-                type="text"
-                className="add-staff-form__input"
-                name="name" // Đã sửa
-                value={formValues.name || ''}
-                onChange={(e) => onFieldChange('name', e.target.value)}
-                autoFocus
-              />
-            </FormField>
-
-            <FormField label="Ngày sinh">
-              <input
-                type="date"
-                className="add-staff-form__input"
-                name="birthday" // Đã sửa
-                value={formValues.birthday || ''}
-                onChange={(e) => onFieldChange('birthday', e.target.value)}
-              />
-            </FormField>
-
-            <FormField label="Giới tính">
-              <div className="add-staff-form__radio-group">
-                <label>
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="male"
-                    checked={formValues.gender === 'male'}
-                    onChange={(e) => onFieldChange('gender', e.target.value)}
-                  />
-                  Nam
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="female"
-                    checked={formValues.gender === 'female'}
-                    onChange={(e) => onFieldChange('gender', e.target.value)}
-                  />
-                  Nữ
-                </label>
-              </div>
-            </FormField>
-
-            <FormField label="Căn cước công dân (CCCD)">
-              <input
-                type="text"
-                className="add-staff-form__input"
-                name="cccd" // Đã sửa
-                value={formValues.cccd || ''}
-                onChange={(e) => onFieldChange('cccd', e.target.value)}
-              />
-            </FormField>
-
-            <FormField label="Địa chỉ thường trú" fullWidth>
-              <input
-                type="text"
-                className="add-staff-form__input"
-                name="address"
-                value={formValues.address || ''}
-                onChange={(e) => onFieldChange('address', e.target.value)}
-              />
-            </FormField>
-          </div>
-        </fieldset>
-
-        <fieldset className="add-staff-form__section">
-          <legend className="add-staff-form__section-title">Thông tin liên hệ</legend>
-          <div className="add-staff-form__grid">
-            <FormField label="Số điện thoại" required>
-              <input
-                type="tel"
-                className="add-staff-form__input"
-                name="phone"
-                value={formValues.phone || ''}
-                onChange={(e) => onFieldChange('phone', e.target.value)}
-              />
-            </FormField>
-
-            <FormField label="Email cá nhân" required>
-              <input
-                type="email"
-                className="add-staff-form__input"
-                name="email" // Đã sửa
-                value={formValues.email || ''}
-                onChange={(e) => onFieldChange('email', e.target.value)}
-              />
-            </FormField>
-          </div>
+          <legend className="add-staff-form__section-title">Thông tin định danh & Liên hệ</legend>
+          <SharedPersonForm formData={formValues} onFieldChange={onFieldChange} />
         </fieldset>
 
         <fieldset className="add-staff-form__section">

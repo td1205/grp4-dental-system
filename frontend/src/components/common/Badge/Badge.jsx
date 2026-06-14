@@ -3,6 +3,8 @@ import './Badge.css'
 const VARIANT_CLASS = {
   success: 'badge--success',
   warning: 'badge--warning',
+  error: 'badge--error',
+  primary: 'badge--primary',
   implant: 'badge--specialty-implant',
   orthodontics: 'badge--specialty-orthodontics',
   reception: 'badge--specialty-reception',

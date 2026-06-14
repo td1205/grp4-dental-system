@@ -69,7 +69,7 @@ function App() {
 
           {/* Phân hệ Lễ tân mới */}
           <Route path="/reception" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.RECEPTIONIST]}><ReceptionPage /></ProtectedRoute>} />
-          <Route path="/schedule" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.RECEPTIONIST, ROLES.DOCTOR]}><AppointmentPage /></ProtectedRoute>} />
+          <Route path="/schedule" element={<ProtectedRoute allowedRoles={[ROLES.RECEPTIONIST]}><AppointmentPage /></ProtectedRoute>} />
           <Route path="/billing" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.RECEPTIONIST]}><BillingPage /></ProtectedRoute>} />
           <Route path="/personal-schedule" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.RECEPTIONIST, ROLES.DOCTOR]}><PersonalSchedulePage /></ProtectedRoute>} />
 

@@ -19,6 +19,16 @@
   color: var(--staff-warning-text);
 }
 
+.badge--error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.badge--primary {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 .badge--specialty-implant {
   background: var(--staff-badge-implant-bg);
   color: var(--staff-badge-implant-text);

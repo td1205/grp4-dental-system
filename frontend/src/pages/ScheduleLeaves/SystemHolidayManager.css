@@ -1,0 +1,108 @@
+.holiday-manager {
+    padding: 4px 0;
+}
+
+.holiday-manager__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.holiday-manager__subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Table */
+.holiday-table-wrap {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.holiday-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+}
+
+.holiday-table thead tr {
+    background: #f8fafc;
+}
+
+.holiday-table th {
+    padding: 11px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.holiday-table td {
+    padding: 12px 14px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+}
+
+.holiday-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.holiday-table tbody tr:hover {
+    background: #f8fafc;
+    cursor: pointer;
+}
+
+.holiday-empty {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 14px;
+    padding: 40px 20px;
+    margin: 0;
+}
+
+/* Form fields */
+.holiday-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.holiday-form__field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.holiday-form__field input,
+.holiday-form__field select,
+.holiday-form__field textarea {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13.5px;
+    color: #111827;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+    font-family: inherit;
+}
+
+.holiday-form__field input:focus,
+.holiday-form__field select:focus,
+.holiday-form__field textarea:focus {
+    outline: none;
+    border-color: #0077b6;
+    box-shadow: 0 0 0 2px rgba(0, 119, 182, 0.12);
+}
+
+.holiday-form__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}

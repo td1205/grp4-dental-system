@@ -1,5 +1,5 @@
 import { FORM_STATUS_OPTIONS, FORM_STATUS_OPTIONS_EDIT } from '../../../constants/staffForm';
-import { FormField } from './FormField';
+import { FormField } from '../../common/FormField/FormField';
 import { FormSection } from './FormSection';
 
 /**

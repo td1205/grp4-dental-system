@@ -254,3 +254,103 @@
         transform: scale(1);
     }
 }
+
+/* Form inside modal */
+.shift-modal-box {
+    background: white;
+    border-radius: 12px;
+    width: 460px;
+    max-width: 95vw;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    animation: fadeIn 0.2s ease-out;
+    overflow: hidden;
+}
+
+.shift-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 24px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.shift-modal-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.shift-modal-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: #94a3b8;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+}
+
+.shift-modal-close:hover {
+    color: #475569;
+}
+
+.shift-modal-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.shift-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 4px;
+}
+
+.shift-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.shift-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.shift-form-field label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #475569;
+    letter-spacing: 0.01em;
+}
+
+.shift-form-field input,
+.shift-form-field select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    font-size: 13.5px;
+    color: #111827;
+    background: #fff;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+}
+
+.shift-form-field input:focus,
+.shift-form-field select:focus {
+    outline: none;
+    border-color: #0077b6;
+    box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1);
+}
+
+.required {
+    color: #ef4444;
+}

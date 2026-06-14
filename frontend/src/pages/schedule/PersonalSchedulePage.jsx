@@ -1,260 +1,208 @@
-import React, { useState, useEffect } from 'react';
-import { Sidebar } from '../../components/layout/Sidebar';
+import { useState, useEffect } from 'react';
+import { startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, format, isToday } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import apiClient from '../../services/apiClient';
+import { ModalWrapper } from '../../components/common/ModalWrapper/ModalWrapper';
+import { LeaveRequestFormModal } from '../../components/staff/form/LeaveRequestFormModal';
+import { MyLeaveRequestsModal } from '../../components/staff/form/MyLeaveRequestsModal';
+import './PersonalSchedulePage.css';
 
 export default function PersonalSchedulePage() {
-  const mockUser = { name: "Lê Tân", role: "Lễ Tân", initials: "LT" };
+    const [currentWeek, setCurrentWeek] = useState(new Date());
+    const [shifts, setShifts] = useState([]);
+    const [selectedShift, setSelectedShift] = useState(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [isLeaveFormOpen, setIsLeaveFormOpen] = useState(false);
+    const [isMyLeavesOpen, setIsMyLeavesOpen] = useState(false);
+    const [selectedDateForLeave, setSelectedDateForLeave] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-  // Định nghĩa các ngày trong tuần (Header)
-  const daysOfWeek = [
-    { name: 'Thứ 2', date: '9/6' },
-    { name: 'Thứ 3', date: '10/6' },
-    { name: 'Thứ 4', date: '11/6' },
-    { name: 'Thứ 5', date: '12/6' },
-    { name: 'Thứ 6', date: '13/6' },
-    { name: 'Thứ 7', date: '14/6' },
-    { name: 'CN', date: '15/6' },
-  ];
+    const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
+    const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-  // Định nghĩa các khung giờ (Cột bên trái)
-  const timeSlots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00'];
+    const TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
 
-  // --- CÁC STATE QUẢN LÝ DỮ LIỆU ---
-  const [scheduleData, setScheduleData] = useState({}); 
-  const [isOpenLeaveModal, setIsOpenLeaveModal] = useState(false); 
+    useEffect(() => {
+        fetchShifts();
+    }, [currentWeek]);
 
-  // State quản lý thông tin điền Form xin nghỉ
-  const [leaveFormData, setLeaveFormData] = useState({
-    reason: 'Giải quyết việc gia đình', // Mặc định khớp theo form hay dùng của bạn
-    startDate: '',
-    endDate: '',
-    note: ''
-  });
+    const fetchShifts = async () => {
+        setIsLoading(true);
+        try {
+            const res = await apiClient.get('/shifts');
+            setShifts(res.data);
+        } catch (err) {
+            console.error('Lỗi tải lịch cá nhân:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  // --- 1. HÀM TẢI DỮ LIỆU LỊCH TRỰC TỪ BACKEND CỔNG 3001 ---
-  const loadScheduleData = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/reception/personal-schedule');
-      if (response.ok) {
-        const data = await response.json();
-        setScheduleData(data); 
-      }
-    } catch (error) {
-      console.error("Lỗi kết nối tới dữ liệu lịch làm việc:", error);
-    }
-  };
+    // Lấy ca trực trong ngày + giờ cụ thể
+    const getShiftForSlot = (day, timeSlot) => {
+        return shifts.filter(s => {
+            const sDate = new Date(s.date);
+            const sDay = format(sDate, 'yyyy-MM-dd');
+            const targetDay = format(day, 'yyyy-MM-dd');
+            return sDay === targetDay && s.startTime <= timeSlot && s.endTime > timeSlot;
+        });
+    };
 
-  useEffect(() => {
-    loadScheduleData();
-  }, []);
+    const handleCellClick = (dayShifts, day) => {
+        if (dayShifts.length > 0) {
+            setSelectedShift(dayShifts[0]);
+            setSelectedDateForLeave(day);
+            setIsDetailOpen(true);
+        } else {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (new Date(day) >= today) {
+                setSelectedDateForLeave(day);
+                setIsLeaveFormOpen(true);
+            }
+        }
+    };
 
-  // --- 2. HÀM SUBMIT GỬI ĐƠN XIN NGHỈ LÊN SERVER CỔNG 3001 ---
-  const handleLeaveSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!leaveFormData.startDate || !leaveFormData.endDate) {
-      alert("Vui lòng nhập đầy đủ Khoảng thời gian từ ngày đến ngày!");
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:3001/api/reception/leave-requests', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(leaveFormData)
-      });
-
-      if (response.ok) {
-        alert("Gửi đơn xin nghỉ thành công! Đang chờ quản lý phê duyệt.");
-        setIsOpenLeaveModal(false); // Đóng popup khẩn cấp
-        setLeaveFormData({ reason: 'Giải quyết việc gia đình', startDate: '', endDate: '', note: '' }); // Reset sạch form
-      } else {
-        // Đọc mã lỗi chi tiết từ Backend bắn ra để dễ bắt bệnh
-        const errResult = await response.json();
-        alert(`Gửi đơn thất bại: ${errResult.message || 'Vui lòng kiểm tra lại thông tin.'}`);
-      }
-    } catch (error) {
-      console.error("Lỗi kết nối mạng gửi đơn nghỉ:", error);
-      alert("Không thể kết nối đến máy chủ Backend cổng 3001. Hãy chắc chắn bạn đã chạy server!");
-    }
-  };
-
-  return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: '"Inter", sans-serif' }}>
-      {/* Gọi Sidebar của nhóm */}
-      <Sidebar user={mockUser} />
-
-      {/* Vùng nội dung chính bên phải */}
-      <div style={{ flexGrow: 1, padding: '40px 32px' }}>
-        
-        {/* Header trên cùng: Tiêu đề + Nút tạo đơn xin nghỉ */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Lịch làm việc của tôi</h1>
-          <button 
-            onClick={() => setIsOpenLeaveModal(true)}
-            style={{ 
-              backgroundColor: '#2563eb', 
-              color: '#ffffff', 
-              border: 'none', 
-              padding: '12px 24px', 
-              borderRadius: '10px', 
-              fontWeight: '600', 
-              fontSize: '15px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <span style={{ fontSize: '18px' }}>+</span> Tạo đơn xin nghỉ
-          </button>
-        </div>
-
-        {/* Khung Bảng Lịch Trực (Bo góc, nền trắng) */}
-        <div style={{ 
-          backgroundColor: '#ffffff', 
-          borderRadius: '16px', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)', 
-          border: '1px solid #e2e8f0',
-          overflow: 'hidden'
-        }}>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '120px repeat(7, 1fr)' }}>
-            
-            {/* --- HÀNG TIÊU ĐỀ (HEADER ROW) --- */}
-            <div style={{ padding: '20px', fontWeight: '600', color: '#64748b', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #f1f5f9' }}>
-              Thời gian
-            </div>
-            {daysOfWeek.map((day, idx) => (
-              <div key={idx} style={{ 
-                padding: '16px', 
-                textAlign: 'center', 
-                backgroundColor: '#f8fafc', 
-                borderBottom: '1px solid #e2e8f0',
-                borderRight: idx < 6 ? '1px solid #f1f5f9' : 'none',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px'
-              }}>
-                <span style={{ fontWeight: '700', color: '#1e293b' }}>{day.name}</span>
-                <span style={{ fontSize: '13px', color: '#94a3b8' }}>{day.date}</span>
-              </div>
-            ))}
-
-            {/* --- CÁC HÀNG DỮ LIỆU THỜI GIAN (DATA ROWS) --- */}
-            {timeSlots.map((time) => (
-              <React.Fragment key={time}>
-                <div style={{ 
-                  padding: '24px 20px', 
-                  fontWeight: '600', 
-                  color: '#1e293b', 
-                  borderBottom: '1px solid #f1f5f9', 
-                  borderRight: '1px solid #f1f5f9',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}>
-                  {time}
-                </div>
-
-                {daysOfWeek.map((day, idx) => {
-                  const cellKey = `${time}-${day.name}`;
-                  const cellData = scheduleData[cellKey];
-
-                  return (
-                    <div key={idx} style={{ 
-                      padding: '12px', 
-                      borderBottom: '1px solid #f1f5f9', 
-                      borderRight: idx < 6 ? '1px solid #f1f5f9' : 'none',
-                      backgroundColor: '#ffffff',
-                      minHeight: '110px'
-                    }}>
-                      {cellData && (
-                        <div style={{ 
-                          backgroundColor: '#eff6ff', 
-                          border: '1px solid #bfdbfe', 
-                          borderRadius: '12px', 
-                          padding: '12px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '4px',
-                          height: '100%'
-                        }}>
-                          <span style={{ fontWeight: '700', color: '#1e40af', fontSize: '14px' }}>{cellData.shift}</span>
-                          <span style={{ color: '#2563eb', fontSize: '12px', fontWeight: '500' }}>{cellData.location}</span>
-                          <span style={{ color: '#64748b', fontSize: '12px', marginTop: '2px' }}>Bác sĩ: {cellData.doctor}</span>
-                        </div>
-                      )}
+    return (
+        <div className="psp-container">
+            {/* Header */}
+            <div className="psp-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                    <div>
+                        <h1 className="psp-title">Lịch làm việc của tôi</h1>
+                        <p className="psp-subtitle">
+                            Tuần {format(weekStart, 'dd/MM')} – {format(weekEnd, 'dd/MM/yyyy')}
+                        </p>
                     </div>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-
-          </div>
-        </div>
-
-        {/* ================================================================= */}
-        {/* KHỐI POPUP MODAL TẠO ĐƠN XIN NGHỈ CHO LỄ TÂN */}
-        {/* ================================================================= */}
-        {isOpenLeaveModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '16px', width: '450px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-              
-              <h2 style={{ margin: '0 0 20px 0', fontSize: '22px', fontWeight: '700', color: '#1e293b' }}>Tạo đơn xin nghỉ mới</h2>
-              
-              <form onSubmit={handleLeaveSubmit}>
-                
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Lý do xin nghỉ *</label>
-                  <select 
-                    value={leaveFormData.reason} 
-                    onChange={(e) => setLeaveFormData({...leaveFormData, reason: e.target.value})} 
-                    style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', outline: 'none', fontSize: '15px', cursor: 'pointer' }}
-                  >
-                    <option value="Giải quyết việc gia đình">Giải quyết việc gia đình</option>
-                    <option value="Nghỉ ốm / Khám bệnh">Nghỉ ốm / Khám bệnh</option>
-                    <option value="Nghỉ phép năm">Nghỉ phép năm</option>
-                    <option value="Lý do cá nhân khác">Lý do cá nhân khác</option>
-                  </select>
+                    <button 
+                        className="staff-btn staff-btn--outline"
+                        onClick={() => setIsMyLeavesOpen(true)}
+                    >
+                        Lịch sử xin nghỉ phép
+                    </button>
                 </div>
-
-                {/* Chọn khoảng thời gian */}
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Từ ngày *</label>
-                    <input type="date" required value={leaveFormData.startDate} onChange={(e) => setLeaveFormData({...leaveFormData, startDate: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '15px' }} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Đến hết ngày *</label>
-                    <input type="date" required value={leaveFormData.endDate} onChange={(e) => setLeaveFormData({...leaveFormData, endDate: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '15px' }} />
-                  </div>
+                <div className="psp-nav">
+                    <button className="psp-nav-btn" onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}>
+                        ← Tuần trước
+                    </button>
+                    <button className="psp-nav-btn psp-nav-btn--today" onClick={() => setCurrentWeek(new Date())}>
+                        Hôm nay
+                    </button>
+                    <button className="psp-nav-btn" onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}>
+                        Tuần sau →
+                    </button>
                 </div>
-
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Ghi chú / Giải trình thêm</label>
-                  <textarea 
-                    placeholder="Nhập nội dung chi tiết lý do xin nghỉ..." 
-                    rows="3"
-                    value={leaveFormData.note} 
-                    onChange={(e) => setLeaveFormData({...leaveFormData, note: e.target.value})} 
-                    style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '15px', fontFamily: 'inherit', resize: 'none' }}
-                  />
-                </div>
-
-                {/* Các nút lệnh gửi Form */}
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => setIsOpenLeaveModal(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer', fontWeight: '600', color: '#64748b', fontSize: '15px' }}>Hủy bỏ</button>
-                  <button type="submit" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#1d4ed8', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '15px' }}>Gửi đơn xin nghỉ</button>
-                </div>
-
-              </form>
             </div>
-          </div>
-        )}
 
-      </div>
-    </div>
-  );
+            {/* Lịch */}
+            <div className="psp-card">
+                {isLoading ? (
+                    <p className="psp-empty">Đang tải lịch làm việc...</p>
+                ) : (
+                    <div className="psp-grid" style={{ gridTemplateColumns: `80px repeat(${weekDays.length}, 1fr)` }}>
+                        {/* Header row */}
+                        <div className="psp-cell psp-cell--header psp-cell--time-label" />
+                        {weekDays.map((day, i) => (
+                            <div key={i} className={`psp-cell psp-cell--header ${isToday(day) ? 'psp-cell--today' : ''}`}>
+                                <span className="psp-day-name">{format(day, 'EEEE', { locale: vi })}</span>
+                                <span className="psp-day-date">{format(day, 'dd/MM')}</span>
+                            </div>
+                        ))}
+
+                        {/* Data rows */}
+                        {TIME_SLOTS.map(slot => (
+                            <>
+                                <div key={`t-${slot}`} className="psp-cell psp-cell--time-label">
+                                    {slot}
+                                </div>
+                                {weekDays.map((day, i) => {
+                                    const dayShifts = getShiftForSlot(day, slot);
+                                    const hasShift = dayShifts.length > 0;
+                                    return (
+                                        <div
+                                            key={`${slot}-${i}`}
+                                            className={`psp-cell ${hasShift ? 'psp-cell--has-shift' : ''} ${isToday(day) ? 'psp-cell--today-col' : ''}`}
+                                            onClick={() => handleCellClick(dayShifts, day)}
+                                        >
+                                            {hasShift && (
+                                                <div className="psp-shift-block">
+                                                    <span className="psp-shift-time">{dayShifts[0].startTime} – {dayShifts[0].endTime}</span>
+                                                    <span className="psp-shift-room">{dayShifts[0].room}</span>
+                                                    <span className="psp-shift-role">{dayShifts[0].role}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Modal chi tiết ca (Luồng 4) */}
+            <ModalWrapper
+                isOpen={isDetailOpen}
+                onClose={() => setIsDetailOpen(false)}
+                title="Chi tiết ca trực"
+                footer={
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button className="customer-btn-cancel" onClick={() => setIsDetailOpen(false)}>Đóng</button>
+                        {selectedShift && new Date(selectedShift.date) >= new Date().setHours(0,0,0,0) && (
+                            <button 
+                                className="staff-btn staff-btn--danger"
+                                onClick={() => { setIsDetailOpen(false); setIsLeaveFormOpen(true); }}
+                            >
+                                Tạo đơn xin nghỉ
+                            </button>
+                        )}
+                    </div>
+                }
+            >
+                {selectedShift && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div>
+                            <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>PHÒNG KHÁM</p>
+                            <p style={{ margin: 0, fontWeight: 600 }}>{selectedShift.room}</p>
+                        </div>
+                        <div>
+                            <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>VAI TRÒ</p>
+                            <p style={{ margin: 0, fontWeight: 600 }}>{selectedShift.role}</p>
+                        </div>
+                        <div>
+                            <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>NGÀY TRỰC</p>
+                            <p style={{ margin: 0, fontWeight: 600 }}>{format(new Date(selectedShift.date), 'dd/MM/yyyy')}</p>
+                        </div>
+                        <div>
+                            <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>KHUNG GIỜ</p>
+                            <p style={{ margin: 0, fontWeight: 600 }}>{selectedShift.startTime} – {selectedShift.endTime}</p>
+                        </div>
+                        <div style={{ gridColumn: 'span 2' }}>
+                            <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>NHÂN SỰ</p>
+                            <p style={{ margin: 0, fontWeight: 600 }}>{selectedShift.staffId?.name || 'N/A'}</p>
+                        </div>
+                    </div>
+                )}
+            </ModalWrapper>
+
+            {/* Modal Form Xin nghỉ */}
+            {isLeaveFormOpen && (
+                <LeaveRequestFormModal 
+                    isOpen={isLeaveFormOpen}
+                    onClose={() => setIsLeaveFormOpen(false)}
+                    initialDate={selectedDateForLeave}
+                    onSuccess={() => {}}
+                />
+            )}
+
+            {/* Modal Lịch sử xin nghỉ */}
+            {isMyLeavesOpen && (
+                <MyLeaveRequestsModal 
+                    isOpen={isMyLeavesOpen}
+                    onClose={() => setIsMyLeavesOpen(false)}
+                />
+            )}
+        </div>
+    );
 }

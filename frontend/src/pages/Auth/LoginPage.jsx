@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { staffApi } from '../../services/staffApi';
+import { ROLES } from '../../constants/roles';
 import './AuthPages.css';
+import { User, Lock } from 'lucide-react';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -33,13 +35,13 @@ export function LoginPage() {
         return;
       }
 
-      const userRole = user.role || user.position;
+      const userRole = (user.role || user.position || '').toLowerCase();
 
-      if (userRole === 'admin') {
+      if (userRole === ROLES.ADMIN.toLowerCase()) {
         navigate('/admin/dashboard');
-      } else if (userRole === 'doctor') {
+      } else if (userRole === ROLES.DOCTOR.toLowerCase()) {
         navigate('/doctor/dashboard');
-      } else if (userRole === 'receptionist') {
+      } else if (userRole === ROLES.RECEPTIONIST.toLowerCase()) {
         navigate('/receptionist/dashboard');
       } else {
         navigate('/login');
@@ -53,38 +55,63 @@ export function LoginPage() {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2>Đăng nhập Hệ thống</h2>
-        <p>Quản lý nha khoa DentalCare</p>
+    <div className="login-wrapper">
+      {/* Decorative blobs */}
+      <div className="blob blob-top-left"></div>
+      <div className="blob blob-bottom-left"></div>
+      <div className="blob blob-bottom-right"></div>
+      <div className="blob blob-top-right"></div>
 
-        <form onSubmit={handleLogin} className="auth-form">
-          {error && <div className="auth-error">{error}</div>}
-
-          <div className="auth-field">
-            <label>Email đăng nhập</label>
-            <input
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="VD: bs.nguyenvan@dentalcare.vn"
-            />
+      <div className="login-container">
+        <div className="login-left">
+          <div className="login-header">
+            <h1>Đăng nhập Hệ thống</h1>
+            <p>Quản lý nha khoa DentalCare</p>
           </div>
 
-          <div className="auth-field">
-            <label>Mật khẩu</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Nhập mật khẩu"
-            />
-          </div>
+          <form onSubmit={handleLogin} className="login-form">
+            {error && <div className="login-error">{error}</div>}
 
-          <button type="submit" className="auth-submit" disabled={isLoading}>
-            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-          </button>
-        </form>
+            <div className="input-group">
+              <User className="input-icon" size={20} />
+              <input
+                type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email đăng nhập"
+                required
+              />
+            </div>
+
+            <div className="input-group">
+              <Lock className="input-icon" size={20} />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mật khẩu"
+                required
+              />
+            </div>
+
+            <div className="form-actions" style={{ justifyContent: 'center' }}>
+              <button type="submit" className="btn-login" style={{ width: '100%', marginTop: '10px' }} disabled={isLoading}>
+                {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        <div className="login-right">
+          <div className="brand-logo">
+            <span className="logo-icon">🦷</span> OrionDental
+          </div>
+          <img 
+            src="https://images.unsplash.com/photo-1606811841689-23dfddce3e95?q=80&w=1974&auto=format&fit=crop" 
+            alt="Dental Clinic" 
+            className="login-image"
+          />
+        </div>
       </div>
     </div>
   );

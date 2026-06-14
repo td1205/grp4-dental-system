@@ -11,6 +11,8 @@ router.route('/')
     .get(shiftController.getShifts)
     .post(protect, restrictTo('Admin'), shiftController.createShift); // Gọi restrictTo('Admin')
 
+router.post('/copy', protect, restrictTo('Admin'), shiftController.copyShifts);
+
 router.route('/:id')
     .put(protect, restrictTo('Admin'), shiftController.updateShift)
     .delete(protect, restrictTo('Admin'), shiftController.deleteShift);

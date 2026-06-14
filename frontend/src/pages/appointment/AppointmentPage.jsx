@@ -1,288 +1,475 @@
 import React, { useState, useEffect } from 'react';
-import { Sidebar } from '../../components/layout/Sidebar';
+import apiClient from '../../services/apiClient';
+import toast from 'react-hot-toast';
+import { ManagementPageLayout } from '../../components/layout/ManagementPageLayout/ManagementPageLayout';
+import { SummaryCards } from '../../components/common/SummaryCards/SummaryCards';
+import { Modal } from '../../components/common/Modal/Modal';
+import { FormField } from '../../components/common/FormField/FormField';
+import { Icon } from '../../components/common/Icon/Icon';
+import { AppointmentCard } from '../../components/common/AppointmentCard/AppointmentCard';
+import { Button } from '../../components/ui/Button/Button';
+import { CalendarDays, Clock, XCircle, CheckCircle2 } from 'lucide-react';
+import { format } from 'date-fns';
+import '../../styles/staff-management.css';
 
 export default function AppointmentPage() {
-  const mockUser = { name: "Lê Tân", role: "Lễ Tân", initials: "LT" };
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const userRole = currentUser.role || '';
 
-  const doctors = ['BS. Hưng', 'BS. Tiến', 'BS. Bình', 'BS. Cường'];
-  const services = ['Khám tổng quát', 'Nhổ răng khôn', 'Niềng răng', 'Tẩy trắng răng', 'Trám răng'];
-
-  // --- CÁC STATE QUẢN LÝ DỮ LIỆU ---
   const [appointments, setAppointments] = useState([]);
-  const [doctorFilter, setDoctorFilter] = useState('Tra cứu bác sĩ');
-  const [statusFilter, setStatusFilter] = useState('Lọc Trạng thái');
+  const [services, setServices] = useState([]);
+  const [shifts, setShifts] = useState([]);
+  const [customers, setCustomers] = useState([]);
 
-  // Công tắc quản lý Modal Tạo lịch mới & Modal Đổi lịch
-  const [isOpenModal, setIsOpenModal] = useState(false);
-  const [isOpenRescheduleModal, setIsOpenRescheduleModal] = useState(false);
+  const [searchPhone, setSearchPhone] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [doctorFilter, setDoctorFilter] = useState('');
 
-  // State lưu lịch hẹn đang được chọn để đổi lịch
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  // Modal state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [selectedApt, setSelectedApt] = useState(null);
 
-  // State Form Tạo lịch mới
-  const [formData, setFormData] = useState({
-    name: '', phone: '', date: '', time: '', service: 'Khám tổng quát', doctor: 'BS. Hưng'
-  });
+  // Form data
+  const [formData, setFormData] = useState({ name: '', phone: '', date: '', time: '', serviceId: '', doctorId: '', notes: '' });
+  const [rescheduleData, setRescheduleData] = useState({ date: '', time: '', doctorId: '' });
+  const [cancelReason, setCancelReason] = useState('');
 
-  // State Form Đổi lịch (Bao gồm Ngày, Giờ và Bác sĩ cập nhật)
-  const [rescheduleData, setRescheduleData] = useState({ date: '', time: '', doctor: 'BS. Hưng' });
-
-  // Tải dữ liệu từ Backend
-  const loadAppointments = async () => {
+  const loadData = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/appointments');
-      if (response.ok) {
-        const data = await response.json();
-        setAppointments(data);
-      }
-    } catch (error) {
-      console.error("Lỗi kết nối tới API lịch hẹn 3001:", error);
+      const [aptRes, srvRes, shfRes, cusRes] = await Promise.all([
+        apiClient.get('/appointments'),
+        apiClient.get('/services'),
+        apiClient.get('/shifts'),
+        apiClient.get('/customers'),
+      ]);
+      setAppointments(aptRes.data.data || []);
+      setServices((srvRes.data.data || []).filter(s => s.status === 'active'));
+      setShifts(shfRes.data?.data || shfRes.data || []);
+      setCustomers(cusRes.data?.data || []);
+    } catch {
+      toast.error('Lỗi kết nối tới Server');
     }
   };
 
-  useEffect(() => {
-    loadAppointments();
+  useEffect(() => { 
+    loadData(); 
+    // AS2.5.1: API Short Polling (Tự động tải lại ngầm mỗi 10 giây)
+    const interval = setInterval(() => {
+      loadData();
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Hàm Hủy lịch hẹn nhanh
-  const handleCancelAppointment = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn hủy lịch hẹn này không?")) return;
-    try {
-      const response = await fetch(`http://localhost:3001/api/appointments/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Đã hủy' })
-      });
-      if (response.ok) {
-        alert("Đã hủy lịch hẹn thành công!");
-        loadAppointments();
+  // Auto fill name when phone matches an existing customer
+  useEffect(() => {
+    if (formData.phone && formData.phone.length >= 10 && Array.isArray(customers)) {
+      const found = customers.find(c => c.phone === formData.phone.trim());
+      if (found) {
+        setFormData(prev => ({ ...prev, name: found.name }));
+        toast.success(`Đã tìm thấy: ${found.name}`);
       }
-    } catch (error) {
-      console.error("Lỗi hủy lịch:", error);
     }
+  }, [formData.phone]);
+
+  // Get doctors on shift for a given date + time
+  const getAvailableDoctors = (date, time) => {
+    if (!date || !time) return [];
+    const d1 = date; // date from input type="date" is already "yyyy-MM-dd"
+    const seen = new Set();
+    return shifts
+      .filter(s => {
+        const d2 = format(new Date(s.date), 'yyyy-MM-dd');
+        return s.role === 'Bác sĩ' && d1 === d2 && s.startTime <= time && s.endTime >= time;
+      })
+      .filter(s => {
+        if (seen.has(s.staffId?._id)) return false;
+        seen.add(s.staffId?._id);
+        return true;
+      })
+      .map(s => s.staffId);
   };
 
-  // Hàm mở Modal Đổi lịch và nạp dữ liệu cũ của thẻ Card vào form
-  const openReschedulePopup = (apt) => {
-    setSelectedAppointment(apt);
-    setRescheduleData({ 
-      date: apt.date, 
-      time: apt.time,
-      doctor: apt.doctor || 'BS. Hưng' // Nạp kèm bác sĩ hiện tại của card vào popup
-    });
-    setIsOpenRescheduleModal(true);
-  };
+  const availableDoctorsCreate = getAvailableDoctors(formData.date, formData.time);
+  const availableDoctorsReschedule = getAvailableDoctors(rescheduleData.date, rescheduleData.time);
 
-  // --- HÀM SUBMIT GỬI NGÀY GIỜ ĐỔI LÊN SERVER ---
-  const handleRescheduleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await fetch(`http://localhost:3001/api/appointments/${selectedAppointment.id}/reschedule`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: rescheduleData.date,
-          time: rescheduleData.time,
-          doctor: rescheduleData.doctor // Bắn đầy đủ dữ liệu lên backend
-        })
-      });
+  const allDoctorNames = Array.from(new Set(
+    shifts.filter(s => s.role === 'Bác sĩ' && s.staffId).map(s => s.staffId.name)
+  ));
 
-      if (response.ok) {
-        alert("Thay đổi lịch hẹn thành công!");
-        setIsOpenRescheduleModal(false);
-        loadAppointments(); // Tải lại giao diện
-      } else {
-        alert("Có lỗi xảy ra khi cập nhật dữ liệu.");
-      }
-    } catch (error) {
-      console.error("Lỗi đổi lịch hẹn:", error);
-    }
-  };
-
-  // Hàm tạo lịch mới
-  const handleCreateAppointment = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await fetch('http://localhost:3001/api/appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      if (response.ok) {
-        alert("Tạo lịch hẹn mới thành công!");
-        setIsOpenModal(false);
-        setFormData({ name: '', phone: '', date: '', time: '', service: 'Khám tổng quát', doctor: 'BS. Hưng' });
-        loadAppointments();
-      }
-    } catch (error) {
-      console.error("Lỗi tạo lịch:", error);
-    }
-  };
-
-  const filteredAppointments = appointments.filter((apt) => {
-    const matchesDoctor = doctorFilter === 'Tra cứu bác sĩ' ? true : apt.doctor === doctorFilter;
-    const matchesStatus = statusFilter === 'Lọc Trạng thái' ? true : apt.status === statusFilter;
-    return matchesDoctor && matchesStatus;
+  const filtered = appointments.filter(apt => {
+    const matchPhone = searchPhone
+      ? (apt.customerId?.phone || '').includes(searchPhone.trim())
+      : true;
+    const matchStatus = statusFilter ? apt.status === statusFilter : true;
+    const matchDoctor = doctorFilter ? apt.doctorId?.name === doctorFilter : true;
+    return matchPhone && matchStatus && matchDoctor;
   });
 
-  return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: '"Inter", sans-serif' }}>
-      <Sidebar user={mockUser} />
+  // ---- Handlers ----
+  const handleCreate = async (e, force = false) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/appointments', { ...formData, forceCreate: force });
+      toast.success('Đặt lịch thành công!');
+      setCreateOpen(false);
+      setFormData({ name: '', phone: '', date: '', time: '', serviceId: '', doctorId: '', notes: '' });
+      loadData();
+    } catch (err) {
+      const data = err.response?.data;
+      if (data?.requiresForce) {
+        if (window.confirm(data.message + '\n\nBạn có muốn tiếp tục tạo lịch hẹn?')) {
+          handleCreate(e, true);
+        }
+      } else {
+        toast.error(data?.message || 'Lỗi tạo lịch');
+      }
+    }
+  };
 
-      <div style={{ flexGrow: 1, padding: '40px 32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#1e293b', marginBottom: '24px' }}>Quản lý lịch hẹn</h1>
+  const handleReschedule = async (e) => {
+    e.preventDefault();
+    try {
+      await apiClient.put(`/appointments/${selectedApt._id}/reschedule`, rescheduleData);
+      toast.success('Dời lịch thành công!');
+      setRescheduleOpen(false);
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Lỗi dời lịch');
+    }
+  };
 
-        {/* Toolbar */}
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'center' }}>
-          <select value={doctorFilter} onChange={(e) => setDoctorFilter(e.target.value)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', minWidth: '150px', outline: 'none', cursor: 'pointer' }}>
-            <option value="Tra cứu bác sĩ">Tra cứu bác sĩ</option>
-            <option value="BS. Hưng">BS. Hưng</option>
-            <option value="BS. Tiến">BS. Tiến</option>
-          </select>
-          
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', minWidth: '150px', outline: 'none', cursor: 'pointer' }}>
-            <option value="Lọc Trạng thái">Lọc Trạng thái</option>
-            <option value="Đã xác nhận">Đã xác nhận</option>
-            <option value="Chờ xác nhận">Chờ xác nhận</option>
-            <option value="Đã hủy">Đã hủy</option>
-          </select>
+  const handleCancel = async (e) => {
+    e.preventDefault();
+    try {
+      await apiClient.put(`/appointments/${selectedApt._id}/cancel`, { cancelReason });
+      toast.success('Đã hủy lịch hẹn!');
+      setCancelOpen(false);
+      setCancelReason('');
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Lỗi hủy lịch');
+    }
+  };
 
-          <div style={{ flexGrow: 1 }}></div>
+  const handleUpdateStatus = async (appointment, newStatus) => {
+    try {
+      await apiClient.put(`/appointments/${appointment._id}/status`, {
+        status: newStatus,
+        expectedOldStatus: appointment.status
+      });
+      toast.success(`Chuyển trạng thái thành ${newStatus}`);
+      loadData();
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Lỗi cập nhật trạng thái';
+      toast.error(msg);
+      loadData(); // Bắt buộc tải lại để đồng bộ DB nếu bị lỗi Concurrency
+    }
+  };
 
-          <button onClick={() => setIsOpenModal(true)} style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>+</span> Tạo lịch hẹn mới
-          </button>
-        </div>
+  // ---- Summary counts ----
+  const countByStatus = (s) => appointments.filter(a => a.status === s).length;
 
-        {/* Danh sách Lịch hẹn dạng Card */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '24px' }}>
-          {filteredAppointments.map((apt) => (
-            <div key={apt.id} style={{ backgroundColor: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid #f1f5f9', position: 'relative', opacity: apt.status === 'Đã hủy' ? 0.55 : 1 }}>
-              <span style={{ 
-                position: 'absolute', top: '20px', right: '20px', padding: '4px 12px', borderRadius: '50px', fontSize: '12px', fontWeight: '600',
-                backgroundColor: apt.status === 'Đã xác nhận' ? '#dbeafe' : apt.status === 'Chờ xác nhận' ? '#ffe4e6' : '#f1f5f9',
-                color: apt.status === 'Đã xác nhận' ? '#2563eb' : apt.status === 'Chờ xác nhận' ? '#ef4444' : '#64748b'
-              }}>
-                {apt.status}
-              </span>
+  const summaryItems = [
+    { title: 'Chờ tiếp đón', value: countByStatus('Chờ tiếp đón') + countByStatus('Chờ xác nhận'), icon: <Clock size={22} />, color: '#d97706' },
+    { title: 'Chờ khám', value: countByStatus('Chờ khám'), icon: <Clock size={22} />, color: 'var(--staff-primary)' },
+    { title: 'Đang khám', value: countByStatus('Đang khám'), icon: <CheckCircle2 size={22} />, color: 'var(--color-cta)' },
+    { title: 'Tổng lịch hẹn', value: appointments.length, icon: <CalendarDays size={22} />, color: 'var(--color-link-active)' },
+  ];
 
-              <h3 style={{ fontSize: '18px', fontWeight: '700', margin: '0 0 4px 0', color: '#0f172a' }}>{apt.name}</h3>
-              <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 16px 0' }}>{apt.phone}</p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#334155', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>📅 {apt.date}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>⏰ {apt.time}</div>
-                <div><strong>Dịch vụ:</strong> {apt.service}</div>
-                <div><strong>Bác sĩ:</strong> {apt.doctor}</div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-                {apt.status !== 'Đã hủy' ? (
-                  <>
-                    <button onClick={() => openReschedulePopup(apt)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: '600', color: '#334155' }}>
-                       🔄 Đổi lịch
-                    </button>
-                    <button onClick={() => handleCancelAppointment(apt.id)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid #fee2e2', color: '#ef4444', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: '600' }}>
-                       ❌ Hủy lịch
-                    </button>
-                  </>
-                ) : (
-                  <div style={{ flex: 1, fontSize: '13px', color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>Lịch hẹn này đã bị hủy bỏ</div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ================================================================= */}
-        {/* MODAL POPUP THAO TÁC ĐỔI LỊCH (ĐỒNG BỘ THEO ẢNH MẪU POPUP CỦA BẠN) */}
-        {/* ================================================================= */}
-        {isOpenRescheduleModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '16px', width: '440px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-                <span style={{ fontSize: '18px' }}>🔄</span>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#0f172a' }}>Đổi lịch hẹn mới</h2>
-              </div>
-              
-              <form onSubmit={handleRescheduleSubmit}>
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Ngày mới:</label>
-                  <input type="date" required value={rescheduleData.date} onChange={(e) => setRescheduleData({...rescheduleData, date: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '15px' }} />
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Giờ mới:</label>
-                  <input type="time" required value={rescheduleData.time} onChange={(e) => setRescheduleData({...rescheduleData, time: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '15px' }} />
-                </div>
-
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Bác sĩ:</label>
-                  <select value={rescheduleData.doctor} onChange={(e) => setRescheduleData({...rescheduleData, doctor: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', outline: 'none', fontSize: '15px', cursor: 'pointer' }}>
-                    {doctors.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => setIsOpenRescheduleModal(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer', fontWeight: '600', color: '#64748b', fontSize: '15px' }}>Hủy bỏ</button>
-                  <button type="submit" style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: '#fff', cursor: 'pointer', fontWeight: '600', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    🔄 Xác nhận Đổi lịch
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* ================================================================= */}
-        {/* MODAL POPUP ĐẶT LỊCH HẸN MỚI BAN ĐẦU */}
-        {/* ================================================================= */}
-        {isOpenModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
-            <div style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '16px', width: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-              <h2 style={{ margin: '0 0 20px 0', fontSize: '22px', fontWeight: '700', color: '#1e293b' }}>Đặt lịch hẹn mới</h2>
-              <form onSubmit={handleCreateAppointment}>
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Tên bệnh nhân *</label>
-                  <input type="text" placeholder="Nhập họ tên" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
-                </div>
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Số điện thoại *</label>
-                  <input type="tel" placeholder="Nhập số điện thoại" required value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
-                </div>
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Ngày hẹn *</label>
-                    <input type="date" required value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
-                  </div>
-                  <div style={{ width: '140px' }}>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Giờ hẹn *</label>
-                    <input type="time" required value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
-                  </div>
-                </div>
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Dịch vụ nha khoa</label>
-                  <select value={formData.service} onChange={(e) => setFormData({...formData, service: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', outline: 'none' }}>
-                    {services.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Bác sĩ phụ trách</label>
-                  <select value={formData.doctor} onChange={(e) => setFormData({...formData, doctor: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', outline: 'none' }}>
-                    {doctors.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => setIsOpenModal(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer', fontWeight: '600', color: '#64748b' }}>Hủy</button>
-                  <button type="submit" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: '#fff', cursor: 'pointer', fontWeight: '600' }}>Tạo lịch hẹn</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
+  // ---- Toolbar ----
+  const toolbar = (
+    <div className="staff-toolbar">
+      <div className="staff-toolbar__search">
+        <span className="staff-toolbar__search-icon"><Icon name="search" size={16} /></span>
+        <input
+          id="apt-search-phone"
+          className="staff-toolbar__input"
+          placeholder="Tìm theo số điện thoại..."
+          value={searchPhone}
+          onChange={e => setSearchPhone(e.target.value)}
+        />
       </div>
+      <select
+        id="apt-filter-status"
+        className="staff-toolbar__select"
+        value={statusFilter}
+        onChange={e => setStatusFilter(e.target.value)}
+      >
+        <option value="">Tất cả trạng thái</option>
+        {['Chờ tiếp đón', 'Chờ khám', 'Đang khám', 'Chờ xác nhận', 'Đã xác nhận', 'Đã dời', 'Đã hủy', 'Không đến', 'Hoàn thành'].map(s => (
+          <option key={s} value={s}>{s}</option>
+        ))}
+      </select>
+      {(userRole !== 'Doctor' && userRole !== 'Bác sĩ') && (
+        <select
+          id="apt-filter-doctor"
+          className="staff-toolbar__select"
+          value={doctorFilter}
+          onChange={e => setDoctorFilter(e.target.value)}
+        >
+          <option value="">Tất cả bác sĩ</option>
+          {allDoctorNames.map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+      )}
+      <div style={{ flex: 1 }} />
+      {(userRole !== 'Doctor' && userRole !== 'Bác sĩ') && (
+        <Button
+          id="apt-btn-add"
+          variant="primary"
+          onClick={() => setCreateOpen(true)}
+        >
+          <Icon name="plus" size={16} /> Thêm lịch hẹn mới
+        </Button>
+      )}
     </div>
+  );
+
+  // ---- Doctor options helper ----
+  const doctorOptions = (list) => [
+    { value: '', label: '-- Chọn bác sĩ có ca trực --' },
+    ...list.filter(Boolean).map(d => ({ value: d._id, label: d.name })),
+  ];
+
+  const serviceOptions = [
+    { value: '', label: '-- Chọn dịch vụ --' },
+    ...services.map(s => ({ value: s._id, label: `${s.name} (${s.duration}p)` })),
+  ];
+
+  return (
+    <>
+      <ManagementPageLayout
+        title={(userRole === 'Doctor' || userRole === 'Bác sĩ') ? "Hàng đợi khám bệnh" : "Quản lý lịch hẹn"}
+        subtitle={(userRole === 'Doctor' || userRole === 'Bác sĩ') ? "Danh sách bệnh nhân trong ca trực hôm nay" : "Tiếp nhận, điều phối và quản lý vòng đời lịch hẹn khám bệnh"}
+        toolbar={toolbar}
+      >
+        <SummaryCards items={summaryItems} />
+
+        {filtered.length === 0 ? (
+          <div className="staff-table__message">Không có lịch hẹn nào phù hợp</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px', marginTop: '8px' }}>
+            {filtered.map(apt => (
+              <AppointmentCard
+                key={apt._id}
+                appointment={apt}
+                onReschedule={(a) => {
+                  setSelectedApt(a);
+                  setRescheduleData({
+                    date: new Date(a.date).toISOString().split('T')[0],
+                    time: a.time,
+                    doctorId: a.doctorId?._id || ''
+                  });
+                  setRescheduleOpen(true);
+                }}
+                onCancel={(a) => {
+                  setSelectedApt(a);
+                  setCancelReason('');
+                  setCancelOpen(true);
+                }}
+                onUpdateStatus={handleUpdateStatus}
+                userRole={userRole}
+              />
+            ))}
+          </div>
+        )}
+      </ManagementPageLayout>
+
+      {/* ── Modal Tạo lịch hẹn ── */}
+      <Modal
+        isOpen={createOpen}
+        title="Đặt lịch hẹn mới"
+        subtitle="Tra cứu hoặc tạo mới hồ sơ bệnh nhân, chọn dịch vụ và bác sĩ có ca trực"
+        onClose={() => setCreateOpen(false)}
+        footer={
+          <>
+            <button type="button" className="modal__btn modal__btn--secondary" onClick={() => setCreateOpen(false)}>Hủy</button>
+            <button
+              form="form-create-apt"
+              type="submit"
+              className="modal__btn modal__btn--primary"
+              disabled={!formData.doctorId}
+            >
+              Xác nhận đặt lịch
+            </button>
+          </>
+        }
+      >
+        <form id="form-create-apt" onSubmit={(e) => handleCreate(e, false)}>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <FormField
+                id="apt-phone"
+                label="Số điện thoại"
+                required
+                type="tel"
+                placeholder="Nhập để tra cứu hồ sơ..."
+                value={formData.phone}
+                onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <FormField
+                id="apt-name"
+                label="Họ tên bệnh nhân"
+                required
+                placeholder="Họ và tên đầy đủ"
+                value={formData.name}
+                onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <FormField
+                id="apt-date"
+                label="Ngày hẹn"
+                required
+                type="date"
+                value={formData.date}
+                onChange={e => setFormData(p => ({ ...p, date: e.target.value, doctorId: '' }))}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <FormField
+                id="apt-time"
+                label="Giờ hẹn"
+                required
+                type="time"
+                value={formData.time}
+                onChange={e => setFormData(p => ({ ...p, time: e.target.value, doctorId: '' }))}
+              />
+            </div>
+          </div>
+          <FormField
+            id="apt-service"
+            label="Dịch vụ nha khoa"
+            required
+            as="select"
+            value={formData.serviceId}
+            onChange={e => setFormData(p => ({ ...p, serviceId: e.target.value }))}
+            options={serviceOptions}
+          />
+          <FormField
+            id="apt-doctor"
+            label="Bác sĩ có ca trực"
+            required
+            as="select"
+            value={formData.doctorId}
+            onChange={e => setFormData(p => ({ ...p, doctorId: e.target.value }))}
+            options={doctorOptions(availableDoctorsCreate)}
+          />
+          {formData.date && formData.time && availableDoctorsCreate.length === 0 && (
+            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#dc2626' }}>
+              Không có bác sĩ nào có ca trực vào khung giờ này.
+            </p>
+          )}
+          <FormField
+            id="apt-notes"
+            label="Ghi chú lâm sàng sơ bộ"
+            as="textarea"
+            rows={2}
+            placeholder="Triệu chứng, dị ứng thuốc, yêu cầu đặc biệt... (không bắt buộc)"
+            value={formData.notes}
+            onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
+          />
+        </form>
+      </Modal>
+
+      {/* ── Modal Dời lịch ── */}
+      <Modal
+        isOpen={rescheduleOpen}
+        title="Dời lịch hẹn"
+        subtitle={`Bệnh nhân: ${selectedApt?.customerId?.name || ''}`}
+        onClose={() => setRescheduleOpen(false)}
+        footer={
+          <>
+            <button type="button" className="modal__btn modal__btn--secondary" onClick={() => setRescheduleOpen(false)}>Hủy</button>
+            <button
+              form="form-reschedule"
+              type="submit"
+              className="modal__btn modal__btn--primary"
+              disabled={!rescheduleData.doctorId}
+            >
+              Cập nhật thay đổi
+            </button>
+          </>
+        }
+      >
+        <form id="form-reschedule" onSubmit={handleReschedule}>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <FormField
+                id="rs-date"
+                label="Ngày mới"
+                required
+                type="date"
+                value={rescheduleData.date}
+                onChange={e => setRescheduleData(p => ({ ...p, date: e.target.value, doctorId: '' }))}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <FormField
+                id="rs-time"
+                label="Giờ mới"
+                required
+                type="time"
+                value={rescheduleData.time}
+                onChange={e => setRescheduleData(p => ({ ...p, time: e.target.value, doctorId: '' }))}
+              />
+            </div>
+          </div>
+          <FormField
+            id="rs-doctor"
+            label="Bác sĩ có ca trực"
+            required
+            as="select"
+            value={rescheduleData.doctorId}
+            onChange={e => setRescheduleData(p => ({ ...p, doctorId: e.target.value }))}
+            options={doctorOptions(availableDoctorsReschedule)}
+          />
+          {rescheduleData.date && rescheduleData.time && availableDoctorsReschedule.length === 0 && (
+            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#dc2626' }}>
+              Không có bác sĩ nào có ca trực vào khung giờ này.
+            </p>
+          )}
+        </form>
+      </Modal>
+
+      {/* ── Modal Hủy lịch ── */}
+      <Modal
+        isOpen={cancelOpen}
+        title="Hủy lịch hẹn"
+        subtitle={`Bệnh nhân: ${selectedApt?.customerId?.name || ''} — ${selectedApt?.date ? format(new Date(selectedApt.date), 'dd/MM/yyyy') : ''}`}
+        onClose={() => setCancelOpen(false)}
+        footer={
+          <>
+            <button type="button" className="modal__btn modal__btn--secondary" onClick={() => setCancelOpen(false)}>Đóng</button>
+            <button
+              form="form-cancel"
+              type="submit"
+              className="modal__btn"
+              style={{ background: '#dc2626', color: '#fff' }}
+            >
+              Xác nhận hủy lịch
+            </button>
+          </>
+        }
+      >
+        <form id="form-cancel" onSubmit={handleCancel}>
+          <FormField
+            id="cancel-reason"
+            label="Lý do hủy"
+            required
+            as="textarea"
+            rows={3}
+            placeholder="Vd: Khách hàng báo hủy, khách không đến..."
+            value={cancelReason}
+            onChange={e => setCancelReason(e.target.value)}
+          />
+        </form>
+      </Modal>
+    </>
   );
 }

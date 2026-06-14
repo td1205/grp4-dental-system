@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const ROLES = require('../constants/roles');
 
 const baseOption = {
     discriminatorKey: 'role',
@@ -23,7 +24,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String },
     activationToken: { type: String },
     activationExpires: { type: Date },
-    role: { type: String, required: true, enum: ['Admin', 'Doctor', 'Receptionist', 'Customer'] },
+    role: { type: String, required: true, enum: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.CUSTOMER] },
     address: { type: String, required: true },
 }, baseOption);
 

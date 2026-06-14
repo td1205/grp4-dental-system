@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 
 import { CustomerToolbar } from '../../components/customer/CustomerToolbar/CustomerToolbar'
-import { CustomerTable } from '../../components/customer/CustomerTable/CustomerTable'
-import { CustomerGrid } from '../../components/customer/CustomerGrid/CustomerGrid'
+import { SharedUserGrid } from '../../components/common/SharedGrid/SharedUserGrid'
+import { SharedUserTable } from '../../components/common/SharedTable/SharedUserTable'
 import { CustomerModal } from '../../components/customer/CustomerModal/CustomerModal'
+import { CustomerDetailsModal } from '../../components/customer/CustomerDetailsModal/CustomerDetailsModal'
 import { SummaryCards } from '../../components/common/SummaryCards/SummaryCards'
 import { Users, UserCheck, UserX } from 'lucide-react'
 import { ToastStack } from '../../components/common/ToastStack/ToastStack'
@@ -21,6 +22,7 @@ export function CustomerManagementPage() {
   const [isError, setIsError] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [toasts, setToasts] = useState([])
   const [viewMode, setViewMode] = useState('grid')
@@ -74,11 +76,16 @@ export function CustomerManagementPage() {
     setIsModalOpen(true)
   }
 
+  const handleViewCustomer = (customer) => {
+    setSelectedCustomer(customer)
+    setIsDetailsModalOpen(true)
+  }
+
   const handleSaveCustomer = async (formData) => {
     try {
-      if (formData.id) {
+      if (formData._id) {
         // Edit
-        await customerApi.update(formData.id, formData)
+        await customerApi.update(formData._id, formData)
         addToast('Cập nhật thông tin khách hàng thành công!')
       } else {
         // Create
@@ -87,7 +94,7 @@ export function CustomerManagementPage() {
           setConfirmModalConfig({
             title: 'Khôi phục tài khoản',
             message: res.message,
-            confirmLabel: 'Đồng ý khôi phục',
+            confirmLabel: 'Khôi phục',
             variant: 'primary',
             onConfirm: async () => {
               setIsConfirmLoading(true)
@@ -120,13 +127,13 @@ export function CustomerManagementPage() {
   }
 
   const handleDeleteCustomer = (id) => {
-    const patient = customers.find((c) => c.id === id)
+    const patient = customers.find((c) => c._id === id)
     if (!patient) return
 
     setConfirmModalConfig({
       title: 'Xác nhận xóa',
-      message: `Bạn có chắc chắn muốn xóa khách hàng ${patient.name} (${id})? Hành động này không thể hoàn tác.`,
-      confirmLabel: 'Xóa',
+      message: 'Bạn có chắc chắn muốn xóa tài khoản khách hàng này?',
+      confirmLabel: 'Xác nhận',
       variant: 'danger',
       onConfirm: async () => {
         setIsConfirmLoading(true)
@@ -175,6 +182,8 @@ export function CustomerManagementPage() {
     }
   ];
 
+  const activeCustomers = useMemo(() => customers.filter(c => c.status === 'active'), [customers]);
+
   return (
     <>
       <ManagementPageLayout
@@ -189,23 +198,55 @@ export function CustomerManagementPage() {
         ) : (
           <>
             <SummaryCards items={summaryItems} />
-            {viewMode === 'grid' ? (
-              <CustomerGrid
-                customers={customers}
-                isLoading={isLoading}
-                onEdit={handleEditCustomer}
-                onDelete={handleDeleteCustomer}
-                showDelete={showDelete}
-              />
-            ) : (
-              <CustomerTable
-                customers={customers}
-                isLoading={isLoading}
-                onEdit={handleEditCustomer}
-                onDelete={handleDeleteCustomer}
-                showDelete={showDelete}
-              />
-            )}
+            {(() => {
+              const customerMappingConfig = (customer) => ({
+                title: customer.name || '',
+                subtitle: customer.id,
+                badgeText: '',
+                badgeVariant: 'default',
+                statusLabel: customer.status === 'active' ? 'Đang hoạt động' : customer.status === 'inactive' ? 'Ngừng hoạt động' : 'Tạm khóa',
+                statusVariant: customer.status === 'active' ? 'success' : 'error',
+                infoLines: [
+                  { label: 'SĐT', value: customer.phone },
+                  { label: 'CCCD', value: customer.cccd }
+                ]
+              });
+
+              const customerColumns = [
+                { key: 'id', label: 'MÃ BN' },
+                { key: 'name', label: 'HỌ TÊN' },
+                { key: 'phone', label: 'SĐT' },
+                { key: 'cccd', label: 'CCCD' },
+                { key: 'status', label: 'TRẠNG THÁI', render: (c) => {
+                    const lbl = c.status === 'active' ? 'Đang hoạt động' : c.status === 'inactive' ? 'Ngừng hoạt động' : 'Tạm khóa';
+                    return <span className={`customer-badge customer-badge--${c.status}`}>{lbl}</span>
+                } }
+              ];
+
+              return viewMode === 'grid' ? (
+                <SharedUserGrid
+                  users={activeCustomers}
+                  isLoading={isLoading}
+                  isEmpty={!isLoading && activeCustomers.length === 0}
+                  mappingConfig={customerMappingConfig}
+                  onEdit={handleEditCustomer}
+                  onDelete={showDelete ? handleDeleteCustomer : undefined}
+                  onView={handleViewCustomer}
+                  isCustomer={true}
+                />
+              ) : (
+                <SharedUserTable
+                  users={activeCustomers}
+                  columns={customerColumns}
+                  isLoading={isLoading}
+                  isEmpty={!isLoading && activeCustomers.length === 0}
+                  onEdit={handleEditCustomer}
+                  onDelete={showDelete ? handleDeleteCustomer : undefined}
+                  onView={handleViewCustomer}
+                  isCustomer={true}
+                />
+              )
+            })()}
           </>
         )}
       </ManagementPageLayout>
@@ -214,6 +255,12 @@ export function CustomerManagementPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveCustomer}
+        customer={selectedCustomer}
+      />
+
+      <CustomerDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
         customer={selectedCustomer}
       />
 

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { StaffToolbar } from '../../components/staff/StaffToolbar.jsx';
-import { StaffGrid } from '../../components/staff/StaffGrid/StaffGrid.jsx';
-import { StaffTable } from '../../components/staff/StaffTable.jsx';
+import { SharedUserGrid } from '../../components/common/SharedGrid/SharedUserGrid.jsx';
+import { SharedUserTable } from '../../components/common/SharedTable/SharedUserTable.jsx';
 import { SummaryCards } from '../../components/common/SummaryCards/SummaryCards.jsx';
 import { Users, UserCheck, UserX } from 'lucide-react';
 import { PaginationBar } from '../../components/staff/PaginationBar.jsx';
@@ -15,6 +15,7 @@ import { exportStaffsToExcel } from '../../utils/exportStaffExcel.js';
 import { AddStaffModal } from '../../components/staff/AddStaffModal/AddStaffModal.jsx';
 import { ManagementPageLayout } from '../../components/layout/ManagementPageLayout/ManagementPageLayout';
 import { ReassignDoctorModal } from '../../components/staff/ReassignDoctorModal.jsx';
+import { Icon } from '../../components/common/Icon/Icon.jsx';
 import './StaffManagementPage.css';
 
 function CheckCircleIcon() {
@@ -161,65 +162,115 @@ export function StaffManagementPage() {
         ) : (
           <>
             <SummaryCards items={summaryItems} />
-            {viewMode === 'grid' ? (
-            <StaffGrid
-              staffList={staffs}
+            {(() => {
+              const STATUS_VARIANT = {
+                active: 'success',
+                pending: 'warning',
+                locked: 'error',
+                inactive: 'error',
+              };
+
+              const SPECIALTY_VARIANT = {
+                Implant: 'implant',
+                Orthodontics: 'orthodontics',
+                'Lễ tân': 'reception',
+              };
+
+              const staffMappingConfig = (staff) => ({
+                title: staff.name || staff.fullName || '',
+                subtitle: staff.id || staff.ma_nhan_vien,
+                badgeText: staff.specialty,
+                badgeVariant: SPECIALTY_VARIANT[staff.specialty] ?? 'reception',
+                statusLabel: staff.status === 'active' ? 'Hoạt động' : staff.status === 'locked' ? 'Bị khóa' : 'Chờ kích hoạt',
+                statusVariant: STATUS_VARIANT[staff.status] ?? 'success',
+                infoLines: [
+                  { label: 'Email', value: staff.email || staff.personalEmail },
+                  { label: 'SĐT', value: staff.phone }
+                ]
+              });
+
+              const staffColumns = [
+                { key: 'id', label: 'MÃ NV', render: (s) => s.id || s.ma_nhan_vien },
+                { key: 'name', label: 'HỌ TÊN', render: (s) => s.name || s.fullName },
+                { key: 'email', label: 'EMAIL', render: (s) => s.email || s.personalEmail },
+                { key: 'phone', label: 'SĐT' },
+                { key: 'role', label: 'VAI TRÒ', render: (s) => s.role === 'doctor' ? 'Bác sĩ' : s.role === 'receptionist' ? 'Lễ tân' : 'Quản trị viên' },
+                { key: 'specialty', label: 'CHUYÊN KHOA/BẰNG CẤP', render: (s) => s.specialty || '-' },
+                { key: 'status', label: 'TRẠNG THÁI', render: (s) => {
+                    const lbl = s.status === 'active' ? 'Đang hoạt động' : s.status === 'locked' ? 'Tạm khóa' : 'Chờ kích hoạt';
+                    return <span className={`staff-badge staff-badge--${s.status}`}>{lbl}</span>
+                } }
+              ];
+
+              const renderCustomActions = (s) => {
+                if (s.status === 'pending') {
+                  return (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await staffApi.resendEmail(s.id);
+                          addToast(`Đã gửi lại email kích hoạt thực tế đến hòm thư của nhân sự!`);
+                        } catch (error) {
+                          addToast(`Có lỗi xảy ra khi gửi email tới ${s.personalEmail || s.fullName}.`);
+                        }
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#0D8A72', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Icon name="mail" size={16} /> Gửi lại email
+                    </button>
+                  )
+                }
+                if (s.status === 'active' || s.status === 'locked') {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const confirmed = window.confirm(`Bạn có chắc chắn muốn gửi email khôi phục mật khẩu cho nhân viên ${s.fullName}?`);
+                        if (confirmed) {
+                          staffApi.resetPassword(s.id).then(() => {
+                            addToast(`Đã gửi email khôi phục mật khẩu thành công tới ${s.fullName}. Tài khoản đã được chuyển về trạng thái Chờ kích hoạt.`);
+                            refetch();
+                          }).catch(() => {
+                            addToast(`Có lỗi xảy ra khi gửi email khôi phục cho ${s.fullName}.`);
+                          });
+                        }
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Icon name="key" size={16} /> Khôi phục mật khẩu
+                    </button>
+                  )
+                }
+                return null;
+              };
+
+              return viewMode === 'grid' ? (
+            <SharedUserGrid
+              users={staffs}
               isLoading={isLoading}
               isEmpty={!isLoading && staffs.length === 0}
+              mappingConfig={staffMappingConfig}
               onView={(s) => navigate(`/staff/${s.id}/edit`)}
               onEdit={(s) => navigate(`/staff/${s.id}/edit`)}
-              onChangePassword={(s) => console.info('changePassword', s.id)}
-              onResetPassword={(s) => {
-                const confirmed = window.confirm(`Bạn có chắc chắn muốn reset mật khẩu của ${s.fullName} về mặc định (Dentalcare@123)?`);
-                if (confirmed) {
-                  staffApi.resetPassword(s.id).then(() => {
-                    addToast(`Đã reset mật khẩu thành công cho ${s.fullName}.`);
-                  }).catch(() => {
-                    addToast(`Có lỗi xảy ra khi reset mật khẩu cho ${s.fullName}.`);
-                  });
-                }
-              }}
               onToggleLock={openLockModal}
               onDelete={openDeleteModal}
-              onResendMail={async (s) => {
-                try {
-                  await staffApi.resendEmail(s.id);
-                  addToast(`Đã gửi lại email kích hoạt thực tế đến hòm thư của nhân sự!`);
-                } catch (error) {
-                  addToast(`Có lỗi xảy ra khi gửi email tới ${s.personalEmail || s.fullName}.`);
-                }
-              }}
+              renderCustomActions={renderCustomActions}
             />
             ) : (
-            <StaffTable
-              staffs={staffs}
+            <SharedUserTable
+              users={staffs}
+              columns={staffColumns}
               isLoading={isLoading}
               isEmpty={!isLoading && staffs.length === 0}
               onView={(s) => navigate(`/staff/${s.id}/edit`)}
               onEdit={(s) => navigate(`/staff/${s.id}/edit`)}
-              onChangePassword={(s) => console.info('changePassword', s.id)}
-              onResetPassword={(s) => {
-                const confirmed = window.confirm(`Bạn có chắc chắn muốn reset mật khẩu của ${s.fullName} về mặc định (Dentalcare@123)?`);
-                if (confirmed) {
-                  staffApi.resetPassword(s.id).then(() => {
-                    addToast(`Đã reset mật khẩu thành công cho ${s.fullName}.`);
-                  }).catch(() => {
-                    addToast(`Có lỗi xảy ra khi reset mật khẩu cho ${s.fullName}.`);
-                  });
-                }
-              }}
               onToggleLock={openLockModal}
               onDelete={openDeleteModal}
-              onResendMail={async (s) => {
-                try {
-                  await staffApi.resendEmail(s.id);
-                  addToast(`Đã gửi lại email kích hoạt thực tế đến hòm thư của nhân sự!`);
-                } catch (error) {
-                  addToast(`Có lỗi xảy ra khi gửi email tới ${s.personalEmail || s.fullName}.`);
-                }
-              }}
+              renderCustomActions={renderCustomActions}
             />
-            )}
+            )
+            })()}
           </>
           )}
 

@@ -1,9 +1,9 @@
 const Customer = require('../models/Customer');
+const User = require('../models/User');
 
 // --- 1. LẤY DANH SÁCH & TÌM KIẾM KHÁCH HÀNG (UC1.1) ---
 const getAllCustomers = async (req, res) => {
     try {
-        // Đổi từ 'keyword' thành 'search' để khớp 100% với Frontend
         const { search } = req.query;
         let query = {};
 
@@ -19,10 +19,17 @@ const getAllCustomers = async (req, res) => {
 
         const customers = await Customer.find(query).sort({ createdAt: -1 });
 
+        const mappedCustomers = customers.map(c => {
+            const obj = c.toObject();
+            obj._id = c._id; 
+            obj.dob = obj.dateOfBirth; // Map lại cho Frontend vì UI dùng dob
+            return obj;
+        });
+
         return res.status(200).json({
             success: true,
-            count: customers.length,
-            data: customers
+            count: mappedCustomers.length,
+            data: mappedCustomers
         });
     } catch (error) {
         return res.status(500).json({
@@ -46,60 +53,83 @@ const createCustomer = async (req, res) => {
             });
         }
 
+        // Quét trùng lặp bên bảng Users (Nhân viên)
+        const existingStaff = await User.findOne({
+            $or: [{ phone: phone }, { cccd: cccd }]
+        });
+        if (existingStaff) {
+            return res.status(400).json({
+                success: false,
+                message: 'Số điện thoại hoặc CCCD đã được sử dụng bởi một nhân viên hệ thống'
+            });
+        }
+
+        // Quét trùng lặp bên bảng Customers
         const existingCustomer = await Customer.findOne({
             $or: [{ phone: phone }, { cccd: cccd }]
         });
 
         if (existingCustomer) {
+            if (existingCustomer.status === 'inactive') {
+                return res.status(200).json({
+                    success: false,
+                    needRestore: true,
+                    message: 'Tài khoản này đã từng tồn tại và bị khóa. Bạn có muốn khôi phục không?',
+                    data: { _id: existingCustomer._id }
+                });
+            }
+
             return res.status(400).json({
                 success: false,
                 message: 'Thông tin CCCD hoặc Số điện thoại đã được đăng ký trên hệ thống'
             });
         }
 
-        // KHỞI TẠO MÃ BỆNH NHÂN (Chuẩn: BN + YYYYMM + STT)
+        // KHỞI TẠO MÃ BỆNH NHÂN (Chuẩn: KH + YYYYMM + STT hoặc BN + YYYYMM + STT)
+        // Dựa vào DB cũ dùng "KH054", ở đây sinh tiếp chuẩn KH
         const date = new Date();
         const yearMonth = `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-        const prefix = `BN${yearMonth}`;
+        const prefix = `KH${yearMonth}`;
 
         const lastCustomer = await Customer.findOne({
-            ma_nhan_vien: new RegExp(`^${prefix}`)
+            id: new RegExp(`^${prefix}`)
         }).sort({ createdAt: -1 });
 
         let stt = 1;
-        if (lastCustomer && lastCustomer.ma_nhan_vien) {
-            const lastSttStr = lastCustomer.ma_nhan_vien.replace(prefix, '');
+        if (lastCustomer && lastCustomer.id) {
+            const lastSttStr = lastCustomer.id.replace(prefix, '');
             const lastStt = parseInt(lastSttStr, 10);
             if (!isNaN(lastStt)) {
                 stt = lastStt + 1;
             }
         }
 
-        const sttString = stt.toString().padStart(2, '0');
-        const ma_nhan_vien = `${prefix}${sttString}`;
+        const sttString = stt.toString().padStart(3, '0');
+        const id = `${prefix}${sttString}`;
 
         const newCustomer = new Customer({
-            ma_nhan_vien,
+            id,
             name,
-            birthday: dob,
+            dateOfBirth: dob,
             phone,
             cccd,
             address,
-            // ✨ Bí kíp xử lý lỗi trùng Email: Nếu email rỗng ("") thì gán thành undefined
             email: email ? email : undefined,
             medicalHistory,
-            trang_thai: 'Đang hoạt động'
+            status: 'active'
         });
 
         await newCustomer.save();
 
+        const returnCustomer = newCustomer.toObject();
+        returnCustomer._id = newCustomer._id;
+
         return res.status(201).json({
             success: true,
             message: 'Thêm mới khách hàng thành công',
-            data: newCustomer
+            data: returnCustomer
         });
     } catch (error) {
-        // In log ra Console để dễ kiểm tra nếu còn lỗi
         console.error("Lỗi Create Customer:", error);
         return res.status(500).json({
             success: false,
@@ -109,7 +139,87 @@ const createCustomer = async (req, res) => {
     }
 };
 
+// --- 3. CẬP NHẬT THÔNG TIN KHÁCH HÀNG ---
+const updateCustomer = async (req, res) => {
+    try {
+        const { id } = req.params; // _id
+        const { name, dob, phone, address, email, status } = req.body;
+
+        const customer = await Customer.findById(id);
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy KH' });
+        }
+
+        if (phone && phone !== customer.phone) {
+            // Check Staff
+            const existingStaffPhone = await User.findOne({ phone });
+            if (existingStaffPhone) {
+                return res.status(400).json({ success: false, message: 'Số điện thoại đã được đăng ký bởi nhân viên' });
+            }
+            // Check Customers
+            const existingCustomerPhone = await Customer.findOne({ phone, _id: { $ne: id } });
+            if (existingCustomerPhone) {
+                return res.status(400).json({ success: false, message: 'Số điện thoại đã được đăng ký bởi khách hàng khác' });
+            }
+            customer.phone = phone;
+        }
+
+        if (address) customer.address = address;
+        if (email !== undefined) customer.email = email === "" ? undefined : email;
+        if (name) customer.name = name;
+        if (dob) customer.dateOfBirth = dob;
+        
+        if (status) {
+            customer.status = status;
+        }
+
+        await customer.save();
+        return res.status(200).json({ success: true, message: 'Cập nhật thành công', data: customer });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// --- 4. XÓA KHÁCH HÀNG (SOFT DELETE) ---
+const deleteCustomer = async (req, res) => {
+    try {
+        const { id } = req.params; // _id
+        const customer = await Customer.findById(id);
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy KH' });
+        }
+        
+        customer.status = 'inactive';
+        await customer.save();
+
+        return res.status(200).json({ success: true, message: 'Đã khóa tài khoản khách hàng thành công' });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// --- 5. KHÔI PHỤC KHÁCH HÀNG ---
+const restoreCustomer = async (req, res) => {
+    try {
+        const { id } = req.params; // _id
+        const customer = await Customer.findById(id);
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy KH' });
+        }
+
+        customer.status = 'active';
+        await customer.save();
+
+        return res.status(200).json({ success: true, message: 'Khôi phục thành công' });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 module.exports = {
     getAllCustomers,
-    createCustomer
+    createCustomer,
+    updateCustomer,
+    deleteCustomer,
+    restoreCustomer
 };

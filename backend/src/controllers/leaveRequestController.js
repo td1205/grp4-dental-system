@@ -1,4 +1,25 @@
 const LeaveRequest = require('../models/LeaveRequest');
+const Shift = require('../models/Shift');
+const Admin = require('../models/Admin');
+const User = require('../models/User');
+const notificationService = require('../services/notificationService');
+
+const clearShiftsForLeave = async (staffId, startDate, endDate) => {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    await Shift.updateMany(
+        { 
+            staffId: staffId, 
+            date: { $gte: start, $lte: end } 
+        },
+        { 
+            $set: { staffId: null, status: 'Trống' } 
+        }
+    );
+};
 
 // 1. Lấy danh sách lịch nghỉ (Admin xem tất cả, Nhân viên xem cá nhân)
 const getLeaveRequests = async (req, res) => {
@@ -16,10 +37,15 @@ const getLeaveRequests = async (req, res) => {
 // 2. Nhân viên đăng ký nghỉ phép (UC 2.3)
 const createLeaveRequest = async (req, res) => {
     try {
-        const { startDate, endDate, leaveType, reason } = req.body;
+        const { startDate, endDate, duration, leaveType, reason } = req.body;
 
-        // Ràng buộc thời gian: không chọn ngày quá khứ
-        if (new Date(startDate) < new Date()) {
+        // Ràng buộc thời gian: không chọn ngày quá khứ (so sánh start of day)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        
+        if (start < today) {
             return res.status(400).json({ message: "Ngày bắt đầu phải sau ngày hiện tại" });
         }
 
@@ -27,12 +53,25 @@ const createLeaveRequest = async (req, res) => {
             staffId: req.user.id,
             startDate,
             endDate,
+            duration: duration || 'Cả ngày',
             leaveType,
             reason,
             status: 'Chờ duyệt'
         });
 
         await newLeave.save();
+
+        // Gửi thông báo đến Admin
+        try {
+            const admins = await Admin.find({});
+            const staffUser = await User.findById(req.user.id);
+            if (staffUser) {
+                await notificationService.sendAdminLeaveNotification(admins, staffUser, newLeave);
+            }
+        } catch (notifErr) {
+            console.error('Lỗi khi gửi thông báo tạo đơn:', notifErr.message);
+        }
+
         res.status(201).json({ message: "Đăng ký thành công", data: newLeave });
     } catch (err) {
         res.status(500).json({ message: "Lỗi tạo đơn", error: err.message });
@@ -68,6 +107,11 @@ const approveLeave = async (req, res) => {
             { status: 'Đã duyệt', approvedBy: req.user.id },
             { new: true }
         );
+        
+        if (leave) {
+            await clearShiftsForLeave(leave.staffId, leave.startDate, leave.endDate);
+        }
+
         res.status(200).json({ message: "Đã duyệt đơn nghỉ", data: leave });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
@@ -87,10 +131,84 @@ const rejectLeave = async (req, res) => {
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
+// 6. Nhân viên tự hủy đơn (UC 2.3)
+const cancelLeave = async (req, res) => {
+    try {
+        const leave = await LeaveRequest.findOne({ _id: req.params.id, staffId: req.user.id });
+        if (!leave) return res.status(404).json({ message: "Không tìm thấy đơn nghỉ phép" });
+
+        if (leave.status === 'Chờ duyệt') {
+            leave.status = 'Đã hủy';
+            await leave.save();
+            return res.status(200).json({ message: "Đã hủy đơn thành công", data: leave });
+        } else if (leave.status === 'Đã duyệt') {
+            leave.status = 'Chờ hủy phép';
+            await leave.save();
+
+            // Gửi thông báo đến Admin
+            try {
+                const admins = await Admin.find({});
+                const staffUser = await User.findById(req.user.id);
+                if (staffUser) {
+                    await notificationService.sendAdminLeaveNotification(admins, staffUser, leave, true);
+                }
+            } catch (notifErr) {
+                console.error('Lỗi khi gửi thông báo hủy đơn:', notifErr.message);
+            }
+
+            return res.status(200).json({ message: "Đã gửi yêu cầu hủy phép. Vui lòng chờ Admin duyệt.", data: leave });
+        } else {
+            return res.status(400).json({ message: "Không thể hủy đơn ở trạng thái hiện tại" });
+        }
+    } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+// 7. Admin tạo đơn nghỉ khẩn cấp (UC 2.3)
+const createEmergencyLeave = async (req, res) => {
+    try {
+        const { staffId, startDate, endDate, duration, leaveType, reason } = req.body;
+
+        if (!staffId || !startDate || !endDate || !reason) {
+            return res.status(400).json({ message: "Vui lòng nhập đủ thông tin" });
+        }
+
+        const emergencyLeave = new LeaveRequest({
+            staffId,
+            startDate,
+            endDate,
+            duration: duration || 'Cả ngày',
+            leaveType: leaveType || 'Việc riêng',
+            reason,
+            status: 'Đã duyệt', // Mặc định duyệt
+            approvedBy: req.user.id
+        });
+
+        await emergencyLeave.save();
+        await clearShiftsForLeave(staffId, startDate, endDate);
+        
+        res.status(201).json({ message: "Ghi nhận vắng mặt khẩn cấp thành công", data: emergencyLeave });
+    } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+// 8. Admin duyệt yêu cầu hủy phép (UC 2.3)
+const approveCancelLeave = async (req, res) => {
+    try {
+        const leave = await LeaveRequest.findByIdAndUpdate(
+            req.params.id,
+            { status: 'Đã hủy', approvedBy: req.user.id },
+            { new: true }
+        );
+        res.status(200).json({ message: "Đã xác nhận hủy đơn", data: leave });
+    } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
 module.exports = {
     getLeaveRequests,
     createLeaveRequest,
     createSystemLeave,
     approveLeave,
-    rejectLeave
+    rejectLeave,
+    cancelLeave,
+    createEmergencyLeave,
+    approveCancelLeave
 };

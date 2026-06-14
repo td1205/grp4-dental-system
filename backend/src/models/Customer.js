@@ -1,12 +1,24 @@
 const mongoose = require('mongoose');
-const User = require('./User');
 
 const customerSchema = new mongoose.Schema({
-  medicalHistory: { type: String, default: '' }
-  // Có thể thêm các trường đặc thù của khách hàng nếu cần
+    id: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
+    dateOfBirth: { type: Date },
+    phone: { type: String, required: true, unique: true },
+    cccd: { type: String, unique: true, sparse: true },
+    address: { type: String, default: '' },
+    email: { type: String, unique: true, sparse: true },
+    status: {
+        type: String,
+        enum: ['active', 'inactive', 'locked'],
+        default: 'active'
+    },
+    medicalHistory: { type: String, default: '' }
+}, {
+    collection: 'customers',
+    timestamps: true
 });
 
-const Customer = User.discriminator('Customer', customerSchema);
-
+const Customer = mongoose.model('Customer', customerSchema);
 
 module.exports = Customer;

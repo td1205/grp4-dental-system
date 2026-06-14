@@ -47,7 +47,7 @@ const getAllServices = async (req, res) => {
 const addServicePrice = async (req, res) => {
     try {
         const { serviceId } = req.params;
-        const { price, effectiveDate } = req.body;
+        const { price, insurancePrice, effectiveDate } = req.body;
 
         const lastPrice = await ServicePriceHistory.findOne({ serviceId }).sort({ version: -1 });
         const nextVersion = lastPrice ? lastPrice.version + 1 : 1;
@@ -55,7 +55,7 @@ const addServicePrice = async (req, res) => {
         const newPriceEntry = new ServicePriceHistory({
             serviceId: serviceId,
             regularPrice: price.toString(), // Phải là string
-            insurancePrice: '0',           // Bắt buộc vì Schema yêu cầu
+            insurancePrice: insurancePrice ? insurancePrice.toString() : '0',
             effectiveDate: new Date(effectiveDate), // Phải ép kiểu sang Date object
             version: nextVersion
         });

@@ -1,0 +1,122 @@
+.apt-card {
+  background: var(--staff-card, #fff);
+  border: 1px solid var(--staff-border, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.apt-card:hover {
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
+}
+
+.apt-card--inactive {
+  opacity: 0.55;
+}
+
+.apt-card--inactive:hover {
+  transform: none;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+/* Header */
+.apt-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.apt-card__patient {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.apt-card__avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--staff-primary, #2563eb);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.apt-card__name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--staff-heading, #1e293b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.apt-card__phone {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--staff-text-muted, #64748b);
+}
+
+/* Divider */
+.apt-card__divider {
+  height: 1px;
+  background: var(--staff-border, #e5e7eb);
+  margin-bottom: 0.85rem;
+}
+
+/* Info rows */
+.apt-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13.5px;
+  color: var(--staff-text, #334155);
+  margin-bottom: 1rem;
+}
+
+.apt-card__info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.apt-card__info-icon {
+  color: var(--staff-text-muted, #94a3b8);
+  flex-shrink: 0;
+  display: flex;
+}
+
+.apt-card__info-label {
+  color: var(--staff-text-muted, #64748b);
+  flex-shrink: 0;
+}
+
+.apt-card__info-row--danger {
+  color: #dc2626;
+  background: #fef2f2;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12.5px;
+}
+
+/* Actions */
+.apt-card__actions {
+  display: flex;
+  gap: 4px;
+  border-top: 1px solid var(--staff-border, #e5e7eb);
+  padding-top: 0.75rem;
+  margin-top: auto;
+}

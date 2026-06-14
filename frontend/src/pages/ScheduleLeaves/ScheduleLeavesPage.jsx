@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Icon } from '../../components/common/Icon/Icon'
 import { LeaveList } from './LeaveList'
 import { SystemHolidayManager } from './SystemHolidayManager'
+import './ScheduleLeavesPage.css'
 
 export function ScheduleLeavesPage() {
   const [activeTab, setActiveTab] = useState('leaves')
@@ -13,24 +14,20 @@ export function ScheduleLeavesPage() {
         <p>Duyệt và lập lịch nghỉ của Bác sĩ và Nhân viên phòng khám</p>
       </header>
 
-      {/* Thanh điều hướng Tab - Đã sửa màu sắc đúng ý bạn */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200 pb-1">
+      {/* Thanh điều hướng Tab */}
+      <div className="schedule-tabs">
         <button
           onClick={() => setActiveTab('leaves')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${activeTab === 'leaves'
-            ? 'bg-[#92a8d9] text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+          className={`schedule-tab ${activeTab === 'leaves' ? 'schedule-tab--active' : ''}`}
         >
+          <Icon name="calendar" size={15} />
           Lịch nghỉ phép
         </button>
         <button
           onClick={() => setActiveTab('holidays')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${activeTab === 'holidays'
-            ? 'bg-[#7599e6] text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+          className={`schedule-tab ${activeTab === 'holidays' ? 'schedule-tab--active' : ''}`}
         >
+          <Icon name="sun" size={15} />
           Lịch nghỉ toàn cơ sở
         </button>
       </div>

@@ -1,5 +1,5 @@
 import { FORM_ROLE_OPTIONS } from '../../../constants/staffForm';
-import { FormField } from './FormField';
+import { FormField } from '../../common/FormField/FormField';
 import { FormSection, FormSectionRow } from './FormSection';
 
 export function JobInfoSection({

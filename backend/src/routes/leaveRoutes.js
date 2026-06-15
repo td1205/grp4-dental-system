@@ -15,5 +15,7 @@ router.put('/:id/approve', restrictTo('Admin'), leaveRequestController.approveLe
 router.put('/:id/reject', restrictTo('Admin'), leaveRequestController.rejectLeave);
 router.put('/:id/cancel', leaveRequestController.cancelLeave);
 router.put('/:id/approve-cancel', restrictTo('Admin'), leaveRequestController.approveCancelLeave);
+router.put('/:id/reject-cancel', restrictTo('Admin'), leaveRequestController.rejectCancelLeave);
+router.post('/cycle-lock', restrictTo('Admin'), leaveRequestController.toggleCycleLock);
 
 module.exports = router;

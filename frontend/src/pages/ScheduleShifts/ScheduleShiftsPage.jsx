@@ -7,6 +7,7 @@ import {
 import { vi } from 'date-fns/locale';
 import './ScheduleShiftsPage.css';
 import { MiniCalendar } from '../../components/common/MiniCalendar/MiniCalendar.jsx';
+import { MacDropdown } from '../../components/common/MacDropdown/MacDropdown';
 import { ShiftFormModal } from '../../components/staff/form/shiftFromModal';
 import { CopyShiftModal } from '../../components/staff/form/CopyShiftModal';
 import apiClient from '../../services/apiClient';
@@ -88,16 +89,17 @@ export function ScheduleShiftsPage() {
             <Icon name="calendar" size={20} /> Lịch làm việc
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <select 
-              className="role-filter" 
-              value={roleFilter} 
-              onChange={e => setRoleFilter(e.target.value)}
-              style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#fff' }}
-            >
-              <option value="Tất cả">Tất cả vai trò</option>
-              <option value="Bác sĩ">Bác sĩ</option>
-              <option value="Lễ tân">Lễ tân</option>
-            </select>
+            <div style={{ width: '160px', position: 'relative', zIndex: 10 }}>
+              <MacDropdown
+                value={roleFilter}
+                onChange={val => setRoleFilter(val)}
+                options={[
+                  { value: "Tất cả", label: "Tất cả vai trò" },
+                  { value: "Bác sĩ", label: "Bác sĩ" },
+                  { value: "Lễ tân", label: "Lễ tân" }
+                ]}
+              />
+            </div>
             <button className="btn-add-shift" style={{ background: '#f1f5f9', color: '#374151', border: '1px solid #d1d5db' }} onClick={() => setCurrentWeek(w => subWeeks(w, 1))}>
               ← Tuần trước
             </button>

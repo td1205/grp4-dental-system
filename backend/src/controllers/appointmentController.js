@@ -2,6 +2,7 @@ const Appointment = require('../models/Appointment');
 const Customer = require('../models/Customer');
 const Service = require('../models/Service');
 const Shift = require('../models/Shift');
+const AuditLog = require('../models/AuditLog');
 const notificationService = require('../services/notificationService');
 
 // Helper tính phút
@@ -40,17 +41,22 @@ exports.createAppointment = async (req, res) => {
             });
             await customer.save();
         } else {
-            // EF2.1: Ràng buộc cảnh báo nợ hoặc lịch sử hủy lịch
+            // EF2.1 & EF2.2: Ràng buộc cảnh báo nợ hoặc lịch sử hủy lịch
             const cancelCount = await Appointment.countDocuments({ customerId: customer._id, status: 'Đã hủy' });
+            let warnings = [];
+            
             if (cancelCount >= 3) {
-                // Tùy theo frontend xử lý HTTP 403 cảnh báo hoặc vẫn cho qua nhưng báo alert
-                // Ở đây ta có thể return lỗi yêu cầu xác minh
-                if (!req.body.forceCreate) {
-                    return res.status(403).json({ 
-                        message: 'CẢNH BÁO EF2.1: Bệnh nhân này đã hủy lịch quá 3 lần. Vui lòng xác minh hoặc yêu cầu tạm ứng!', 
-                        requiresForce: true 
-                    });
-                }
+                warnings.push('Bệnh nhân này đã hủy lịch quá 3 lần.');
+            }
+            if (customer.hasDebt) {
+                warnings.push('Bệnh nhân này còn tồn đọng nợ viện phí.');
+            }
+            
+            if (warnings.length > 0 && !req.body.forceCreate) {
+                return res.status(403).json({ 
+                    message: `CẢNH BÁO: ${warnings.join(' ')}\n\nVui lòng xác minh thông tin hoặc thu phí tạm ứng trước khi đặt lịch!`, 
+                    requiresForce: true 
+                });
             }
         }
 
@@ -64,8 +70,7 @@ exports.createAppointment = async (req, res) => {
         const endTimeStr = toTimeString(endMins);
 
         // 3. Kiểm tra quỹ thời gian ca làm việc (UC2.2)
-        const targetDate = new Date(date);
-        targetDate.setHours(0, 0, 0, 0);
+        const targetDate = new Date(`${date}T00:00:00.000Z`);
 
         const doctorShift = await Shift.findOne({
             staffId: doctorId,
@@ -146,9 +151,8 @@ exports.getAppointments = async (req, res) => {
             query.doctorId = req.user._id;
             
             // Tự động lọc ngày hiện tại cho view Hàng đợi (có thể override qua params)
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            query.date = today;
+            const todayStr = new Date().toISOString().split('T')[0];
+            query.date = new Date(`${todayStr}T00:00:00.000Z`);
         }
 
         const appointments = await Appointment.find(query)
@@ -177,8 +181,7 @@ exports.rescheduleAppointment = async (req, res) => {
 
         const service = await Service.findById(appointment.serviceId);
         
-        const targetDate = new Date(date);
-        targetDate.setHours(0, 0, 0, 0);
+        const targetDate = new Date(`${date}T00:00:00.000Z`);
         const startTimeStr = time;
         const endMins = toMinutes(startTimeStr) + service.duration;
         const endTimeStr = toTimeString(endMins);
@@ -243,6 +246,19 @@ exports.rescheduleAppointment = async (req, res) => {
             await notificationService.sendPatientAppointmentNotification(populatedForNotif.customerId, populatedForNotif, 'reschedule');
         } catch (_) {}
 
+        // Ghi AuditLog dời lịch
+        try {
+            await AuditLog.create({
+                action: 'UPDATE',
+                collectionName: 'appointments',
+                documentId: appointment._id,
+                performedBy: req.user?.id || 'System',
+                newValues: { status: 'Đã dời', date: targetDate, time: startTimeStr, doctorId: newDoctorId }
+            });
+        } catch (logErr) {
+            console.error('Lỗi ghi AuditLog:', logErr);
+        }
+
         res.status(200).json({ message: 'Dời lịch thành công!', data: appointment });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -273,6 +289,19 @@ exports.cancelAppointment = async (req, res) => {
             await notificationService.sendPatientAppointmentNotification(populatedForNotif.customerId, populatedForNotif, 'cancel');
         } catch (_) {}
 
+        // Ghi AuditLog hủy lịch
+        try {
+            await AuditLog.create({
+                action: 'UPDATE',
+                collectionName: 'appointments',
+                documentId: appointment._id,
+                performedBy: req.user?.id || 'System',
+                newValues: { status: 'Đã hủy', cancelReason }
+            });
+        } catch (logErr) {
+            console.error('Lỗi ghi AuditLog:', logErr);
+        }
+
         res.status(200).json({ message: 'Hủy lịch thành công!' });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -289,8 +318,8 @@ exports.updateStatus = async (req, res) => {
         if (!currentApt) return res.status(404).json({ message: 'Không tìm thấy lịch hẹn' });
 
         // BR2.5.2: Khóa lịch sử quá khứ
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const todayStr = new Date().toISOString().split('T')[0];
+        const today = new Date(`${todayStr}T00:00:00.000Z`);
         if (new Date(currentApt.date) < today) {
             return res.status(403).json({ message: 'Không thể thay đổi trạng thái của lịch hẹn trong quá khứ!' });
         }

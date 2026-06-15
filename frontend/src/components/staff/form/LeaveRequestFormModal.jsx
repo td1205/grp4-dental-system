@@ -3,6 +3,7 @@ import { ModalWrapper } from '../../common/ModalWrapper/ModalWrapper';
 import apiClient from '../../../services/apiClient';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { MacDropdown } from '../../common/MacDropdown/MacDropdown';
 
 export function LeaveRequestFormModal({ isOpen, onClose, initialDate, onSuccess }) {
     const [formData, setFormData] = useState({
@@ -66,25 +67,27 @@ export function LeaveRequestFormModal({ isOpen, onClose, initialDate, onSuccess 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                     <div className="shift-form-field">
                         <label>Hình thức nghỉ <span className="required">*</span></label>
-                        <select 
+                        <MacDropdown 
                             value={formData.duration}
-                            onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                        >
-                            <option value="Cả ngày">Cả ngày</option>
-                            <option value="Sáng">Nửa ngày (Sáng)</option>
-                            <option value="Chiều">Nửa ngày (Chiều)</option>
-                        </select>
+                            onChange={(val) => setFormData({...formData, duration: val})}
+                            options={[
+                                { value: "Cả ngày", label: "Cả ngày" },
+                                { value: "Sáng", label: "Nửa ngày (Sáng)" },
+                                { value: "Chiều", label: "Nửa ngày (Chiều)" }
+                            ]}
+                        />
                     </div>
                     <div className="shift-form-field">
                         <label>Loại nghỉ <span className="required">*</span></label>
-                        <select 
+                        <MacDropdown 
                             value={formData.leaveType}
-                            onChange={(e) => setFormData({...formData, leaveType: e.target.value})}
-                        >
-                            <option value="Phép năm">Phép năm</option>
-                            <option value="Việc riêng">Việc riêng</option>
-                            <option value="Nghỉ bệnh">Nghỉ bệnh</option>
-                        </select>
+                            onChange={(val) => setFormData({...formData, leaveType: val})}
+                            options={[
+                                { value: "Phép năm", label: "Phép năm" },
+                                { value: "Việc riêng", label: "Việc riêng" },
+                                { value: "Nghỉ bệnh", label: "Nghỉ bệnh" }
+                            ]}
+                        />
                     </div>
                 </div>
 

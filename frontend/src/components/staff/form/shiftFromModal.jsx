@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import apiClient from '../../../services/apiClient';
 import { PrimaryButton } from '../../ui/Button/PrimaryButton';
+import { MacDropdown } from '../../common/MacDropdown/MacDropdown';
 import toast from 'react-hot-toast';
 
 const ROOMS = ['Phòng khám 1', 'Phòng khám 2', 'Phòng khám 3', 'Phòng phẫu thuật'];
@@ -74,14 +75,13 @@ export function ShiftFormModal({ isOpen, onClose, onSave, staffList, initialData
     };
 
     // Smart Filtering cho Bác sĩ
-    const filteredStaff = staffList?.filter(s => {
+    const staffWithConflictInfo = staffList?.filter(s => {
         const r = (s.role || '').toLowerCase();
         let matchesRole = true;
         if (formData.role === 'Bác sĩ') matchesRole = r.includes('bác sĩ') || r.includes('doctor');
         if (formData.role === 'Lễ tân') matchesRole = r.includes('lễ tân') || r.includes('receptionist');
-        
-        if (!matchesRole) return false;
-
+        return matchesRole;
+    }).map(s => {
         // Check trùng lịch trong existingShifts cùng ngày
         const hasConflict = existingShifts.some(shift => {
             if (initialData?._id && shift._id === initialData._id) return false; // ignore current shift if editing
@@ -91,15 +91,14 @@ export function ShiftFormModal({ isOpen, onClose, onSave, staffList, initialData
             }
             return false;
         });
-
-        return !hasConflict; // Chỉ trả về những người chưa bận
+        return { ...s, hasConflict };
     }) || [];
 
     // Danh sách Lễ tân khả dụng (cho dropdown Lễ tân trực cùng)
-    const availableReceptionists = staffList?.filter(s => {
+    const receptionistsWithConflictInfo = staffList?.filter(s => {
         const r = (s.role || '').toLowerCase();
-        if (!r.includes('lễ tân') && !r.includes('receptionist')) return false;
-
+        return r.includes('lễ tân') || r.includes('receptionist');
+    }).map(s => {
         const hasConflict = existingShifts.some(shift => {
             if (shift.date.split('T')[0] !== formData.date) return false;
             if (shift.staffId?._id === s._id || shift.staffId === s._id) {
@@ -107,8 +106,7 @@ export function ShiftFormModal({ isOpen, onClose, onSave, staffList, initialData
             }
             return false;
         });
-
-        return !hasConflict;
+        return { ...s, hasConflict };
     }) || [];
 
     // Smart Filtering cho Phòng khám
@@ -146,19 +144,30 @@ export function ShiftFormModal({ isOpen, onClose, onSave, staffList, initialData
                     <div className="shift-form-row">
                         <div className="shift-form-field">
                             <label>Vai trò <span className="required">*</span></label>
-                            <select value={formData.role} onChange={e => handleChange('role', e.target.value)}>
-                                <option value="Bác sĩ">Bác sĩ</option>
-                                <option value="Lễ tân">Lễ tân</option>
-                            </select>
+                            <MacDropdown 
+                                value={formData.role} 
+                                onChange={val => handleChange('role', val)}
+                                options={[
+                                    { value: "Bác sĩ", label: "Bác sĩ" },
+                                    { value: "Lễ tân", label: "Lễ tân" }
+                                ]}
+                            />
                         </div>
                         <div className="shift-form-field">
                             <label>{formData.role === 'Bác sĩ' ? 'Bác sĩ' : 'Nhân viên'} <span className="required">*</span></label>
-                            <select value={formData.staffId} onChange={e => handleChange('staffId', e.target.value)}>
-                                <option value="">-- Chọn nhân viên --</option>
-                                {filteredStaff.map(s => (
-                                    <option key={s._id} value={s._id}>{s.name}</option>
-                                ))}
-                            </select>
+                            <MacDropdown 
+                                value={formData.staffId} 
+                                onChange={val => handleChange('staffId', val)}
+                                placeholder="-- Chọn nhân viên --"
+                                options={[
+                                    { value: "", label: "-- Chọn nhân viên --" },
+                                    ...staffWithConflictInfo.map(s => ({
+                                        value: s._id, 
+                                        label: `${s.name} ${s.hasConflict ? '(Đã có lịch/Nghỉ phép)' : ''}`,
+                                        disabled: s.hasConflict
+                                    }))
+                                ]}
+                            />
                         </div>
                     </div>
 
@@ -171,12 +180,19 @@ export function ShiftFormModal({ isOpen, onClose, onSave, staffList, initialData
                                         Đã có Lễ tân <strong>{existingRecShift.staffId?.name || existingRecShift.staffId}</strong> trực trong khung giờ này (Hệ thống tự động chọn).
                                     </div>
                                 ) : (
-                                    <select value={formData.receptionistId} onChange={e => handleChange('receptionistId', e.target.value)} required>
-                                        <option value="">-- Chọn lễ tân để tạo ca trực cùng --</option>
-                                        {availableReceptionists.map(s => (
-                                            <option key={s._id} value={s._id}>{s.name}</option>
-                                        ))}
-                                    </select>
+                                    <MacDropdown 
+                                        value={formData.receptionistId} 
+                                        onChange={val => handleChange('receptionistId', val)}
+                                        placeholder="-- Chọn lễ tân để tạo ca trực cùng --"
+                                        options={[
+                                            { value: "", label: "-- Chọn lễ tân để tạo ca trực cùng --" },
+                                            ...receptionistsWithConflictInfo.map(s => ({
+                                                value: s._id,
+                                                label: `${s.name} ${s.hasConflict ? '(Đã có lịch/Nghỉ phép)' : ''}`,
+                                                disabled: s.hasConflict
+                                            }))
+                                        ]}
+                                    />
                                 )}
                             </div>
                         </div>
@@ -201,12 +217,14 @@ export function ShiftFormModal({ isOpen, onClose, onSave, staffList, initialData
                     {formData.role !== 'Lễ tân' && (
                         <div className="shift-form-field">
                             <label>Phòng khám <span className="required">*</span></label>
-                            <select value={formData.room} onChange={e => handleChange('room', e.target.value)}>
-                                {availableRooms.map(r => <option key={r} value={r}>{r}</option>)}
-                                {!availableRooms.includes(formData.room) && formData.room && (
-                                    <option value={formData.room} disabled>{formData.room} (Đang bận)</option>
-                                )}
-                            </select>
+                            <MacDropdown 
+                                value={formData.room} 
+                                onChange={val => handleChange('room', val)}
+                                options={[
+                                    ...availableRooms.map(r => ({ value: r, label: r })),
+                                    ...(!availableRooms.includes(formData.room) && formData.room ? [{ value: formData.room, label: `${formData.room} (Đang bận)`, disabled: true }] : [])
+                                ]}
+                            />
                         </div>
                     )}
 

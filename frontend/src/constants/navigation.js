@@ -23,8 +23,12 @@ const MENU_CONFIG = {
     },
     {
       id: 'salary', label: 'Lương', icon: 'salary', path: '/salary', children: [
-        { id: 'salary-config', label: 'Cấu hình lương & Hệ số ca bệnh', path: '/salary/config' },
-        { id: 'salary-payslips', label: 'Phiếu lương bác sĩ', path: '/salary/payslips' },
+        { id: 'salary-config', label: 'Thiết lập lương', path: '/salary/config' },
+        { id: 'shift-coefficients', label: 'Hệ số ca', path: '/salary/coefficients' },
+        { id: 'payslip', label: 'Lập phiếu lương', path: '/salary/payslip' },
+        { id: 'salary-payslips', label: 'DS Phiếu lương bác sĩ', path: '/salary/payslips' },
+        { id: 'yearly-report', label: 'Báo cáo thu nhập năm', path: '/salary/yearly-report' },
+        { id: 'fund-report', label: 'Báo cáo quỹ lương năm', path: '/salary/fund-report' },
       ]
     },
     { id: 'revenue', label: 'Thống kê doanh thu', icon: 'stats', path: '/revenue' },
@@ -49,7 +53,7 @@ const MENU_CONFIG = {
       id: 'income-report',
       label: 'Báo cáo thu nhập', 
       icon: 'salary',
-      path: '/doctor/payslips'
+      path: '/doctor/yearly-report'
     }
   ]
 };

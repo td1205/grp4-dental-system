@@ -73,11 +73,11 @@ exports.getShifts = async (req, res) => {
     try {
         let query = {};
         // Admin và Lễ tân được xem toàn bộ lịch trực (để quản lý / đặt lịch hẹn)
-        if (req.user.role !== 'Admin' && req.user.role !== 'Lễ tân') {
+        if (req.user.role !== 'Admin' && req.user.role !== 'Receptionist' && req.user.role !== 'Lễ tân') {
             query = { staffId: req.user._id };
         }
         const shifts = await Shift.find(query)
-            .populate('staffId', 'name role ma_nhan_vien')
+            .populate('staffId', 'name role ma_nhan_vien department specialty')
             .sort({ date: 1, startTime: 1 });
         res.status(200).json(shifts);
     } catch (err) {
@@ -269,28 +269,32 @@ exports.copyShifts = async (req, res) => {
         sEnd.setDate(sEnd.getDate() + 6);
         sEnd.setHours(23, 59, 59, 999);
 
-        // Kiểm tra xem tuần đích có trùng ngày nghỉ lễ nào không (EF2.3)
-        if (!ignoreHolidays) {
-            const holidays = await Holiday.find({
-                $or: [
-                    { startDate: { $lte: tEnd }, endDate: { $gte: tStart } }
-                ]
-            });
-            if (holidays.length > 0) {
-                return res.status(409).json({ 
-                    message: 'Tuần đích chứa ngày nghỉ lễ. Bạn có muốn bỏ qua các ngày nghỉ này và tiếp tục sao chép?', 
-                    hasHoliday: true 
-                });
-            }
-        }
-        
-        // Lấy tất cả ca trực trong tuần nguồn
+        // Lấy tất cả ca trực trong tuần nguồn để check
         const sourceShifts = await Shift.find({
             date: { $gte: sStart, $lte: sEnd }
         });
         
         if (sourceShifts.length === 0) {
             return res.status(400).json({ message: 'Tuần nguồn không có ca trực nào để sao chép.' });
+        }
+
+        // Kiểm tra xem tuần đích có trùng ngày nghỉ lễ nào không hoặc có ca trực nào chưa
+        if (!ignoreHolidays) {
+            const holidays = await Holiday.find({
+                $or: [
+                    { startDate: { $lte: tEnd }, endDate: { $gte: tStart } }
+                ]
+            });
+            const existingTargetShifts = await Shift.find({
+                date: { $gte: tStart, $lte: tEnd }
+            });
+            
+            if (holidays.length > 0 || existingTargetShifts.length > 0) {
+                return res.status(409).json({ 
+                    message: 'Tuần đích chứa ngày nghỉ lễ hoặc đã có ca trực tồn tại. Bạn có muốn bỏ qua các ngày này và tiếp tục sao chép?', 
+                    hasHoliday: true 
+                });
+            }
         }
         
         // Số ngày chênh lệch để dời ca

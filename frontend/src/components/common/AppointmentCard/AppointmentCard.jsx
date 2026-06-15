@@ -22,7 +22,16 @@ export function AppointmentCard({ appointment, onReschedule, onCancel, onUpdateS
   const isInactive = ['Đã hủy', 'Không đến', 'Hoàn thành'].includes(status);
   const variant = STATUS_VARIANT[status] || 'warning';
 
-  const dateStr = date ? format(new Date(date), 'dd/MM/yyyy') : '—';
+  const normalizedRole = (userRole || '').toLowerCase().trim();
+  const isReceptionistOrAdmin = ['receptionist', 'lễ tân', 'admin'].includes(normalizedRole);
+  const isDoctor = ['doctor', 'bác sĩ'].includes(normalizedRole);
+
+  const aptDateObj = date ? new Date(date) : null;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const today = new Date(`${todayStr}T00:00:00.000Z`);
+  const isPastDate = aptDateObj && aptDateObj < today;
+
+  const dateStr = date ? format(aptDateObj, 'dd/MM/yyyy') : '—';
 
   return (
     <div 
@@ -79,7 +88,7 @@ export function AppointmentCard({ appointment, onReschedule, onCancel, onUpdateS
       {!isInactive && isExpanded && (
         <div className="apt-card__actions" onClick={(e) => e.stopPropagation()}>
           {/* Nút tác vụ nhanh theo vai trò */}
-          {(userRole === 'Receptionist' || userRole === 'Lễ tân' || userRole === 'Admin') && ['Chờ tiếp đón', 'Chờ xác nhận', 'Đã dời', 'Đã xác nhận'].includes(status) && (
+          {isReceptionistOrAdmin && ['Chờ tiếp đón', 'Chờ xác nhận', 'Đã dời', 'Đã xác nhận'].includes(status) && (
             <button
               type="button"
               className="staff-action-btn"
@@ -90,7 +99,7 @@ export function AppointmentCard({ appointment, onReschedule, onCancel, onUpdateS
             </button>
           )}
 
-          {(userRole === 'Doctor' || userRole === 'Bác sĩ') && status === 'Chờ khám' && (
+          {isDoctor && status === 'Chờ khám' && (
             <button
               type="button"
               className="staff-action-btn"
@@ -101,7 +110,7 @@ export function AppointmentCard({ appointment, onReschedule, onCancel, onUpdateS
             </button>
           )}
 
-          {(userRole === 'Doctor' || userRole === 'Bác sĩ') && status === 'Đang khám' && (
+          {isDoctor && status === 'Đang khám' && (
             <button
               type="button"
               className="staff-action-btn"
@@ -112,8 +121,8 @@ export function AppointmentCard({ appointment, onReschedule, onCancel, onUpdateS
             </button>
           )}
 
-          {/* Dời lịch / Hủy lịch chỉ hiển thị cho Lễ tân/Admin đối với ca chưa khám */}
-          {(userRole === 'Receptionist' || userRole === 'Lễ tân' || userRole === 'Admin') && !['Chờ khám', 'Đang khám'].includes(status) && (
+          {/* Dời lịch / Hủy lịch chỉ hiển thị cho Lễ tân/Admin đối với ca chưa khám và ngày >= hôm nay */}
+          {isReceptionistOrAdmin && !isPastDate && !['Chờ khám', 'Đang khám'].includes(status) && (
             <>
               <button
                 type="button"

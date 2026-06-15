@@ -25,6 +25,8 @@ const userSchema = new mongoose.Schema({
     activationToken: { type: String },
     activationExpires: { type: Date },
     role: { type: String, required: true, enum: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.CUSTOMER] },
+    department: { type: String },
+    startDate: { type: Date },
     address: { type: String, required: true },
 }, baseOption);
 

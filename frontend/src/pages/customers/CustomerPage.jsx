@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../../components/layout/Sidebar';
+import { MacDropdown } from '../../components/common/MacDropdown/MacDropdown';
 
 export default function RevenueCustomerPage() {
   const mockUser = { name: "Lê Tân", role: "Lễ Tân", initials: "LT" };
@@ -241,10 +242,14 @@ export default function RevenueCustomerPage() {
 
                 <div style={{ marginBottom: '24px' }}>
                   <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Trạng thái tài khoản</label>
-                  <select value={editFormData.status} onChange={(e) => setEditFormData({...editFormData, status: e.target.value})} style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', outline: 'none', fontSize: '15px', cursor: 'pointer' }}>
-                    <option value="Đang hoạt động">Đang hoạt động</option>
-                    <option value="Tạm khóa">Tạm khóa</option>
-                  </select>
+                  <MacDropdown 
+                    value={editFormData.status} 
+                    onChange={(val) => setEditFormData({...editFormData, status: val})}
+                    options={[
+                      { label: "Đang hoạt động", value: "Đang hoạt động" },
+                      { label: "Tạm khóa", value: "Tạm khóa" }
+                    ]}
+                  />
                 </div>
 
                 {/* Các nút lệnh xử lý điều hướng đóng/gửi form */}

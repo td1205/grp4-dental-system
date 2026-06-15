@@ -3,7 +3,15 @@ import { PrimaryButton } from '../../ui/Button/PrimaryButton'
 import { LayoutGrid, List } from 'lucide-react';
 import './CustomerToolbar.css'
 
-export function CustomerToolbar({ searchQuery, onSearchChange, onAddClick, viewMode, onViewModeChange }) {
+import { MacDropdown } from '../../common/MacDropdown/MacDropdown.jsx'
+
+export function CustomerToolbar({ searchQuery, onSearchChange, onAddClick, viewMode, onViewModeChange, sort, onSortChange }) {
+  const SORT_OPTIONS = [
+    { value: 'createdAt:desc', label: 'Mới nhất' },
+    { value: 'createdAt:asc', label: 'Cũ nhất' },
+    { value: 'name:asc', label: 'Tên: A-Z' },
+    { value: 'name:desc', label: 'Tên: Z-A' },
+  ];
   return (
     <div className="customer-toolbar">
       <div className="customer-toolbar__search-wrap">
@@ -17,6 +25,14 @@ export function CustomerToolbar({ searchQuery, onSearchChange, onAddClick, viewM
           aria-label="Tìm kiếm khách hàng"
         />
       </div>
+
+      <MacDropdown
+        options={SORT_OPTIONS}
+        value={sort}
+        onChange={onSortChange}
+        ariaLabel="Sắp xếp khách hàng"
+      />
+
       <div className="view-toggle-group" style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden' }}>
         <button
           type="button"

@@ -30,12 +30,17 @@ export function LeaveList() {
         } catch (err) { toast.error('Lỗi khi duyệt') }
     }
 
-    const handleReject = async (id) => {
+    const handleReject = async (id, isCancelRequest = false) => {
         const reason = window.prompt('Vui lòng nhập lý do từ chối:');
         if (!reason) return; // Cancelled or empty
         try {
-            await apiClient.put(`/leaves/${id}/reject`, { rejectionReason: reason })
-            toast.success('Đã từ chối đơn')
+            if (isCancelRequest) {
+                await apiClient.put(`/leaves/${id}/reject-cancel`, { rejectionReason: reason })
+                toast.success('Đã từ chối hủy phép')
+            } else {
+                await apiClient.put(`/leaves/${id}/reject`, { rejectionReason: reason })
+                toast.success('Đã từ chối đơn')
+            }
             fetchLeaves()
         } catch (err) { toast.error('Lỗi khi từ chối') }
     }

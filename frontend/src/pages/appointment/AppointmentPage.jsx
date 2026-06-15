@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../../services/apiClient';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { ManagementPageLayout } from '../../components/layout/ManagementPageLayout/ManagementPageLayout';
 import { SummaryCards } from '../../components/common/SummaryCards/SummaryCards';
 import { Modal } from '../../components/common/Modal/Modal';
@@ -9,7 +10,8 @@ import { Icon } from '../../components/common/Icon/Icon';
 import { AppointmentCard } from '../../components/common/AppointmentCard/AppointmentCard';
 import { Button } from '../../components/ui/Button/Button';
 import { CalendarDays, Clock, XCircle, CheckCircle2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
+import { MacDropdown } from '../../components/common/MacDropdown/MacDropdown';
 import '../../styles/staff-management.css';
 
 export default function AppointmentPage() {
@@ -21,9 +23,12 @@ export default function AppointmentPage() {
   const [shifts, setShifts] = useState([]);
   const [customers, setCustomers] = useState([]);
 
-  const [searchPhone, setSearchPhone] = useState('');
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [doctorFilter, setDoctorFilter] = useState('');
+  const [dateFilterType, setDateFilterType] = useState('day');
+  const [dateFilterValue, setDateFilterValue] = useState(new Date().toISOString().split('T')[0]);
 
   // Modal state
   const [createOpen, setCreateOpen] = useState(false);
@@ -99,12 +104,26 @@ export default function AppointmentPage() {
   ));
 
   const filtered = appointments.filter(apt => {
-    const matchPhone = searchPhone
-      ? (apt.customerId?.phone || '').includes(searchPhone.trim())
+    let matchDate = true;
+    if (userRole !== 'Doctor' && userRole !== 'Bác sĩ' && dateFilterValue) {
+      const aptDate = new Date(apt.date);
+      const filterDate = new Date(dateFilterValue);
+      if (dateFilterType === 'day') {
+        matchDate = isSameDay(aptDate, filterDate);
+      } else if (dateFilterType === 'week') {
+        matchDate = isSameWeek(aptDate, filterDate, { weekStartsOn: 1 });
+      } else if (dateFilterType === 'month') {
+        matchDate = isSameMonth(aptDate, filterDate);
+      }
+    }
+
+    const term = searchTerm.trim().toLowerCase();
+    const matchSearch = term
+      ? ((apt.customerId?.phone || '').includes(term) || (apt.customerId?.name || '').toLowerCase().includes(term))
       : true;
     const matchStatus = statusFilter ? apt.status === statusFilter : true;
     const matchDoctor = doctorFilter ? apt.doctorId?.name === doctorFilter : true;
-    return matchPhone && matchStatus && matchDoctor;
+    return matchSearch && matchStatus && matchDoctor && matchDate;
   });
 
   // ---- Handlers ----
@@ -161,6 +180,9 @@ export default function AppointmentPage() {
       });
       toast.success(`Chuyển trạng thái thành ${newStatus}`);
       loadData();
+      if (newStatus === 'Đang khám') {
+        navigate(`/doctor/medical-record/${appointment.customerId._id}`);
+      }
     } catch (err) {
       const msg = err.response?.data?.message || 'Lỗi cập nhật trạng thái';
       toast.error(msg);
@@ -186,32 +208,56 @@ export default function AppointmentPage() {
         <input
           id="apt-search-phone"
           className="staff-toolbar__input"
-          placeholder="Tìm theo số điện thoại..."
-          value={searchPhone}
-          onChange={e => setSearchPhone(e.target.value)}
+          placeholder="Tìm tên hoặc SĐT..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
         />
       </div>
-      <select
-        id="apt-filter-status"
-        className="staff-toolbar__select"
-        value={statusFilter}
-        onChange={e => setStatusFilter(e.target.value)}
-      >
-        <option value="">Tất cả trạng thái</option>
-        {['Chờ tiếp đón', 'Chờ khám', 'Đang khám', 'Chờ xác nhận', 'Đã xác nhận', 'Đã dời', 'Đã hủy', 'Không đến', 'Hoàn thành'].map(s => (
-          <option key={s} value={s}>{s}</option>
-        ))}
-      </select>
       {(userRole !== 'Doctor' && userRole !== 'Bác sĩ') && (
-        <select
-          id="apt-filter-doctor"
-          className="staff-toolbar__select"
-          value={doctorFilter}
-          onChange={e => setDoctorFilter(e.target.value)}
-        >
-          <option value="">Tất cả bác sĩ</option>
-          {allDoctorNames.map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ width: '120px' }}>
+            <MacDropdown 
+              value={dateFilterType} 
+              onChange={val => setDateFilterType(val)}
+              options={[
+                { value: "day", label: "Theo ngày" },
+                { value: "week", label: "Theo tuần" },
+                { value: "month", label: "Theo tháng" }
+              ]}
+            />
+          </div>
+          <input 
+            type="date" 
+            className="staff-toolbar__input" 
+            style={{ width: '140px' }} 
+            value={dateFilterValue} 
+            onChange={e => setDateFilterValue(e.target.value)} 
+          />
+        </div>
+      )}
+      <div style={{ width: '180px' }}>
+        <MacDropdown
+          value={statusFilter}
+          onChange={val => setStatusFilter(val)}
+          placeholder="Tất cả trạng thái"
+          options={[
+            { value: "", label: "Tất cả trạng thái" },
+            ...['Chờ tiếp đón', 'Chờ khám', 'Đang khám', 'Chờ xác nhận', 'Đã xác nhận', 'Đã dời', 'Đã hủy', 'Không đến', 'Hoàn thành'].map(s => ({ value: s, label: s }))
+          ]}
+        />
+      </div>
+      {(userRole !== 'Doctor' && userRole !== 'Bác sĩ') && (
+        <div style={{ width: '180px' }}>
+          <MacDropdown
+            value={doctorFilter}
+            onChange={val => setDoctorFilter(val)}
+            placeholder="Tất cả bác sĩ"
+            options={[
+              { value: "", label: "Tất cả bác sĩ" },
+              ...allDoctorNames.map(n => ({ value: n, label: n }))
+            ]}
+          />
+        </div>
       )}
       <div style={{ flex: 1 }} />
       {(userRole !== 'Doctor' && userRole !== 'Bác sĩ') && (
@@ -239,6 +285,7 @@ export default function AppointmentPage() {
 
   return (
     <>
+      <Toaster />
       <ManagementPageLayout
         title={(userRole === 'Doctor' || userRole === 'Bác sĩ') ? "Hàng đợi khám bệnh" : "Quản lý lịch hẹn"}
         subtitle={(userRole === 'Doctor' || userRole === 'Bác sĩ') ? "Danh sách bệnh nhân trong ca trực hôm nay" : "Tiếp nhận, điều phối và quản lý vòng đời lịch hẹn khám bệnh"}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { staffApi } from '../../services/staffApi';
+import { MacDropdown } from '../common/MacDropdown/MacDropdown';
 import './ReassignDoctorModal.css';
 
 export function ReassignDoctorModal({ open, staff, appointments, reason, onClose, onSuccess }) {
@@ -14,10 +15,10 @@ export function ReassignDoctorModal({ open, staff, appointments, reason, onClose
       staffApi.getAll({ role: 'doctor', status: 'active', limit: 100 })
         .then(res => {
           // Lọc bỏ bác sĩ đang bị đình chỉ (chính là staff hiện tại)
-          const availableDoctors = (res.data || []).filter(d => d.id !== staff.id);
+          const availableDoctors = (res.data || []).filter(d => (d.id || d._id) !== (staff.id || staff._id));
           setDoctors(availableDoctors);
           if (availableDoctors.length > 0) {
-            setSelectedDoctorId(availableDoctors[0].id);
+            setSelectedDoctorId(availableDoctors[0].id || availableDoctors[0]._id);
           }
         })
         .catch(() => setError('Lỗi khi tải danh sách bác sĩ'));
@@ -37,7 +38,7 @@ export function ReassignDoctorModal({ open, staff, appointments, reason, onClose
     setError('');
     
     try {
-      await staffApi.reassignAndSuspend(staff.id, { newDoctorId: selectedDoctorId, reason });
+      await staffApi.reassignAndSuspend(staff.id || staff._id, { targetDoctorId: selectedDoctorId, reason });
       onSuccess();
     } catch (err) {
       setError(err.response?.data?.message || 'Có lỗi xảy ra khi bàn giao ca');
@@ -61,18 +62,18 @@ export function ReassignDoctorModal({ open, staff, appointments, reason, onClose
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Chọn Bác sĩ tiếp quản:</label>
-              <select 
+              <MacDropdown 
                 value={selectedDoctorId} 
-                onChange={(e) => setSelectedDoctorId(e.target.value)}
-                className="form-control"
-              >
-                <option value="">-- Chọn bác sĩ --</option>
-                {doctors?.map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.fullName} ({d.specialty || 'Đa khoa'})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedDoctorId(val)}
+                placeholder="-- Chọn bác sĩ --"
+                options={[
+                  { value: "", label: "-- Chọn bác sĩ --" },
+                  ...doctors?.map(d => ({
+                    value: d.id || d._id,
+                    label: `${d.fullName || d.name} (${d.specialty || 'Đa khoa'})`
+                  })) || []
+                ]}
+              />
             </div>
             
             {error && <div className="form-error">{error}</div>}

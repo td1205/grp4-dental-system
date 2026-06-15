@@ -15,6 +15,13 @@ const customerRoutes = require('./routes/customerRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 const revenueRoutes = require('./routes/revenueRoutes');
+const medicineRoutes = require('./routes/medicineRoutes');
+const medicalRecordRoutes = require('./routes/medicalRecordRoutes');
+const salaryRoutes = require('./routes/salaryRoutes');
+const shiftCoefficientRoutes = require('./routes/shiftCoefficientRoutes');
+const complexCaseRoutes = require('./routes/complexCaseRoutes');
+const payslipRoutes = require('./routes/payslipRoutes');
+const auditLogRoutes = require('./routes/auditLogRoutes');
 const Appointment = require('./models/Appointment');
 
 const app = express();
@@ -71,6 +78,13 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/revenue', revenueRoutes);
+app.use('/api/medicines', medicineRoutes);
+app.use('/api/medical-records', medicalRecordRoutes);
+app.use('/api/salary-config', salaryRoutes);
+app.use('/api/shift-coefficients', shiftCoefficientRoutes);
+app.use('/api/complex-cases', complexCaseRoutes);
+app.use('/api/payslips', payslipRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
 app.get('/api/services', async (req, res) => {
     const data = await Service.find();
     res.json({ data });

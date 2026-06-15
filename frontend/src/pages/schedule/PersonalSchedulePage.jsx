@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, format, isToday } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import toast, { Toaster } from 'react-hot-toast';
 import apiClient from '../../services/apiClient';
 import { ModalWrapper } from '../../components/common/ModalWrapper/ModalWrapper';
 import { LeaveRequestFormModal } from '../../components/staff/form/LeaveRequestFormModal';
@@ -66,6 +67,7 @@ export default function PersonalSchedulePage() {
 
     return (
         <div className="psp-container">
+            <Toaster />
             {/* Header */}
             <div className="psp-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
@@ -119,17 +121,36 @@ export default function PersonalSchedulePage() {
                                 {weekDays.map((day, i) => {
                                     const dayShifts = getShiftForSlot(day, slot);
                                     const hasShift = dayShifts.length > 0;
+                                    let positionClass = '';
+                                    if (hasShift) {
+                                        const s = dayShifts[0];
+                                        const slotHour = parseInt(slot.split(':')[0], 10);
+                                        const endHour = parseInt(s.endTime.split(':')[0], 10);
+                                        
+                                        const isStart = s.startTime === slot;
+                                        const isEnd = (slotHour + 1) === endHour;
+                                        
+                                        if (isStart && isEnd) positionClass = 'psp-cell--shift-single';
+                                        else if (isStart) positionClass = 'psp-cell--shift-start';
+                                        else if (isEnd) positionClass = 'psp-cell--shift-end';
+                                        else positionClass = 'psp-cell--shift-middle';
+                                    }
+
                                     return (
                                         <div
                                             key={`${slot}-${i}`}
-                                            className={`psp-cell ${hasShift ? 'psp-cell--has-shift' : ''} ${isToday(day) ? 'psp-cell--today-col' : ''}`}
+                                            className={`psp-cell ${hasShift ? 'psp-cell--has-shift' : ''} ${isToday(day) ? 'psp-cell--today-col' : ''} ${positionClass}`}
                                             onClick={() => handleCellClick(dayShifts, day)}
                                         >
                                             {hasShift && (
                                                 <div className="psp-shift-block">
-                                                    <span className="psp-shift-time">{dayShifts[0].startTime} – {dayShifts[0].endTime}</span>
-                                                    <span className="psp-shift-room">{dayShifts[0].room}</span>
-                                                    <span className="psp-shift-role">{dayShifts[0].role}</span>
+                                                    {positionClass !== 'psp-cell--shift-middle' && positionClass !== 'psp-cell--shift-end' && (
+                                                        <>
+                                                            <span className="psp-shift-time">{dayShifts[0].startTime} – {dayShifts[0].endTime}</span>
+                                                            <span className="psp-shift-room">{dayShifts[0].room}</span>
+                                                            <span className="psp-shift-role">{dayShifts[0].role}</span>
+                                                        </>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

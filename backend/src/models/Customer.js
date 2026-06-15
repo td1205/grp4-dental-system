@@ -13,7 +13,8 @@ const customerSchema = new mongoose.Schema({
         enum: ['active', 'inactive', 'locked'],
         default: 'active'
     },
-    medicalHistory: { type: String, default: '' }
+    medicalHistory: { type: String, default: '' },
+    hasDebt: { type: Boolean, default: false }
 }, {
     collection: 'customers',
     timestamps: true

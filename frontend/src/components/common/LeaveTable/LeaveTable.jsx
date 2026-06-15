@@ -57,14 +57,17 @@ export function LeaveTable({ leaves, role, onApprove, onReject, onCancel }) {
                                         </>
                                     )}
                                     {leave.status === 'Chờ hủy phép' && (
-                                        <button onClick={() => onApprove(leave._id, true)} className="staff-btn staff-btn--primary">
-                                            Xác nhận hủy
-                                        </button>
+                                        <>
+                                            <button onClick={() => onApprove(leave._id, true)} className="staff-btn staff-btn--primary" style={{ marginRight: '8px' }}>
+                                                Xác nhận hủy
+                                            </button>
+                                            <button onClick={() => onReject(leave._id, true)} className="staff-btn staff-btn--danger">Từ chối hủy</button>
+                                        </>
                                     )}
                                 </>
                             ) : (
                                 <>
-                                    {(leave.status === 'Chờ duyệt' || leave.status === 'Đã duyệt') && (
+                                    {(leave.status === 'Chờ duyệt' || leave.status === 'Đã duyệt') && new Date(new Date(leave.startDate).setHours(0,0,0,0)) > new Date(new Date().setHours(0,0,0,0)) && (
                                         <button 
                                             onClick={() => onCancel(leave._id)}
                                             className="customer-btn-cancel" 

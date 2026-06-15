@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import apiClient from '../../services/apiClient';
 import toast, { Toaster } from 'react-hot-toast';
 import { format } from 'date-fns';
+import { MacDropdown } from '../../components/common/MacDropdown/MacDropdown';
 import './RevenueStatisticsPage.css';
 
 export function RevenueStatisticsPage() {
@@ -14,42 +15,76 @@ export function RevenueStatisticsPage() {
   const [revenueType, setRevenueType] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
 
+  const [appliedFilters, setAppliedFilters] = useState({
+    startDate: '',
+    endDate: '',
+    department: '',
+    revenueType: '',
+    paymentMethod: ''
+  });
+
   const [chartData, setChartData] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchRevenueData = async () => {
-    try {
-      setIsLoading(true);
-      const params = new URLSearchParams();
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
-      if (department) params.append('department', department);
-      if (revenueType) params.append('revenueType', revenueType);
-      if (paymentMethod) params.append('paymentMethod', paymentMethod);
-
-      const response = await apiClient.get(`/revenue?${params.toString()}`);
-      setChartData(response.data.data.chartData);
-      setInvoices(response.data.data.invoices);
-    } catch (err) {
-      if (err.response?.status === 400) {
-        toast.error(err.response.data.message, { duration: 5000 });
-      } else {
-        console.error('Lỗi lấy thống kê:', err);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchRevenueData = async () => {
+      try {
+        setIsLoading(true);
+        const params = new URLSearchParams();
+        if (appliedFilters.startDate) params.append('startDate', appliedFilters.startDate);
+        if (appliedFilters.endDate) params.append('endDate', appliedFilters.endDate);
+        if (appliedFilters.department) params.append('department', appliedFilters.department);
+        if (appliedFilters.revenueType) params.append('revenueType', appliedFilters.revenueType);
+        if (appliedFilters.paymentMethod) params.append('paymentMethod', appliedFilters.paymentMethod);
+
+        const response = await apiClient.get(`/revenue?${params.toString()}`);
+        setChartData(response.data.data.chartData);
+        setInvoices(response.data.data.invoices);
+      } catch (err) {
+        if (err.response?.status === 400) {
+          toast.error(err.response.data.message, { duration: 5000 });
+        } else {
+          console.error('Lỗi lấy thống kê:', err);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchRevenueData();
     // BR3.4.2: Polling ngầm mỗi 15 giây
     const interval = setInterval(() => {
       fetchRevenueData();
     }, 15000);
     return () => clearInterval(interval);
-  }, [startDate, endDate, department, revenueType, paymentMethod]); // AF3.4.1: Tự động tải lại khi đổi bộ lọc
+  }, [appliedFilters]); // Fetch when appliedFilters change
+
+  const handleFilter = () => {
+    // Validate 1-year constraint
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      if (diffDays > 365) {
+        toast.error("Chu kỳ tra cứu quá lớn. Vui lòng giới hạn khoảng thời gian tối đa trong vòng 1 năm để tránh tình trạng quá tải hệ thống");
+        return;
+      }
+    }
+    
+    // Clear old data when refetching as per AF3.4.1 "Hệ thống lập tức giải phóng dữ liệu cũ"
+    setChartData([]);
+    setInvoices([]);
+    
+    setAppliedFilters({
+      startDate,
+      endDate,
+      department,
+      revenueType,
+      paymentMethod
+    });
+  };
 
   const handleExportExcel = () => {
     const exportData = invoices.map(item => ({
@@ -122,40 +157,56 @@ export function RevenueStatisticsPage() {
               className="revenue-input"
             />
           </div>
-          <div className="revenue-filter-group">
+          <div className="revenue-filter-group" style={{ minWidth: '150px' }}>
             <label>Khoa/Phòng</label>
-            <select className="revenue-input" value={department} onChange={(e) => setDepartment(e.target.value)}>
-                <option value="">Tất cả</option>
-                <option value="Phòng khám 1">Phòng khám 1</option>
-                <option value="Phòng khám 2">Phòng khám 2</option>
-                <option value="Phòng khám 3">Phòng khám 3</option>
-                <option value="Phòng phẫu thuật">Phòng phẫu thuật</option>
-                <option value="Quầy Lễ Tân">Quầy Lễ Tân</option>
-            </select>
+            <MacDropdown
+                value={department}
+                onChange={(val) => setDepartment(val)}
+                options={[
+                    { value: "", label: "Tất cả" },
+                    { value: "Phòng khám 1", label: "Phòng khám 1" },
+                    { value: "Phòng khám 2", label: "Phòng khám 2" },
+                    { value: "Phòng khám 3", label: "Phòng khám 3" },
+                    { value: "Phòng phẫu thuật", label: "Phòng phẫu thuật" }
+                ]}
+            />
           </div>
-          <div className="revenue-filter-group">
+          <div className="revenue-filter-group" style={{ minWidth: '150px' }}>
             <label>Loại doanh thu</label>
-            <select className="revenue-input" value={revenueType} onChange={(e) => setRevenueType(e.target.value)}>
-                <option value="">Tất cả</option>
-                <option value="Khám bệnh">Khám bệnh</option>
-                <option value="Thuốc">Thuốc</option>
-                <option value="Cận lâm sàng">Cận lâm sàng</option>
-            </select>
+            <MacDropdown
+                value={revenueType}
+                onChange={(val) => setRevenueType(val)}
+                options={[
+                    { value: "", label: "Tất cả" },
+                    { value: "Khám bệnh", label: "Khám bệnh" },
+                    { value: "Thuốc", label: "Thuốc" },
+                    { value: "Cận lâm sàng", label: "Cận lâm sàng" }
+                ]}
+            />
           </div>
-          <div className="revenue-filter-group">
+          <div className="revenue-filter-group" style={{ minWidth: '150px' }}>
             <label>Thanh toán</label>
-            <select className="revenue-input" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                <option value="">Tất cả</option>
-                <option value="Tiền mặt">Tiền mặt</option>
-                <option value="Chuyển khoản QR">Chuyển khoản QR</option>
-                <option value="Quẹt thẻ POS">Quẹt thẻ POS</option>
-            </select>
+            <MacDropdown
+                value={paymentMethod}
+                onChange={(val) => setPaymentMethod(val)}
+                options={[
+                    { value: "", label: "Tất cả" },
+                    { value: "Tiền mặt", label: "Tiền mặt" },
+                    { value: "Chuyển khoản QR", label: "Chuyển khoản QR" },
+                    { value: "Quẹt thẻ POS", label: "Quẹt thẻ POS" }
+                ]}
+            />
           </div>
         </div>
-        <button className="revenue-btn-export" onClick={handleExportExcel}>
-          <Download size={18} />
-          Xuất file Excel
-        </button>
+        <div className="revenue-toolbar-actions" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+          <button className="revenue-btn-filter" onClick={handleFilter} style={{ padding: '8px 16px', backgroundColor: 'var(--color-link-active, #2E5FA3)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}>
+            Xem báo cáo
+          </button>
+          <button className="revenue-btn-export" onClick={handleExportExcel}>
+            <Download size={18} />
+            Xuất file
+          </button>
+        </div>
       </div>
 
       {/* KPI Widgets */}
@@ -229,7 +280,7 @@ export function RevenueStatisticsPage() {
             <tbody>
               {invoices.length === 0 ? (
                 <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>Không có dữ liệu</td>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>Không tìm thấy dữ liệu phù hợp với điều kiện tra cứu</td>
                 </tr>
               ) : invoices.map((row, index) => (
                 <tr key={index}>

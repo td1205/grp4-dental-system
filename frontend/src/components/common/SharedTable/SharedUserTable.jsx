@@ -69,17 +69,27 @@ export function SharedUserTable({
                   <button
                     type="button"
                     onClick={() => onToggleLock(user)}
-                    title={user.status === 'locked' || user.status === 'suspended' ? 'Khôi phục' : 'Khóa'}
+                    title={user.status === 'locked' || user.status === 'suspended' ? 'Khôi phục' : 'Đổi trạng thái'}
                     style={{ background: 'none', border: 'none', color: user.status === 'locked' || user.status === 'suspended' ? '#10B981' : '#F59E0B', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
                     <Icon name={user.status === 'locked' || user.status === 'suspended' ? 'unlock' : 'lock'} size={16} /> 
-                    <span>{user.status === 'locked' || user.status === 'suspended' ? 'Mở khóa' : 'Khóa'}</span>
+                    <span>{user.status === 'locked' || user.status === 'suspended' ? 'Khôi phục' : 'Đổi trạng thái'}</span>
+                  </button>
+                )}
+                {onChangePassword && !isCustomer && (
+                  <button
+                    type="button"
+                    onClick={() => onChangePassword(user)}
+                    title="Khôi phục mật khẩu"
+                    style={{ background: 'none', border: 'none', color: '#3B82F6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Icon name="key" size={16} /> <span>Khôi phục mật khẩu</span>
                   </button>
                 )}
                 {onDelete && (
                   <button
                     type="button"
-                    onClick={() => onDelete(user.id || user._id)}
+                    onClick={() => onDelete(user)}
                     title="Xóa"
                     style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                   >

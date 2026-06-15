@@ -64,7 +64,14 @@ export function useStaffQuery() {
     pageSize: PAGE_SIZE,
     total,
     totalPages,
-    staffs: query.data?.data ?? [],
+    staffs: (query.data?.data ?? []).map(staff => {
+      let mappedStatus = 'active';
+      if (staff.trang_thai === 'Ngừng hoạt động') mappedStatus = 'inactive';
+      else if (staff.trang_thai === 'Đình chỉ') mappedStatus = 'locked';
+      else if (staff.trang_thai === 'Chờ kích hoạt') mappedStatus = 'pending';
+      else if (staff.trang_thai === 'Đang hoạt động') mappedStatus = 'active';
+      return { ...staff, status: mappedStatus };
+    }),
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

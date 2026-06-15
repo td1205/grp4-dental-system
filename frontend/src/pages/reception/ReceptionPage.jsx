@@ -4,6 +4,8 @@ import toast, { Toaster } from 'react-hot-toast';
 import { ManagementPageLayout } from '../../components/layout/ManagementPageLayout/ManagementPageLayout';
 import { format, isToday } from 'date-fns';
 import { Search, UserPlus, CheckCircle2, Clock, PlayCircle } from 'lucide-react';
+import { CustomerModal } from '../../components/customer/CustomerModal/CustomerModal';
+import { MacDropdown } from '../../components/common/MacDropdown/MacDropdown';
 import './ReceptionPage.css'; // Sẽ tạo file CSS nếu cần hoặc dùng inline style
 
 export default function ReceptionPage() {
@@ -13,6 +15,10 @@ export default function ReceptionPage() {
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isOpenModal, setIsOpenModal] = useState(false);
+  const [isOpenCustomerModal, setIsOpenCustomerModal] = useState(false);
+  const [searchPhone, setSearchPhone] = useState('');
+  const [selectedPatient, setSelectedPatient] = useState(null);
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -54,9 +60,52 @@ export default function ReceptionPage() {
         expectedOldStatus: currentStatus // EF2.5.2: Chống xung đột
       });
       toast.success(`Cập nhật trạng thái thành ${newStatus}`);
+      if (newStatus === 'Chờ khám') {
+        toast('Đã in phiếu khám tự động', { icon: '🖨️' });
+      }
       loadData();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lỗi cập nhật trạng thái');
+    }
+  };
+
+  const handleSearchPatient = async () => {
+    if (!searchPhone) return;
+    try {
+        const res = await apiClient.get('/customers?search=' + searchPhone);
+        const data = res.data?.data || [];
+        if (data.length > 0) {
+            setSelectedPatient(data[0]);
+            setFormData({...formData, name: data[0].name, phone: data[0].phone});
+            toast.success('Đã tìm thấy dữ liệu hồ sơ!');
+        } else {
+            toast.error('Không tìm thấy dữ liệu bệnh nhân. Vui lòng Tạo hồ sơ mới!');
+            setSelectedPatient(null);
+        }
+    } catch(err) {
+        toast.error('Lỗi tìm kiếm bệnh nhân');
+    }
+  };
+
+  const handleSaveCustomer = async (customerData) => {
+    try {
+        const payload = {
+           name: customerData.name,
+           dob: customerData.dob,
+           phone: customerData.phone,
+           cccd: customerData.cccd,
+           address: customerData.address,
+           email: customerData.email,
+           medicalHistory: customerData.medicalHistory
+        };
+        const res = await apiClient.post('/customers', payload);
+        toast.success('Thêm mới khách hàng thành công!');
+        const newCustomer = res.data.data;
+        setSelectedPatient(newCustomer);
+        setFormData({...formData, name: newCustomer.name, phone: newCustomer.phone});
+        setIsOpenCustomerModal(false);
+    } catch(err) {
+        toast.error(err.response?.data?.message || 'Lỗi tạo hồ sơ khách hàng');
     }
   };
 
@@ -82,14 +131,64 @@ export default function ReceptionPage() {
     // Tìm thời lượng dịch vụ
     const srv = services.find(s => s._id === serviceId);
     if (!srv) return [];
+    const duration = srv.duration;
 
     // Tìm ca trực của bác sĩ hôm nay
     const docShifts = shifts.filter(s => s.role === 'Bác sĩ' && format(new Date(s.date), 'yyyy-MM-dd') === todayStr && s.staffId?._id === doctorId);
     if (docShifts.length === 0) return [];
 
-    // Tạo danh sách các slot trống 15 phút (hoặc theo khung 8:00, 8:15...)
-    // Đơn giản hóa: Trả về danh sách tĩnh để demo, thực tế cần logic phức tạp check overlappingApt
-    return ['08:00', '09:00', '10:00', '14:00', '15:00', '16:00'];
+    // Lịch hẹn của bác sĩ này trong hôm nay
+    const docApts = appointments.filter(apt => 
+        format(new Date(apt.date), 'yyyy-MM-dd') === todayStr && 
+        apt.doctorId?._id === doctorId &&
+        ['Chờ tiếp đón', 'Chờ khám', 'Đang khám', 'Chờ xác nhận', 'Đã xác nhận', 'Đã dời'].includes(apt.status)
+    );
+
+    const availableSlots = [];
+    
+    const toMinutes = (timeStr) => {
+        if (!timeStr) return 0;
+        const [h, m] = timeStr.split(':').map(Number);
+        return h * 60 + m;
+    };
+    const toTimeString = (minutes) => {
+        const h = Math.floor(minutes / 60).toString().padStart(2, '0');
+        const m = (minutes % 60).toString().padStart(2, '0');
+        return `${h}:${m}`;
+    };
+
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
+    docShifts.forEach(shift => {
+        const shiftStart = toMinutes(shift.startTime);
+        const shiftEnd = toMinutes(shift.endTime);
+
+        // Chia slot mỗi 30 phút
+        for (let t = shiftStart; t + duration <= shiftEnd; t += 30) {
+            const slotStartMins = t;
+            const slotEndMins = t + duration;
+            
+            // BR3.1.2: Ẩn khung giờ đã qua so với thời gian thực
+            if (slotStartMins <= currentMins) continue;
+
+            // BR3.1.1: Tránh trùng lặp với lịch hẹn đã có
+            const isOverlap = docApts.some(apt => {
+                const aptStart = toMinutes(apt.time);
+                // Tìm duration của apt.serviceId
+                const aptSrv = services.find(s => s._id === apt.serviceId?._id);
+                const aptDuration = aptSrv ? aptSrv.duration : 30;
+                const aptEnd = aptStart + aptDuration;
+                return (slotStartMins < aptEnd && slotEndMins > aptStart);
+            });
+
+            if (!isOverlap) {
+                availableSlots.push(toTimeString(slotStartMins));
+            }
+        }
+    });
+
+    return [...new Set(availableSlots)].sort();
   };
   const availableTimeSlots = getAvailableTimeSlots(formData.doctorId, formData.serviceId);
 
@@ -108,9 +207,12 @@ export default function ReceptionPage() {
         forceCreate: force
       };
       await apiClient.post('/appointments', payload);
-      toast.success("Đăng ký khách vãng lai thành công!");
+      toast.success("Tạo lịch khám vãng lai thành công!");
+      toast('Đã in phiếu khám tự động', { icon: '🖨️' });
       setIsOpenModal(false);
       setFormData({ name: '', phone: '', serviceId: '', doctorId: '', time: '' });
+      setSelectedPatient(null);
+      setSearchPhone('');
       loadData();
     } catch (err) {
       const data = err.response?.data;
@@ -233,43 +335,79 @@ export default function ReceptionPage() {
             <h2 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '700', color: '#1e293b' }}>Đăng ký khách vãng lai (Check-in nhanh)</h2>
             
             <form onSubmit={handleSubmitWalkIn}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Họ và tên bệnh nhân *</label>
-                <input type="text" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
-              </div>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Số điện thoại *</label>
-                <input type="tel" required value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
-              </div>
-              <div style={{ marginBottom: '16px' }}>
+              {!selectedPatient ? (
+                <div style={{ marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Tra cứu Bệnh nhân vãng lai (SĐT hoặc CCCD)</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <input type="text" value={searchPhone} onChange={e => setSearchPhone(e.target.value)} placeholder="Nhập SĐT hoặc CCCD..." style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                        <button type="button" onClick={handleSearchPatient} style={{ padding: '0 16px', borderRadius: '8px', border: 'none', backgroundColor: '#e2e8f0', cursor: 'pointer', fontWeight: '600', color: '#475569' }}>Tìm kiếm</button>
+                    </div>
+                    <div style={{ marginTop: '12px' }}>
+                        <button type="button" onClick={() => setIsOpenCustomerModal(true)} style={{ color: '#1d4ed8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', textDecoration: 'underline', padding: 0 }}>+ Đăng ký hồ sơ mới</button>
+                    </div>
+                </div>
+              ) : (
+                <div style={{ marginBottom: '16px', backgroundColor: '#f0fdf4', padding: '12px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                    <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#166534' }}>Bệnh nhân: {selectedPatient.name}</p>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#15803d' }}>SĐT: {selectedPatient.phone} - CCCD: {selectedPatient.cccd || 'Trống'}</p>
+                    <button type="button" onClick={() => setSelectedPatient(null)} style={{ marginTop: '8px', fontSize: '12px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Đổi bệnh nhân</button>
+                </div>
+              )}
+
+              <div style={{ marginBottom: '16px', opacity: selectedPatient ? 1 : 0.5, pointerEvents: selectedPatient ? 'auto' : 'none' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Dịch vụ chỉ định *</label>
-                <select required value={formData.serviceId} onChange={(e) => setFormData({...formData, serviceId: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', outline: 'none' }}>
-                  <option value="">-- Chọn dịch vụ --</option>
-                  {services.map(s => <option key={s._id} value={s._id}>{s.name} ({s.duration} phút)</option>)}
-                </select>
+                <MacDropdown 
+                  value={formData.serviceId} 
+                  onChange={(val) => setFormData({...formData, serviceId: val})}
+                  placeholder="-- Chọn dịch vụ --"
+                  options={[
+                    { value: "", label: "-- Chọn dịch vụ --" },
+                    ...services.map(s => ({ value: s._id, label: `${s.name} (${s.duration} phút)` }))
+                  ]}
+                />
               </div>
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '16px', opacity: selectedPatient ? 1 : 0.5, pointerEvents: selectedPatient ? 'auto' : 'none' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Bác sĩ rảnh hôm nay *</label>
-                <select required value={formData.doctorId} onChange={(e) => setFormData({...formData, doctorId: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', outline: 'none' }}>
-                  <option value="">-- Chọn bác sĩ --</option>
-                  {availableDoctors.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
-                </select>
+                <MacDropdown 
+                  value={formData.doctorId} 
+                  onChange={(val) => setFormData({...formData, doctorId: val})}
+                  placeholder="-- Chọn bác sĩ --"
+                  options={[
+                    { value: "", label: "-- Chọn bác sĩ --" },
+                    ...availableDoctors.map(d => ({ value: d._id, label: d.name }))
+                  ]}
+                />
               </div>
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '24px', opacity: selectedPatient ? 1 : 0.5, pointerEvents: selectedPatient ? 'auto' : 'none' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Khung giờ trống *</label>
-                <select required value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', outline: 'none' }}>
-                  <option value="">-- Chọn khung giờ --</option>
-                  {availableTimeSlots.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <MacDropdown 
+                  value={formData.time} 
+                  onChange={(val) => setFormData({...formData, time: val})}
+                  placeholder="-- Chọn khung giờ --"
+                  options={[
+                    { value: "", label: "-- Chọn khung giờ --" },
+                    ...availableTimeSlots.map(t => ({ value: t, label: t })),
+                    ...(formData.doctorId && formData.serviceId && availableTimeSlots.length === 0 ? [{ value: "disabled", label: "Tất cả các khung giờ đã đầy (EF3.1.1)" }] : [])
+                  ]}
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setIsOpenModal(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer', fontWeight: '600', color: '#64748b' }}>Hủy bỏ</button>
-                <button type="submit" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#1d4ed8', color: '#fff', cursor: 'pointer', fontWeight: '600' }}>Tạo ca khám</button>
+                <button type="submit" disabled={!selectedPatient} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: selectedPatient ? '#1d4ed8' : '#cbd5e1', color: '#fff', cursor: 'pointer', fontWeight: '600' }}>Xếp lịch & In phiếu</button>
               </div>
             </form>
           </div>
         </div>
+      )}
+
+      {/* Tái sử dụng CustomerModal từ UC2 */}
+      {isOpenCustomerModal && (
+        <CustomerModal 
+          isOpen={isOpenCustomerModal} 
+          onClose={() => setIsOpenCustomerModal(false)} 
+          onSave={handleSaveCustomer} 
+        />
       )}
     </ManagementPageLayout>
   );

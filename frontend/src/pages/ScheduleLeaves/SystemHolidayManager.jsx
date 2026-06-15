@@ -4,6 +4,7 @@ import { Icon } from '../../components/common/Icon/Icon'
 import { Button } from '../../components/ui/Button/Button'
 import { PrimaryButton } from '../../components/ui/Button/PrimaryButton'
 import { ModalWrapper } from '../../components/common/ModalWrapper/ModalWrapper'
+import { MacDropdown } from '../../components/common/MacDropdown/MacDropdown'
 import { Badge } from '../../components/common/Badge/Badge'
 import toast, { Toaster } from 'react-hot-toast'
 import './SystemHolidayManager.css'
@@ -40,9 +41,13 @@ export function SystemHolidayManager() {
     const [form, setForm] = useState(emptyForm)
     const [formError, setFormError] = useState('')
 
+    // Action tracking
+    const [holidayAction, setHolidayAction] = useState('separate')
+    const [appointmentAction, setAppointmentAction] = useState('')
+    const [checkResult, setCheckResult] = useState(null)
+
     // Confirm dialog
-    const [confirmType, setConfirmType] = useState(null) // 'save-add' | 'save-edit' | 'delete'
-    const [conflictWarning, setConflictWarning] = useState(null) // for EF2.1.4
+    const [confirmType, setConfirmType] = useState(null) // 'check-merge' | 'check-appointments' | 'save-add' | 'save-edit' | 'delete'
 
     useEffect(() => { fetchHolidays() }, [])
 
@@ -61,7 +66,6 @@ export function SystemHolidayManager() {
     const handleOpenAdd = () => {
         setForm(emptyForm)
         setFormError('')
-        setConflictWarning(null)
         setMode('add')
     }
 
@@ -76,7 +80,6 @@ export function SystemHolidayManager() {
             description: h.description || ''
         })
         setFormError('')
-        setConflictWarning(null)
         setMode('edit')
     }
 
@@ -88,11 +91,12 @@ export function SystemHolidayManager() {
     const handleClose = () => {
         setMode(null)
         setSelected(null)
-        setConflictWarning(null)
         setConfirmType(null)
+        setCheckResult(null)
+        setHolidayAction('separate')
+        setAppointmentAction('')
     }
 
-    // Validate form on the frontend side
     const validateForm = () => {
         if (!form.name.trim()) return 'Vui lòng nhập tên ngày nghỉ.'
         if (!form.startDate) return 'Vui lòng chọn ngày bắt đầu.'
@@ -103,58 +107,70 @@ export function SystemHolidayManager() {
         return null
     }
 
-    // "Lưu" button in form — shows confirm dialog
-    const handleClickSave = () => {
+    // Step 1: When user clicks Save in the form modal
+    const handleClickSave = async () => {
         const err = validateForm()
         if (err) { setFormError(err); return }
         setFormError('')
-        setConfirmType(mode === 'add' ? 'save-add' : 'save-edit')
+
+        // Call check endpoint
+        try {
+            const checkRes = await apiClient.post(`${API}/check`, {
+                ...form,
+                ignoreHolidayId: mode === 'edit' ? selected._id : undefined
+            })
+            const data = checkRes.data
+            setCheckResult(data)
+            
+            if (mode === 'add' && data.overlapHoliday) {
+                setConfirmType('check-merge')
+            } else if (data.affectedAppointmentsCount > 0) {
+                setConfirmType('check-appointments')
+            } else {
+                setConfirmType(mode === 'add' ? 'save-add' : 'save-edit')
+            }
+        } catch (error) {
+            setFormError(error.response?.data?.message || 'Lỗi kiểm tra xung đột')
+        }
     }
 
-    // User pressed "Đồng ý" in confirm dialog
-    const handleConfirm = async () => {
-        if (confirmType === 'save-add') {
-            await doCreate()
-        } else if (confirmType === 'save-edit') {
-            await doUpdate()
-        } else if (confirmType === 'delete') {
-            await doDelete()
+    // Step 2: Merge resolution
+    const handleMergeDecision = (decision) => {
+        setHolidayAction(decision)
+        if (checkResult.affectedAppointmentsCount > 0) {
+            setConfirmType('check-appointments')
+        } else {
+            setConfirmType('save-add')
         }
+    }
+
+    // Step 3: Appointment resolution
+    const handleAppointmentDecision = (decision) => {
+        setAppointmentAction(decision)
+        setConfirmType(mode === 'add' ? 'save-add' : 'save-edit')
     }
 
     const doCreate = async () => {
         try {
-            const res = await apiClient.post(API, form)
+            await apiClient.post(API, { ...form, holidayAction, appointmentAction })
             fetchHolidays()
-            if (res.data.hasConflict) {
-                toast.success(`Thiết lập thành công. ${res.data.affectedAppointments} lịch khám đã được chuyển sang Chờ điều phối.`, { duration: 5000 })
-            } else {
-                toast.success('Thiết lập thành công')
-            }
+            toast.success('Thiết lập thành công')
             handleClose()
         } catch (err) {
-            const msg = err.response?.data?.message || 'Lỗi khi thiết lập lịch nghỉ'
-            if (err.response?.status === 409) {
-                // EF2.1.4 — overlap warning
-                setConflictWarning({ msg, conflict: err.response.data.conflictWith })
-                setConfirmType(null)
-            } else {
-                setFormError(msg)
-                setConfirmType(null)
-            }
+            toast.error(err.response?.data?.message || 'Lỗi khi thiết lập lịch nghỉ')
+            handleClose()
         }
     }
 
     const doUpdate = async () => {
         try {
-            await apiClient.put(`${API}/${selected._id}`, form)
+            await apiClient.put(`${API}/${selected._id}`, { ...form, appointmentAction })
             fetchHolidays()
             toast.success('Chỉnh sửa thành công')
             handleClose()
         } catch (err) {
-            const msg = err.response?.data?.message || 'Lỗi khi cập nhật lịch nghỉ'
-            setFormError(msg)
-            setConfirmType(null)
+            toast.error(err.response?.data?.message || 'Lỗi khi cập nhật lịch nghỉ')
+            handleClose()
         }
     }
 
@@ -176,13 +192,6 @@ export function SystemHolidayManager() {
     }
 
     const typeLabel = (h) => h.type === 'all' ? 'Toàn cơ sở' : `Chuyên khoa — ${h.department}`
-
-    // Modal title for confirm dialog
-    const confirmTitle = confirmType === 'save-add'
-        ? 'Thiết lập ngày nghỉ này?'
-        : confirmType === 'save-edit'
-        ? 'Chỉnh sửa ngày nghỉ này?'
-        : 'Xác nhận xoá ngày nghỉ này?'
 
     return (
         <div className="holiday-manager">
@@ -264,14 +273,6 @@ export function SystemHolidayManager() {
                         </p>
                     )}
 
-                    {/* Conflict EF2.1.4 warning */}
-                    {conflictWarning && (
-                        <div style={{ background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '6px', padding: '12px' }}>
-                            <p style={{ color: '#92400e', fontSize: '13px', margin: '0 0 8px 0', fontWeight: 600 }}>⚠ Cảnh báo xung đột lịch nghỉ</p>
-                            <p style={{ color: '#78350f', fontSize: '12px', margin: 0 }}>{conflictWarning.msg}</p>
-                        </div>
-                    )}
-
                     <div className="holiday-form__field">
                         <label>Tên ngày nghỉ <span style={{ color: '#ef4444' }}>*</span></label>
                         <input type="text" placeholder="VD: Tết Nguyên Đán 2025" value={form.name} onChange={e => handleFieldChange('name', e.target.value)} />
@@ -290,19 +291,28 @@ export function SystemHolidayManager() {
 
                     <div className="holiday-form__field">
                         <label>Phạm vi nghỉ <span style={{ color: '#ef4444' }}>*</span></label>
-                        <select value={form.type} onChange={e => handleFieldChange('type', e.target.value)}>
-                            <option value="all">Toàn cơ sở</option>
-                            <option value="department">Theo chuyên khoa</option>
-                        </select>
+                        <MacDropdown 
+                            value={form.type} 
+                            onChange={val => handleFieldChange('type', val)}
+                            options={[
+                                { value: "all", label: "Toàn cơ sở" },
+                                { value: "department", label: "Theo chuyên khoa" }
+                            ]}
+                        />
                     </div>
 
                     {form.type === 'department' && (
                         <div className="holiday-form__field">
                             <label>Chuyên khoa áp dụng <span style={{ color: '#ef4444' }}>*</span></label>
-                            <select value={form.department} onChange={e => handleFieldChange('department', e.target.value)}>
-                                <option value="">-- Chọn chuyên khoa --</option>
-                                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-                            </select>
+                            <MacDropdown 
+                                value={form.department} 
+                                onChange={val => handleFieldChange('department', val)}
+                                placeholder="-- Chọn chuyên khoa --"
+                                options={[
+                                    { value: "", label: "-- Chọn chuyên khoa --" },
+                                    ...DEPARTMENTS.map(d => ({ value: d, label: d }))
+                                ]}
+                            />
                         </div>
                     )}
 
@@ -352,25 +362,81 @@ export function SystemHolidayManager() {
                 )}
             </ModalWrapper>
 
-            {/* Confirm Dialog */}
+            {/* Confirm Dialog Delete */}
             <ModalWrapper
-                isOpen={!!confirmType}
+                isOpen={confirmType === 'delete'}
                 onClose={() => setConfirmType(null)}
-                title={confirmTitle}
+                title="Xác nhận xoá ngày nghỉ này?"
                 footer={
                     <>
                         <button className="customer-btn-cancel" onClick={() => setConfirmType(null)}>Hủy</button>
-                        <PrimaryButton onClick={handleConfirm}>Đồng ý</PrimaryButton>
+                        <PrimaryButton onClick={doDelete}>Đồng ý</PrimaryButton>
                     </>
                 }
             >
                 <p style={{ margin: 0, fontSize: '14px', color: '#374151' }}>
-                    {confirmType === 'delete'
-                        ? `Xác nhận xoá ngày nghỉ "${selected?.name}"? Thao tác này không thể hoàn tác.`
-                        : confirmType === 'save-add'
-                        ? `Xác nhận thiết lập ngày nghỉ "${form.name}" từ ${formatDate(form.startDate)} đến ${formatDate(form.endDate)}?`
-                        : `Xác nhận chỉnh sửa thông tin ngày nghỉ "${form.name}"?`
-                    }
+                    Xác nhận xoá ngày nghỉ "{selected?.name}"? Thao tác này không thể hoàn tác.
+                </p>
+            </ModalWrapper>
+
+            {/* Confirm Dialog Merge */}
+            <ModalWrapper
+                isOpen={confirmType === 'check-merge'}
+                onClose={() => setConfirmType(null)}
+                title="Cảnh báo xung đột lịch nghỉ"
+                footer={
+                    <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'flex-end' }}>
+                        <button className="customer-btn-cancel" onClick={() => setConfirmType(null)}>Hủy thao tác</button>
+                        <Button variant="secondary" onClick={() => handleMergeDecision('separate')}>Không gộp</Button>
+                        <PrimaryButton onClick={() => handleMergeDecision('merge')}>Đồng ý gộp</PrimaryButton>
+                    </div>
+                }
+            >
+                <div style={{ background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: '6px', padding: '12px' }}>
+                    <p style={{ color: '#92400e', fontSize: '13px', margin: '0 0 8px 0', fontWeight: 600 }}>Phát hiện lịch nghỉ giao thoa/liên tiếp</p>
+                    <p style={{ color: '#78350f', fontSize: '14px', margin: 0 }}>
+                        Khoảng thời gian bạn chọn trùng lặp/liên tiếp với lịch nghỉ <strong>"{checkResult?.overlapHoliday?.name}"</strong>. Bạn có muốn gộp chúng thành một chu kỳ nghỉ duy nhất không?
+                    </p>
+                </div>
+            </ModalWrapper>
+
+            {/* Confirm Dialog Appointments */}
+            <ModalWrapper
+                isOpen={confirmType === 'check-appointments'}
+                onClose={() => setConfirmType(null)}
+                title="Cảnh báo ảnh hưởng lịch khám"
+                footer={
+                    <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'flex-end' }}>
+                        <button className="customer-btn-cancel" onClick={() => setConfirmType(null)}>Hủy thiết lập</button>
+                        <Button variant="secondary" onClick={() => handleAppointmentDecision('reschedule')}>Dời lịch thủ công</Button>
+                        <PrimaryButton onClick={() => handleAppointmentDecision('cancel')}>Hủy toàn bộ lịch</PrimaryButton>
+                    </div>
+                }
+            >
+                <div style={{ background: '#fee2e2', border: '1px solid #ef4444', borderRadius: '6px', padding: '12px' }}>
+                    <p style={{ color: '#991b1b', fontSize: '13px', margin: '0 0 8px 0', fontWeight: 600 }}>Tồn tại lịch khám</p>
+                    <p style={{ color: '#7f1d1d', fontSize: '14px', margin: 0 }}>
+                        Đã có <strong>{checkResult?.affectedAppointmentsCount}</strong> bệnh nhân đặt lịch trong khoảng thời gian này. Vui lòng chọn hướng xử lý:
+                    </p>
+                </div>
+            </ModalWrapper>
+
+            {/* Confirm Dialog Final Save */}
+            <ModalWrapper
+                isOpen={confirmType === 'save-add' || confirmType === 'save-edit'}
+                onClose={() => setConfirmType(null)}
+                title={confirmType === 'save-add' ? "Xác nhận thiết lập" : "Xác nhận chỉnh sửa"}
+                footer={
+                    <>
+                        <button className="customer-btn-cancel" onClick={() => setConfirmType(null)}>Hủy</button>
+                        <PrimaryButton onClick={confirmType === 'save-add' ? doCreate : doUpdate}>Đồng ý</PrimaryButton>
+                    </>
+                }
+            >
+                <p style={{ margin: 0, fontSize: '14px', color: '#374151' }}>
+                    {confirmType === 'save-add'
+                        ? `Thiết lập ngày nghỉ "${form.name}" từ ${formatDate(form.startDate)} đến ${formatDate(form.endDate)}?`
+                        : `Lưu thay đổi ngày nghỉ "${form.name}"?`}
                 </p>
             </ModalWrapper>
 

@@ -13,6 +13,16 @@ const shiftSchema = new mongoose.Schema({
         enum: ['Đã xếp', 'Đã hủy', 'Đã hoàn thành'],
         default: 'Đã xếp'
     },
+    // UC4.3: Nhập hệ số ca bệnh phức tạp
+    totalPatientCoefficient: {
+        type: Number,
+        default: 0
+    },
+    coefficientStatus: {
+        type: String,
+        enum: ['Chưa duyệt', 'Đã duyệt', 'Đã chốt lương'],
+        default: 'Chưa duyệt'
+    },
     // Lưu vết người tạo/sửa để phục vụ công tác giám sát (audit log)
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });

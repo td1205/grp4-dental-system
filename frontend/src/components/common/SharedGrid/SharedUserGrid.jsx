@@ -65,17 +65,28 @@ export function SharedUserGrid({
               <button
                 type="button"
                 onClick={() => onToggleLock(user)}
-                title={user.status === 'locked' || user.status === 'suspended' ? 'Khôi phục' : 'Khóa'}
+                title={user.status === 'locked' || user.status === 'suspended' ? 'Khôi phục' : 'Đổi trạng thái'}
                 style={{ background: 'none', border: 'none', color: user.status === 'locked' || user.status === 'suspended' ? '#10B981' : '#F59E0B', cursor: 'pointer', fontSize: '0.875rem' }}
               >
-                {user.status === 'locked' || user.status === 'suspended' ? 'Mở khóa' : 'Khóa'}
+                {user.status === 'locked' || user.status === 'suspended' ? 'Khôi phục' : 'Đổi trạng thái'}
+              </button>
+            )}
+
+            {onChangePassword && !isCustomer && (
+              <button
+                type="button"
+                onClick={() => onChangePassword(user)}
+                title="Khôi phục mật khẩu"
+                style={{ background: 'none', border: 'none', color: '#3B82F6', cursor: 'pointer', fontSize: '0.875rem' }}
+              >
+                Khôi phục mật khẩu
               </button>
             )}
 
             {onDelete && (
               <button
                 type="button"
-                onClick={() => onDelete(user.id || user._id)}
+                onClick={() => onDelete(user)}
                 title="Xóa"
                 style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '0.875rem' }}
               >

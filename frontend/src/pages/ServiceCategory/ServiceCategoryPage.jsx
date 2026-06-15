@@ -98,6 +98,7 @@ export function ServiceCategoryPage() {
     return groups
   }, [filteredServices])
 
+
   const handleDeleteService = (id) => {
     const item = services.find(s => s.id === id)
     if (!item) return
@@ -166,6 +167,12 @@ export function ServiceCategoryPage() {
     e.preventDefault()
     if (!newServiceName.trim()) {
       setFormError('Vui lòng nhập tên dịch vụ')
+      return
+    }
+    
+    const durationNum = Number(newServiceDuration);
+    if (isNaN(durationNum) || durationNum <= 0 || !Number.isInteger(durationNum)) {
+      setFormError('Thời gian trung bình phải là số nguyên dương (phút)')
       return
     }
 

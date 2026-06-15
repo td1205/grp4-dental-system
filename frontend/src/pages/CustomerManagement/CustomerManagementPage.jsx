@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { PaginationBar } from '../../components/staff/PaginationBar'
 
 import { CustomerToolbar } from '../../components/customer/CustomerToolbar/CustomerToolbar'
 import { SharedUserGrid } from '../../components/common/SharedGrid/SharedUserGrid'
@@ -21,6 +22,11 @@ export function CustomerManagementPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isError, setIsError] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [sort, setSort] = useState('createdAt:desc')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const limit = 20;
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState(null)
@@ -44,8 +50,11 @@ export function CustomerManagementPage() {
     setIsLoading(true)
     setIsError(false)
     try {
-      const res = await customerApi.getAll({ search: searchQuery });
+      const res = await customerApi.getAll({ search: searchQuery, sort, page, limit });
       setCustomers(res.data || [])
+      const totalItems = res.total || 0;
+      setTotal(totalItems);
+      setTotalPages(Math.max(1, Math.ceil(totalItems / limit)));
     } catch (err) {
       console.error(err)
       setIsError(true)
@@ -55,8 +64,12 @@ export function CustomerManagementPage() {
   }
 
   useEffect(() => {
+    setPage(1)
+  }, [searchQuery, sort])
+
+  useEffect(() => {
     fetchCustomers()
-  }, [searchQuery])
+  }, [searchQuery, sort, page])
 
   const addToast = (message, type = 'success') => {
     const id = Date.now()
@@ -119,16 +132,18 @@ export function CustomerManagementPage() {
       fetchCustomers()
     } catch (err) {
       if (err.response?.status === 409) {
-        addToast('Không thể lưu: Số CCCD hoặc Số điện thoại đã được đăng ký trên hệ thống', 'error')
+        const errorMsg = err.response?.data?.message || 'Không thể lưu: Số CCCD hoặc Số điện thoại đã được đăng ký';
+        addToast(errorMsg, 'error')
       } else {
-        addToast('Có lỗi xảy ra khi lưu thông tin.', 'error')
+        const errorMsg = err.response?.data?.message || 'Có lỗi xảy ra khi lưu thông tin.';
+        addToast(errorMsg, 'error')
       }
     }
   }
 
-  const handleDeleteCustomer = (id) => {
-    const patient = customers.find((c) => c._id === id)
+  const handleDeleteCustomer = (patient) => {
     if (!patient) return
+    const id = patient._id || patient.id;
 
     setConfirmModalConfig({
       title: 'Xác nhận xóa',
@@ -158,13 +173,15 @@ export function CustomerManagementPage() {
       onAddClick={handleOpenAddModal}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      sort={sort}
+      onSortChange={setSort}
     />
   );
 
   const summaryItems = [
     {
       title: 'Tổng số khách hàng',
-      value: customers.length,
+      value: total,
       icon: <Users size={24} />,
       color: 'var(--color-link-active)'
     },
@@ -248,6 +265,15 @@ export function CustomerManagementPage() {
               )
             })()}
           </>
+        )}
+
+        {!isError && !isLoading && (
+          <PaginationBar
+            total={total}
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         )}
       </ManagementPageLayout>
 

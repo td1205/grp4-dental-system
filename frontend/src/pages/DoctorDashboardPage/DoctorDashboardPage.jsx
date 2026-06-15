@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import apiClient from '../../services/apiClient';
+import toast from 'react-hot-toast';
 import './DoctorDashboardPage.css';
 
 export const DoctorDashboardPage = () => {
@@ -7,22 +9,43 @@ export const DoctorDashboardPage = () => {
     const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [user, setUser] = useState(null);
 
-    // Sử dụng Mock Data thay cho API thật đang bị lỗi
+    // Lấy thông tin user hiện tại (Bác sĩ) và danh sách lịch hẹn
     useEffect(() => {
-        const mockPatients = [
-            { id: 1, stt: '01', ma_bn: 'BN260601', name: 'Nguyễn Văn A', time: '08:00', service: 'Khám tổng quát', status: 'Đang khám' },
-            { id: 2, stt: '02', ma_bn: 'BN260602', name: 'Trần Thị B', time: '08:30', service: 'Nhổ răng khôn', status: 'Chờ khám' },
-            { id: 3, stt: '03', ma_bn: 'BN260603', name: 'Lê Văn C', time: '09:00', service: 'Tẩy trắng răng', status: 'Chờ tiếp đón' },
-            { id: 4, stt: '04', ma_bn: 'BN260604', name: 'Phạm Thị D', time: '07:30', service: 'Hàn răng', status: 'Đã hoàn thành' }
-        ];
+        const fetchData = async () => {
+            try {
+                // Get current user info from localStorage
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    setUser(JSON.parse(userStr));
+                }
 
-        // Giả lập thời gian tải dữ liệu (0.5 giây) để UI mượt mà hơn
-        setTimeout(() => {
-            setPatients(mockPatients);
-            setLoading(false);
-            setError(null);
-        }, 500);
+                // Fetch appointments for today
+                const res = await apiClient.get('/appointments');
+                const apts = res.data.data || [];
+                
+                // Format data for the UI
+                const formattedPatients = apts.map((apt, index) => ({
+                    id: apt._id,
+                    stt: (index + 1).toString().padStart(2, '0'),
+                    ma_bn: apt.customerId?.id || 'Không rõ',
+                    name: apt.customerId?.name || 'Bệnh nhân',
+                    time: apt.time,
+                    service: apt.serviceId?.name || 'Khám bệnh',
+                    status: apt.status
+                }));
+                
+                setPatients(formattedPatients);
+            } catch (err) {
+                setError('Không thể tải dữ liệu hàng đợi. Vui lòng thử lại sau.');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
     }, []);
 
     const getStatusColor = (status) => {
@@ -78,9 +101,17 @@ export const DoctorDashboardPage = () => {
                                             <span className={`status-badge ${getStatusColor(p.status)}`}>{p.status}</span>
                                             <button
                                                 className="btn-exam"
-                                                // Chuyển hướng sang trang Khám bệnh kèm mã bệnh nhân
-                                                onClick={() => navigate(`/doctor/medical-record/${p.ma_bn}`)}
-                                                disabled={p.status === 'Đã hoàn thành'}
+                                                onClick={async () => {
+                                                    try {
+                                                        if (p.status !== 'Đang khám') {
+                                                            await apiClient.put(`/appointments/${p.id}/status`, { status: 'Đang khám' });
+                                                        }
+                                                        navigate(`/doctor/medical-record/${p.id}`);
+                                                    } catch (err) {
+                                                        toast.error('Không thể chuyển trạng thái Đang khám!');
+                                                    }
+                                                }}
+                                                disabled={p.status === 'Đã hoàn thành' || p.status === 'Chờ tiếp đón' || p.status === 'Đã hủy'}
                                             >
                                                 {p.status === 'Đang khám' ? 'Tiếp tục khám' : 'Vào khám'}
                                             </button>
@@ -97,16 +128,12 @@ export const DoctorDashboardPage = () => {
                     <div className="doctor-widget">
                         <h4>Ca trực hiện tại</h4>
                         <div className="widget-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ color: '#64748b' }}>Phòng khám:</span>
-                            <strong>P.01 - Tổng quát</strong>
+                            <span style={{ color: '#64748b' }}>Bác sĩ:</span>
+                            <strong>{user?.name || 'Đang tải...'}</strong>
                         </div>
                         <div className="widget-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ color: '#64748b' }}>Khung giờ:</span>
-                            <strong>Ca Sáng (08:00 - 12:00)</strong>
-                        </div>
-                        <div className="widget-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: '#64748b' }}>Lễ tân hỗ trợ:</span>
-                            <strong>Nguyễn Thị Lễ Tân</strong>
+                            <span style={{ color: '#64748b' }}>Hàng đợi hiện tại:</span>
+                            <strong>{patients.filter(p => p.status === 'Chờ khám' || p.status === 'Đang khám').length} bệnh nhân</strong>
                         </div>
                     </div>
                     {/* Đã xóa hoàn toàn khối "Thao tác nhanh" ở vị trí này */}

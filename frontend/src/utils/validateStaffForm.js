@@ -1,6 +1,6 @@
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^(0|\+84)[0-9]{8,10}$/;
-const CCCD_RE = /^[0-9]{9,12}$/;
+const PHONE_RE = /^0[0-9]{9}$/;
+const CCCD_RE = /^[0-9]{12}$/;
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,50}$/;
 const PASSWORD_RE = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/;
 
@@ -15,15 +15,9 @@ const CREATE_REQUIRED = [
   'email',
   'role',
   'startDate',
-  'username',
-  'password',
-  'confirmPassword',
-  'status',
 ];
 
-const EDIT_REQUIRED = CREATE_REQUIRED.filter(
-  (f) => f !== 'password' && f !== 'confirmPassword',
-);
+const EDIT_REQUIRED = CREATE_REQUIRED;
 
 export function validateStaffField(field, values, mode = 'create') {
   const v = values[field]?.trim?.() ?? values[field] ?? '';
@@ -43,9 +37,9 @@ export function validateStaffField(field, values, mode = 'create') {
       if (!v) return 'Vui lòng chọn giới tính';
       return '';
 
-    case 'cccd': // Đã sửa
+    case 'cccd':
       if (!v) return 'Vui lòng nhập CCCD/CMND';
-      if (!CCCD_RE.test(v)) return 'CCCD/CMND phải gồm 9–12 chữ số';
+      if (!CCCD_RE.test(v)) return 'CCCD/CMND phải gồm đúng 12 chữ số';
       return '';
 
     case 'address':
@@ -55,7 +49,7 @@ export function validateStaffField(field, values, mode = 'create') {
     case 'phone': {
       if (!v) return 'Vui lòng nhập số điện thoại';
       const normalized = v.replace(/\s/g, '');
-      if (!PHONE_RE.test(normalized)) return 'Số điện thoại không hợp lệ';
+      if (!PHONE_RE.test(normalized)) return 'Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0';
       return '';
     }
 

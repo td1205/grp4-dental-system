@@ -2,6 +2,7 @@ const LeaveRequest = require('../models/LeaveRequest');
 const Shift = require('../models/Shift');
 const Admin = require('../models/Admin');
 const User = require('../models/User');
+const CycleLock = require('../models/CycleLock');
 const notificationService = require('../services/notificationService');
 
 const clearShiftsForLeave = async (staffId, startDate, endDate) => {
@@ -47,6 +48,14 @@ const createLeaveRequest = async (req, res) => {
         
         if (start < today) {
             return res.status(400).json({ message: "Ngày bắt đầu phải sau ngày hiện tại" });
+        }
+
+        // Kiểm tra xem chu kỳ tháng này đã bị chốt chưa
+        const month = start.getMonth() + 1;
+        const year = start.getFullYear();
+        const cycleLock = await CycleLock.findOne({ month, year });
+        if (cycleLock && cycleLock.isLocked) {
+            return res.status(400).json({ message: "Thời hạn đăng ký vắng mặt cho chu kỳ này đã kết thúc. Vui lòng liên hệ Quản trị viên để được hỗ trợ." });
         }
 
         const newLeave = new LeaveRequest({
@@ -202,6 +211,36 @@ const approveCancelLeave = async (req, res) => {
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
+// 9. Admin từ chối yêu cầu hủy phép (UC 2.3)
+const rejectCancelLeave = async (req, res) => {
+    try {
+        const { rejectionReason } = req.body;
+        if (!rejectionReason) return res.status(400).json({ message: "Cần lý do từ chối" });
+
+        const leave = await LeaveRequest.findByIdAndUpdate(
+            req.params.id,
+            { status: 'Đã duyệt', rejectionReason, approvedBy: req.user.id },
+            { new: true }
+        );
+        res.status(200).json({ message: "Đã từ chối hủy phép", data: leave });
+    } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+// 10. Admin toggle khóa chu kỳ (Để test EXC_001)
+const toggleCycleLock = async (req, res) => {
+    try {
+        const { month, year, isLocked } = req.body;
+        if (!month || !year) return res.status(400).json({ message: "Vui lòng truyền month và year" });
+
+        const lock = await CycleLock.findOneAndUpdate(
+            { month, year },
+            { isLocked, lockedBy: req.user.id, lockedAt: new Date() },
+            { new: true, upsert: true }
+        );
+        res.status(200).json({ message: isLocked ? `Đã khóa chu kỳ ${month}/${year}` : `Đã mở khóa chu kỳ ${month}/${year}`, data: lock });
+    } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
 module.exports = {
     getLeaveRequests,
     createLeaveRequest,
@@ -210,5 +249,7 @@ module.exports = {
     rejectLeave,
     cancelLeave,
     createEmergencyLeave,
-    approveCancelLeave
+    approveCancelLeave,
+    rejectCancelLeave,
+    toggleCycleLock
 };

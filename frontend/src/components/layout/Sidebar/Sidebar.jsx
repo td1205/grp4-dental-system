@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { Icon } from '../../common/Icon/Icon'
+import { AuditLogModal } from '../../common/AuditLogModal/AuditLogModal'
 import './Sidebar.css'
 
 const NAV_ICON_MAP = {
@@ -45,6 +46,7 @@ export function Sidebar({ navItems, activePath, user }) {
     return getInitialExpandedIds(navItems, activePath);
   })
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false)
 
   // Lưu state vào sessionStorage
   useEffect(() => {
@@ -172,7 +174,17 @@ export function Sidebar({ navItems, activePath, user }) {
           <span className="sidebar__user-avatar">{user?.initials || getInitials(user?.fullName || user?.name)}</span>
           {!isCollapsed && (
             <span className="sidebar__user-info">
-              <p className="sidebar__user-name">{user?.fullName || user?.name || 'Admin User'}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <p className="sidebar__user-name" style={{ flex: 1, minWidth: 0, margin: 0 }}>{user?.fullName || user?.name || 'Admin User'}</p>
+                <button 
+                  type="button" 
+                  onClick={() => setIsAuditModalOpen(true)}
+                  title="Lịch sử hoạt động"
+                  style={{ flexShrink: 0, background: 'rgba(255, 255, 255, 0.15)', borderRadius: '4px', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Icon name="clock" size={14} />
+                </button>
+              </div>
               <p className="sidebar__user-email">{user?.email || 'admin@dentalcare.vn'}</p>
             </span>
           )}
@@ -188,6 +200,14 @@ export function Sidebar({ navItems, activePath, user }) {
           {!isCollapsed && <span>Đăng xuất</span>}
         </button>
       </div>
+
+      {isAuditModalOpen && (
+        <AuditLogModal 
+          isOpen={isAuditModalOpen} 
+          onClose={() => setIsAuditModalOpen(false)} 
+          user={user} 
+        />
+      )}
     </aside>
   )
 }

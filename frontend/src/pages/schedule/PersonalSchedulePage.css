@@ -75,6 +75,12 @@
     cursor: default;
 }
 
+.psp-cell--has-shift {
+    cursor: pointer;
+    background: #eff6ff;
+    padding: 0 4px; /* remove vertical padding so blocks can stretch */
+}
+
 .psp-cell--header {
     background: #f8fafc;
     min-height: auto;
@@ -106,7 +112,9 @@
 
 .psp-cell--has-shift {
     cursor: pointer;
-    background: #eff6ff;
+    background: transparent;
+    padding: 0;
+    position: relative;
 }
 
 .psp-cell--has-shift:hover {
@@ -133,11 +141,53 @@
     background: #0077b6;
     color: #fff;
     border-radius: 6px;
-    padding: 6px 8px;
+    padding: 8px;
     font-size: 11px;
     display: flex;
     flex-direction: column;
     gap: 2px;
+    box-sizing: border-box;
+}
+
+.psp-cell--shift-single .psp-shift-block {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    z-index: 2;
+}
+
+.psp-cell--shift-start .psp-shift-block {
+    position: absolute;
+    top: 4px;
+    bottom: -1px;
+    left: 4px;
+    right: 4px;
+    z-index: 2;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.psp-cell--shift-middle .psp-shift-block {
+    position: absolute;
+    top: -1px;
+    bottom: -1px;
+    left: 4px;
+    right: 4px;
+    z-index: 2;
+    border-radius: 0;
+}
+
+.psp-cell--shift-end .psp-shift-block {
+    position: absolute;
+    top: -1px;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    z-index: 2;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
 }
 
 .psp-shift-time {

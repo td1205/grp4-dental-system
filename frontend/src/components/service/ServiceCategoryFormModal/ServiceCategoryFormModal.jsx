@@ -1,5 +1,6 @@
 import { ModalWrapper } from '../../common/ModalWrapper/ModalWrapper';
 import { PrimaryButton } from '../../ui/Button/PrimaryButton';
+import { MacDropdown } from '../../common/MacDropdown/MacDropdown';
 
 export function ServiceCategoryFormModal({
   isOpen,
@@ -77,31 +78,30 @@ export function ServiceCategoryFormModal({
 
           <div className="service-modal__field" style={{ marginBottom: '16px' }}>
             <label htmlFor="svc-category" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Loại dịch vụ <span className="required" style={{ color: '#dc2626' }}>*</span></label>
-            <select
-              id="svc-category"
+            <MacDropdown
               value={newServiceCategory}
-              onChange={(e) => setNewServiceCategory(e.target.value)}
-              disabled={isEditMode}
-            >
-              <option value="Khám bệnh">Khám bệnh</option>
-              <option value="Xét nghiệm">Xét nghiệm</option>
-              <option value="CĐHA">CĐHA</option>
-              <option value="Phẫu thuật">Phẫu thuật</option>
-            </select>
+              onChange={(val) => setNewServiceCategory(val)}
+              options={[
+                { value: "Khám bệnh", label: "Khám bệnh", disabled: isEditMode },
+                { value: "Xét nghiệm", label: "Xét nghiệm", disabled: isEditMode },
+                { value: "CĐHA", label: "CĐHA", disabled: isEditMode },
+                { value: "Phẫu thuật", label: "Phẫu thuật", disabled: isEditMode }
+              ]}
+            />
           </div>
 
           <div className="service-modal__field" style={{ marginBottom: '16px' }}>
             <label htmlFor="svc-department" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 500 }}>Khoa chuyên môn phụ trách <span className="required" style={{ color: '#dc2626' }}>*</span></label>
-            <select
-              id="svc-department"
+            <MacDropdown
               value={newServiceDepartment}
-              onChange={(e) => setNewServiceDepartment(e.target.value)}
-            >
-              <option value="Khoa Khám Bệnh">Khoa Khám Bệnh</option>
-              <option value="Khoa Phục Hình">Khoa Phục Hình</option>
-              <option value="Khoa Chẩn Đoán Hình Ảnh">Khoa Chẩn Đoán Hình Ảnh</option>
-              <option value="Khoa Xét Nghiệm">Khoa Xét Nghiệm</option>
-            </select>
+              onChange={(val) => setNewServiceDepartment(val)}
+              options={[
+                { value: "Khoa Khám Bệnh", label: "Khoa Khám Bệnh" },
+                { value: "Khoa Phục Hình", label: "Khoa Phục Hình" },
+                { value: "Khoa Chẩn Đoán Hình Ảnh", label: "Khoa Chẩn Đoán Hình Ảnh" },
+                { value: "Khoa Xét Nghiệm", label: "Khoa Xét Nghiệm" }
+              ]}
+            />
           </div>
 
           <div className="service-modal__field" style={{ marginBottom: '16px' }}>

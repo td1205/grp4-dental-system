@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ModalWrapper } from '../../common/ModalWrapper/ModalWrapper';
 import apiClient from '../../../services/apiClient';
 import toast from 'react-hot-toast';
+import { MacDropdown } from '../../common/MacDropdown/MacDropdown';
 
 export function EmergencyLeaveModal({ isOpen, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
@@ -58,17 +59,16 @@ export function EmergencyLeaveModal({ isOpen, onClose, onSuccess }) {
             <form onSubmit={handleSubmit}>
                 <div className="shift-form-field" style={{ marginBottom: '16px' }}>
                     <label>Nhân sự <span className="required">*</span></label>
-                    <select 
-                        required
+                    <MacDropdown 
                         value={formData.staffId}
-                        onChange={(e) => setFormData({...formData, staffId: e.target.value})}
-                    >
-                        {staffs.map(staff => (
-                            <option key={staff._id} value={staff._id}>
-                                {staff.name} - {staff.role}
-                            </option>
-                        ))}
-                    </select>
+                        onChange={(val) => setFormData({...formData, staffId: val})}
+                        options={[
+                            ...staffs.map(staff => ({
+                                value: staff._id,
+                                label: `${staff.name} - ${staff.role}`
+                            }))
+                        ]}
+                    />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
@@ -93,24 +93,26 @@ export function EmergencyLeaveModal({ isOpen, onClose, onSuccess }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                     <div className="shift-form-field">
                         <label>Hình thức <span className="required">*</span></label>
-                        <select 
+                        <MacDropdown 
                             value={formData.duration}
-                            onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                        >
-                            <option value="Cả ngày">Cả ngày</option>
-                            <option value="Sáng">Sáng</option>
-                            <option value="Chiều">Chiều</option>
-                        </select>
+                            onChange={(val) => setFormData({...formData, duration: val})}
+                            options={[
+                                { value: "Cả ngày", label: "Cả ngày" },
+                                { value: "Sáng", label: "Sáng" },
+                                { value: "Chiều", label: "Chiều" }
+                            ]}
+                        />
                     </div>
                     <div className="shift-form-field">
                         <label>Loại vắng mặt <span className="required">*</span></label>
-                        <select 
+                        <MacDropdown 
                             value={formData.leaveType}
-                            onChange={(e) => setFormData({...formData, leaveType: e.target.value})}
-                        >
-                            <option value="Việc riêng">Việc riêng</option>
-                            <option value="Nghỉ bệnh">Nghỉ bệnh</option>
-                        </select>
+                            onChange={(val) => setFormData({...formData, leaveType: val})}
+                            options={[
+                                { value: "Việc riêng", label: "Việc riêng" },
+                                { value: "Nghỉ bệnh", label: "Nghỉ bệnh" }
+                            ]}
+                        />
                     </div>
                 </div>
 

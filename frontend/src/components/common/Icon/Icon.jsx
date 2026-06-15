@@ -2,7 +2,8 @@ import React from 'react';
 import { 
   Users, BriefcaseMedical, CalendarDays, CircleDollarSign, BarChart3, 
   Search, Mail, Plus, ChevronDown, ChevronRight, ChevronUp, 
-  X, AlertCircle, Check, Pencil, Trash2, Eye, Key, Lock, Unlock, LogOut, Clock
+  X, AlertCircle, Check, Pencil, Trash2, Eye, Key, Lock, Unlock, LogOut, Clock,
+  Download, Save
 } from 'lucide-react';
 import './Icon.css';
 
@@ -34,6 +35,8 @@ const LUCIDE_MAP = {
   'log-out': LogOut,
   'schedule': Clock,
   'clock': Clock,
+  'download': Download,
+  'save': Save,
 };
 
 export function Icon({ name, className = '', size = 18, strokeWidth = 2, ...props }) {

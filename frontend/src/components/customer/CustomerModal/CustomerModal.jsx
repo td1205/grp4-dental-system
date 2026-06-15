@@ -3,6 +3,7 @@ import { Icon } from '../../common/Icon/Icon'
 import { formatDateForInput } from '../../../utils/staffFormMappers'
 import { PrimaryButton } from '../../ui/Button/PrimaryButton'
 import { SharedPersonForm } from '../../common/SharedForm/SharedPersonForm'
+import { MacDropdown } from '../../common/MacDropdown/MacDropdown'
 import './CustomerModal.css'
 
 export function CustomerModal({ isOpen, onClose, onSave, customer = null }) {
@@ -51,35 +52,51 @@ export function CustomerModal({ isOpen, onClose, onSave, customer = null }) {
 
   const validate = () => {
     const tempErrors = {}
-    if (!formData.name.trim()) tempErrors.name = 'Vui lòng nhập họ tên'
-    else if (formData.name.trim().length < 2) tempErrors.name = 'Họ tên phải từ 2 ký tự trở lên'
+    
+    // Họ tên
+    if (!formData.name?.trim()) tempErrors.name = 'Vui lòng nhập Họ tên'
 
-    if (!formData.dob) tempErrors.dob = 'Vui lòng chọn ngày sinh'
+    // Ngày sinh
+    if (!formData.dob) tempErrors.dob = 'Ngày sinh không hợp lệ'
     else {
       const dobDate = new Date(formData.dob)
-      if (dobDate > new Date()) tempErrors.dob = 'Ngày sinh không hợp lệ'
-    }
-
-    const phoneRegex = /^(0|\+84)[0-9]{8,10}$/
-    if (!formData.phone.trim()) tempErrors.phone = 'Vui lòng nhập số điện thoại'
-    else if (!phoneRegex.test(formData.phone.trim().replace(/\s/g, ''))) {
-      tempErrors.phone = 'Số điện thoại không hợp lệ (gồm 9-11 chữ số)'
-    }
-
-    const cccdRegex = /^[0-9]{9,12}$/
-    if (!formData.cccd.trim()) tempErrors.cccd = 'Vui lòng nhập số CCCD/CMND'
-    else if (!cccdRegex.test(formData.cccd.trim())) {
-      tempErrors.cccd = 'Số CCCD/CMND không hợp lệ (gồm 9-12 chữ số)'
-    }
-
-    if (!formData.address.trim()) tempErrors.address = 'Vui lòng nhập địa chỉ'
-
-    if (formData.email.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(formData.email.trim())) {
-        tempErrors.email = 'Địa chỉ email không hợp lệ'
+      if (isNaN(dobDate.getTime())) {
+        tempErrors.dob = 'Ngày sinh không hợp lệ'
+      } else if (dobDate > new Date()) {
+        tempErrors.dob = 'Ngày sinh không hợp lệ'
       }
     }
+
+    // SĐT
+    const phoneVal = formData.phone?.trim()?.replace(/\s/g, '') || ''
+    if (!phoneVal) {
+      tempErrors.phone = 'Vui lòng nhập SĐT'
+    } else if (!/^0/.test(phoneVal)) {
+      tempErrors.phone = 'SĐT phải bắt đầu bằng 0'
+    } else if (!/^0[0-9]{9}$/.test(phoneVal)) {
+      tempErrors.phone = 'SĐT không đúng định dạng'
+    }
+
+    // CCCD
+    const cccdVal = formData.cccd?.trim() || ''
+    if (!cccdVal) {
+      tempErrors.cccd = 'Vui lòng nhập CCCD'
+    } else if (/[^0-9]/.test(cccdVal)) {
+      tempErrors.cccd = 'CCCD chỉ chấp nhận số'
+    } else if (cccdVal.length !== 12) {
+      tempErrors.cccd = 'CCCD không đúng định dạng'
+    }
+
+    // Email (optional, but if provided must be valid according to previous code, wait test case says "Email sai định dạng -> Báo lỗi Email không đúng định dạng")
+    if (formData.email?.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.email.trim())) {
+        tempErrors.email = 'Email không đúng định dạng'
+      }
+    }
+
+    // Address (If required by test case, I'll keep it)
+    if (!formData.address?.trim()) tempErrors.address = 'Vui lòng nhập địa chỉ'
 
     setErrors(tempErrors)
     return Object.keys(tempErrors).length === 0
@@ -134,15 +151,15 @@ export function CustomerModal({ isOpen, onClose, onSave, customer = null }) {
             {isEdit && (
               <div className="customer-modal__field">
                 <label htmlFor="cust-status">trạng thái</label>
-                <select
-                  id="cust-status"
+                <MacDropdown
                   value={formData.status}
-                  onChange={(e) => handleChange('status', e.target.value)}
-                >
-                  <option value="active">Đang hoạt động</option>
-                  <option value="locked">Tạm khóa</option>
-                  <option value="inactive">Ngừng hoạt động</option>
-                </select>
+                  onChange={(val) => handleChange('status', val)}
+                  options={[
+                    { value: "active", label: "Đang hoạt động" },
+                    { value: "locked", label: "Tạm khóa" },
+                    { value: "inactive", label: "Ngừng hoạt động" }
+                  ]}
+                />
               </div>
             )}
           </div>

@@ -1,3 +1,5 @@
+import { MacDropdown } from '../MacDropdown/MacDropdown';
+
 /**
  * Controlled form field — label, control, validation message.
  * Pure presentational; state lives in the parent or useStaffForm.
@@ -18,6 +20,7 @@ export function FormField({
   rows = 3,
   name,
   autoComplete,
+  children,
 }) {
   const errorId = error ? `${id}-error` : undefined;
   const inputClassName = `staff-form-field__input${
@@ -41,13 +44,16 @@ export function FormField({
   let control;
   if (as === 'select') {
     control = (
-      <select {...controlProps}>
-        {options?.map((opt) => (
-          <option key={opt.value || '__empty'} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      <MacDropdown
+        options={options}
+        value={value}
+        onChange={(val) => {
+          if (onChange) {
+            onChange({ target: { name: name ?? id, value: val } });
+          }
+        }}
+        placeholder={placeholder}
+      />
     );
   } else if (as === 'textarea') {
     control = <textarea {...controlProps} rows={rows} />;
@@ -58,7 +64,7 @@ export function FormField({
   return (
     <div className={`staff-form-field${error ? ' staff-form-field--error' : ''}`}>
       <label className="staff-form-field__label" htmlFor={id}>
-        {label.toLowerCase()}
+        {label}
         {required && (
           <span className="staff-form-field__required" aria-hidden="true">
             {' '}
@@ -66,7 +72,7 @@ export function FormField({
           </span>
         )}
       </label>
-      {control}
+      {children || control}
       {error ? (
         <p id={errorId} className="staff-form-field__error" role="alert">
           {error}

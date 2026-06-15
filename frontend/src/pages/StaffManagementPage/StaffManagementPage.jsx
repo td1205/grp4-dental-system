@@ -35,6 +35,7 @@ export function StaffManagementPage() {
   
   const [toasts, setToasts] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [addStaffFormValues, setAddStaffFormValues] = useState({});
   const [viewMode, setViewMode] = useState('grid');
 
@@ -71,10 +72,11 @@ export function StaffManagementPage() {
     modalConfig,
     openLockModal,
     openDeleteModal,
+    openResetPasswordModal,
     closeModal,
     confirmModal,
     isModalLoading,
-  } = useStaffActions();
+  } = useStaffActions({ onSuccessAction: addToast });
 
   const handleExport = async () => {
     setExportMessage('');
@@ -94,7 +96,39 @@ export function StaffManagementPage() {
   };
 
   const handleAdd = () => {
+    setIsEditMode(false);
     setAddStaffFormValues({});
+    setIsAddModalOpen(true);
+  };
+
+  const handleEdit = (staff) => {
+    const roleMap = {
+      'Doctor': 'Doctor',
+      'Receptionist': 'Receptionist',
+      'Admin': 'Admin',
+      'doctor': 'Doctor',
+      'receptionist': 'Receptionist',
+      'admin': 'Admin'
+    };
+    
+    setAddStaffFormValues({
+      id: staff.id || staff._id,
+      name: staff.name || staff.fullName || '',
+      birthday: staff.birthday ? new Date(staff.birthday).toISOString().split('T')[0] : '',
+      phone: staff.phone || '',
+      cccd: staff.cccd || '',
+      gender: staff.gender || '',
+      email: staff.email || staff.personalEmail || '',
+      address: staff.address || '',
+      role: roleMap[staff.role] || staff.role,
+      department: staff.department || '',
+      startDate: staff.startDate ? new Date(staff.startDate).toISOString().split('T')[0] : '',
+      specialty: staff.specialty || '',
+      academicDegree: staff.academicDegree || '',
+      academicTitle: staff.academicTitle || '',
+      qualification: staff.qualification || '',
+    });
+    setIsEditMode(true);
     setIsAddModalOpen(true);
   };
 
@@ -194,7 +228,7 @@ export function StaffManagementPage() {
                 { key: 'name', label: 'HỌ TÊN', render: (s) => s.name || s.fullName },
                 { key: 'email', label: 'EMAIL', render: (s) => s.email || s.personalEmail },
                 { key: 'phone', label: 'SĐT' },
-                { key: 'role', label: 'VAI TRÒ', render: (s) => s.role === 'doctor' ? 'Bác sĩ' : s.role === 'receptionist' ? 'Lễ tân' : 'Quản trị viên' },
+                { key: 'role', label: 'VAI TRÒ', render: (s) => String(s.role).toLowerCase() === 'doctor' ? 'Bác sĩ' : String(s.role).toLowerCase() === 'receptionist' ? 'Lễ tân' : 'Quản trị viên' },
                 { key: 'specialty', label: 'CHUYÊN KHOA/BẰNG CẤP', render: (s) => s.specialty || '-' },
                 { key: 'status', label: 'TRẠNG THÁI', render: (s) => {
                     const lbl = s.status === 'active' ? 'Đang hoạt động' : s.status === 'locked' ? 'Tạm khóa' : 'Chờ kích hoạt';
@@ -209,7 +243,7 @@ export function StaffManagementPage() {
                       type="button"
                       onClick={async () => {
                         try {
-                          await staffApi.resendEmail(s.id);
+                          await staffApi.resendEmail(s.id || s._id);
                           addToast(`Đã gửi lại email kích hoạt thực tế đến hòm thư của nhân sự!`);
                         } catch (error) {
                           addToast(`Có lỗi xảy ra khi gửi email tới ${s.personalEmail || s.fullName}.`);
@@ -221,51 +255,33 @@ export function StaffManagementPage() {
                     </button>
                   )
                 }
-                if (s.status === 'active' || s.status === 'locked') {
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const confirmed = window.confirm(`Bạn có chắc chắn muốn gửi email khôi phục mật khẩu cho nhân viên ${s.fullName}?`);
-                        if (confirmed) {
-                          staffApi.resetPassword(s.id).then(() => {
-                            addToast(`Đã gửi email khôi phục mật khẩu thành công tới ${s.fullName}. Tài khoản đã được chuyển về trạng thái Chờ kích hoạt.`);
-                            refetch();
-                          }).catch(() => {
-                            addToast(`Có lỗi xảy ra khi gửi email khôi phục cho ${s.fullName}.`);
-                          });
-                        }
-                      }}
-                      style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <Icon name="key" size={16} /> Khôi phục mật khẩu
-                    </button>
-                  )
-                }
                 return null;
               };
 
+              const activeStaffs = staffs.filter(s => s.status !== 'inactive');
               return viewMode === 'grid' ? (
             <SharedUserGrid
-              users={staffs}
+              users={activeStaffs}
               isLoading={isLoading}
-              isEmpty={!isLoading && staffs.length === 0}
+              isEmpty={!isLoading && activeStaffs.length === 0}
               mappingConfig={staffMappingConfig}
-              onView={(s) => navigate(`/staff/${s.id}/edit`)}
-              onEdit={(s) => navigate(`/staff/${s.id}/edit`)}
+              onView={handleEdit}
+              onEdit={handleEdit}
               onToggleLock={openLockModal}
+              onChangePassword={openResetPasswordModal}
               onDelete={openDeleteModal}
               renderCustomActions={renderCustomActions}
             />
             ) : (
             <SharedUserTable
-              users={staffs}
+              users={activeStaffs}
               columns={staffColumns}
               isLoading={isLoading}
-              isEmpty={!isLoading && staffs.length === 0}
-              onView={(s) => navigate(`/staff/${s.id}/edit`)}
-              onEdit={(s) => navigate(`/staff/${s.id}/edit`)}
+              isEmpty={!isLoading && activeStaffs.length === 0}
+              onView={handleEdit}
+              onEdit={handleEdit}
               onToggleLock={openLockModal}
+              onChangePassword={openResetPasswordModal}
               onDelete={openDeleteModal}
               renderCustomActions={renderCustomActions}
             />
@@ -317,16 +333,22 @@ export function StaffManagementPage() {
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={async () => {
           try {
-            await staffApi.create(addStaffFormValues);
+            if (isEditMode) {
+              await staffApi.update(addStaffFormValues.id, addStaffFormValues);
+              addToast('🎉 Cập nhật thông tin nhân sự thành công!');
+            } else {
+              await staffApi.create(addStaffFormValues);
+              addToast('🎉 Thêm mới nhân sự thành công! Hệ thống đã tự động gửi email kèm liên kết hướng dẫn đổi mật khẩu kích hoạt đến hòm thư cá nhân của nhân sự.');
+            }
             setIsAddModalOpen(false);
             setAddStaffFormValues({});
-            addToast('🎉 Thêm mới nhân sự thành công! Hệ thống đã tự động gửi email kèm liên kết hướng dẫn đổi mật khẩu kích hoạt đến hòm thư cá nhân của nhân sự.');
             refetch();
           } catch (error) {
-            const message = error.response?.data?.message || 'Có lỗi xảy ra khi thêm nhân viên';
+            const message = error.response?.data?.message || (isEditMode ? 'Có lỗi xảy ra khi cập nhật nhân viên' : 'Có lỗi xảy ra khi thêm nhân viên');
             addToast(message);
           }
         }}
+        isEdit={isEditMode}
       />
 
       <div className="toast-stack-container">

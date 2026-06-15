@@ -16,8 +16,26 @@ const getAllCustomers = async (req, res) => {
                 ]
             };
         }
+        let sortOptions = { createdAt: -1 }; // Mặc định: Mới nhất
+        const { sort } = req.query;
+        if (sort === 'createdAt:asc' || sort === 'Cũ nhất') {
+            sortOptions = { createdAt: 1 };
+        } else if (sort === 'name:asc' || sort === 'Tên: A-Z') {
+            sortOptions = { name: 1 };
+        } else if (sort === 'name:desc' || sort === 'Tên: Z-A') {
+            sortOptions = { name: -1 };
+        }
 
-        const customers = await Customer.find(query).sort({ createdAt: -1 });
+        const pageNum = parseInt(req.query.page) || 1;
+        const limitNum = parseInt(req.query.limit) || 20;
+        const skip = (pageNum - 1) * limitNum;
+
+        const customers = await Customer.find(query)
+            .sort(sortOptions)
+            .skip(skip)
+            .limit(limitNum);
+
+        const total = await Customer.countDocuments(query);
 
         const mappedCustomers = customers.map(c => {
             const obj = c.toObject();
@@ -28,7 +46,9 @@ const getAllCustomers = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            count: mappedCustomers.length,
+            total: total,
+            page: pageNum,
+            limit: limitNum,
             data: mappedCustomers
         });
     } catch (error) {
@@ -189,9 +209,7 @@ const deleteCustomer = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Không tìm thấy KH' });
         }
         
-        customer.status = 'inactive';
-        await customer.save();
-
+        await Customer.updateOne({ _id: id }, { $set: { status: 'inactive' } });
         return res.status(200).json({ success: true, message: 'Đã khóa tài khoản khách hàng thành công' });
     } catch (error) {
         return res.status(500).json({ success: false, error: error.message });
@@ -207,8 +225,7 @@ const restoreCustomer = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Không tìm thấy KH' });
         }
 
-        customer.status = 'active';
-        await customer.save();
+        await Customer.updateOne({ _id: id }, { $set: { status: 'active' } });
 
         return res.status(200).json({ success: true, message: 'Khôi phục thành công' });
     } catch (error) {

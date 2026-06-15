@@ -51,8 +51,11 @@ export function MacDropdown({ options, value, onChange, placeholder = "Chọn...
             {options?.map(opt => (
               <li 
                 key={opt.value || 'all'}
-                className={`mac-dropdown__item ${opt.value === value ? 'mac-dropdown__item--selected' : ''}`}
-                onClick={() => handleSelect(opt.value)}
+                className={`mac-dropdown__item ${opt.value === value ? 'mac-dropdown__item--selected' : ''} ${opt.disabled ? 'mac-dropdown__item--disabled' : ''}`}
+                onClick={() => {
+                  if (!opt.disabled) handleSelect(opt.value);
+                }}
+                style={opt.disabled ? { opacity: 0.5, cursor: 'not-allowed', backgroundColor: '#f8fafc' } : {}}
               >
                 {opt.label}
               </li>

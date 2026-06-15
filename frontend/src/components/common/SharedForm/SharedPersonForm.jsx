@@ -18,14 +18,43 @@ export function SharedPersonForm({ formData, onFieldChange, errors = {}, isCusto
 
         <FormField label="Ngày sinh">
           <input
-            type="date"
+            type="text"
             className={`add-staff-form__input ${errors.birthday || errors.dob ? 'input-error' : ''}`}
             name="birthday"
-            value={formData.birthday || formData.dob || ''}
+            placeholder="dd/mm/yyyy"
+            value={
+              (formData.birthday && formData.birthday.includes('-'))
+                ? formData.birthday.split('-').reverse().join('/')
+                : (formData.dob && formData.dob.includes('-') ? formData.dob.split('-').reverse().join('/') : (formData.birthday || formData.dob || ''))
+            }
             onChange={(e) => {
-              onFieldChange('birthday', e.target.value)
-              if (isCustomer) onFieldChange('dob', e.target.value)
+              const inputType = e.nativeEvent.inputType;
+              let val = e.target.value.replace(/\D/g, '');
+              if (val.length > 8) val = val.slice(0, 8);
+              
+              let formatted = val;
+              if (val.length >= 5) {
+                formatted = `${val.slice(0, 2)}/${val.slice(2, 4)}/${val.slice(4)}`;
+              } else if (val.length >= 3) {
+                formatted = `${val.slice(0, 2)}/${val.slice(2)}`;
+                if (val.length === 4 && inputType !== 'deleteContentBackward') {
+                  formatted += '/';
+                }
+              } else if (val.length === 2 && inputType !== 'deleteContentBackward') {
+                formatted += '/';
+              }
+
+              if (formatted.length === 10) {
+                const [d, m, y] = formatted.split('/');
+                const isoDate = `${y}-${m}-${d}`;
+                onFieldChange('birthday', isoDate);
+                if (isCustomer) onFieldChange('dob', isoDate);
+              } else {
+                onFieldChange('birthday', formatted);
+                if (isCustomer) onFieldChange('dob', formatted);
+              }
             }}
+            maxLength={10}
           />
           {(errors.birthday || errors.dob) && <span className="error-message" style={{ color: 'red', fontSize: '0.8rem' }}>{errors.birthday || errors.dob}</span>}
         </FormField>
@@ -33,26 +62,24 @@ export function SharedPersonForm({ formData, onFieldChange, errors = {}, isCusto
         {!isCustomer && (
           <FormField label="Giới tính">
             <div className="add-staff-form__radio-group" style={{ display: 'flex', gap: '16px' }}>
-              <label>
-                <input
-                  type="radio"
-                  name="gender"
-                  value="Nam"
-                  checked={formData.gender === 'Nam'}
-                  onChange={(e) => onFieldChange('gender', e.target.value)}
-                />
-                Nam
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="gender"
-                  value="Nữ"
-                  checked={formData.gender === 'Nữ'}
-                  onChange={(e) => onFieldChange('gender', e.target.value)}
-                />
-                Nữ
-              </label>
+              {['Nam', 'Nữ', 'Khác'].map(option => (
+                <label key={option} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <input
+                    type="checkbox"
+                    name="gender"
+                    value={option}
+                    checked={formData.gender === option}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        onFieldChange('gender', option);
+                      } else {
+                        onFieldChange('gender', '');
+                      }
+                    }}
+                  />
+                  {option}
+                </label>
+              ))}
             </div>
           </FormField>
         )}

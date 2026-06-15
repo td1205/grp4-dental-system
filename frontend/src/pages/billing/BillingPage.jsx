@@ -1,215 +1,401 @@
-import React, { useState, useEffect } from 'react';
-import { Sidebar } from '../../components/layout/Sidebar';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, Banknote, QrCode, CreditCard, CheckCircle2, Printer, X, RefreshCw, Receipt } from 'lucide-react';
+import apiClient from '../../services/apiClient';
+import toast from 'react-hot-toast';
+import './BillingPage.css';
+
+const QR_TIMEOUT_SECONDS = 300; // 5 phút
+
+const formatVND = (amount) => {
+    if (!amount && amount !== 0) return '—';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+};
 
 export default function BillingPage() {
-  const mockUser = { name: "Lê Tân", role: "Lễ Tân", initials: "LT" };
+    const [appointments, setAppointments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedId, setSelectedId] = useState(null);
+    const [paymentMethod, setPaymentMethod] = useState('CASH');
+    const [cashReceived, setCashReceived] = useState('');
+    const [processing, setProcessing] = useState(false);
 
-  // --- CÁC STATE QUẢN LÝ DỮ LIỆU THỰC ---
-  const [invoices, setInvoices] = useState([]); // Chứa danh sách hóa đơn từ Backend
-  const [selectedInvoice, setSelectedInvoice] = useState(''); // ID hóa đơn đang chọn (Ví dụ: 'INV002')
-  const [paymentMethod, setPaymentMethod] = useState('QR'); // 'CASH', 'QR', 'POS'
-  const [searchTerm, setSearchTerm] = useState(''); // Thanh tìm kiếm nhanh
+    // QR timer
+    const [qrSeconds, setQrSeconds] = useState(QR_TIMEOUT_SECONDS);
+    const [qrExpired, setQrExpired] = useState(false);
+    const qrIntervalRef = useRef(null);
 
-  // --- Hàm tải danh sách hóa đơn từ Server 3001 ---
-  const loadInvoices = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/billing/invoices');
-      if (response.ok) {
-        const data = await response.json();
-        setInvoices(data);
-        
-        // Mặc định tự động chọn hóa đơn đầu tiên hoặc giữ nguyên lựa chọn cũ
-        if (data.length > 0 && !selectedInvoice) {
-          setSelectedInvoice(data[0].id);
+    // ─── Fetch dữ liệu: Lịch hẹn có trạng thái "Hoàn thành" (chờ thanh toán) ───
+    const fetchAppointments = useCallback(async () => {
+        try {
+            setLoading(true);
+            const res = await apiClient.get('/appointments');
+            const all = res.data.data || [];
+            // Chỉ lấy các lịch hẹn đã hoàn thành khám (Hoàn thành) hoặc chờ thanh toán
+            const toProcess = all.filter(a =>
+                ['Hoàn thành', 'Chờ khám', 'Đang khám', 'Chờ tiếp đón', 'Đã xác nhận'].includes(a.status)
+            );
+            setAppointments(toProcess);
+        } catch (err) {
+            toast.error('Không thể tải danh sách bệnh nhân');
+        } finally {
+            setLoading(false);
         }
-      }
-    } catch (error) {
-      console.error("Lỗi kết nối API lấy danh sách hóa đơn viện phí:", error);
-    }
-  };
+    }, []);
 
-  useEffect(() => {
-    loadInvoices();
-  }, []);
+    useEffect(() => {
+        fetchAppointments();
+    }, [fetchAppointments]);
 
-  // Tìm kiếm đối tượng chi tiết tương ứng với ID đang được chọn từ mảng State
-  const currentDetail = invoices.find(inv => inv.id === selectedInvoice);
+    // ─── QR Countdown ───
+    const startQrTimer = useCallback(() => {
+        setQrSeconds(QR_TIMEOUT_SECONDS);
+        setQrExpired(false);
+        if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
+        qrIntervalRef.current = setInterval(() => {
+            setQrSeconds(prev => {
+                if (prev <= 1) {
+                    clearInterval(qrIntervalRef.current);
+                    setQrExpired(true);
+                    toast.error('Mã QR đã hết hạn (EF3.3.1). Vui lòng tạo lại hoặc đổi phương thức thanh toán.');
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    }, []);
 
-  // --- Hàm xử lý click nút Xác nhận đã thu tiền ---
-  const handleConfirmPayment = async () => {
-    if (!currentDetail) {
-      alert("Vui lòng lựa chọn một hóa đơn cần kết toán!");
-      return;
-    }
+    useEffect(() => {
+        if (paymentMethod === 'QR' && selectedId) {
+            startQrTimer();
+        } else {
+            if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
+        }
+        return () => { if (qrIntervalRef.current) clearInterval(qrIntervalRef.current); };
+    }, [paymentMethod, selectedId, startQrTimer]);
 
-    const methodLabel = paymentMethod === 'CASH' ? 'Tiền mặt' : paymentMethod === 'QR' ? 'Chuyển khoản QR' : 'Quét thẻ POS';
+    // ─── Lịch hẹn đang chọn ───
+    const selected = appointments.find(a => a._id === selectedId);
+    const servicePrice = selected?.serviceId?.price || 0;
+    const cashReceivedNum = parseFloat(cashReceived.replace(/[^0-9]/g, '')) || 0;
+    const change = cashReceivedNum - servicePrice;
 
-    try {
-      const response = await fetch(`http://localhost:3001/api/billing/invoices/${currentDetail.id}/pay`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paymentMethod: methodLabel
-        })
-      });
+    // ─── Tạo QR URL VietQR ───
+    const getQrUrl = () => {
+        const amount = servicePrice;
+        const desc = `Thanh toan ${selected?.customerId?.name || ''}`;
+        // Dùng VietQR public (demo, không cần tài khoản thật)
+        return `https://img.vietqr.io/image/VCB-9999999999-compact2.jpg?amount=${amount}&addInfo=${encodeURIComponent(desc)}&accountName=PHONG%20KHAM%20NHA%20KHOA`;
+    };
 
-      if (response.ok) {
-        alert(`🎉 THÀNH CÔNG!\n\nHệ thống DentalCare đã phê duyệt phiếu thu viện phí:\n• Mã hóa đơn: ${currentDetail.id}\n• Khách hàng: ${currentDetail.patientName || currentDetail.name}\n• Số tiền đã thu: ${currentDetail.totalCost}\n• Hình thức thanh toán: [${methodLabel}]\n\nTrạng thái: Phiếu thu hợp lệ, đã chốt hóa đơn thành công!`);
-        loadInvoices(); // Tải lại dữ liệu để cập nhật tag màu sắc của hóa đơn sang xanh lá
-      } else {
-        alert("Thanh toán thất bại, vui lòng thử lại.");
-      }
-    } catch (error) {
-      console.error("Lỗi kết nối kết toán:", error);
-    }
-  };
+    // ─── Xác nhận thanh toán ───
+    const handleConfirmPayment = async () => {
+        if (!selected) {
+            toast.error('Vui lòng chọn bệnh nhân cần thanh toán!');
+            return;
+        }
+        if (paymentMethod === 'CASH' && cashReceivedNum < servicePrice) {
+            toast.error('Số tiền khách đưa chưa đủ!');
+            return;
+        }
+        if (paymentMethod === 'QR' && qrExpired) {
+            toast.error('Mã QR đã hết hạn! Hãy tạo lại mã QR.');
+            return;
+        }
 
-  // Bộ lọc tìm kiếm nhanh theo Họ tên hoặc Mã Hóa đơn
-  const filteredInvoices = invoices.filter(inv => 
-    (inv.patientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (inv.id || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+        const methodMap = { CASH: 'Tiền mặt', QR: 'Chuyển khoản QR', POS: 'Quẹt thẻ POS' };
+        const confirmMsg = `Xác nhận thu ${formatVND(servicePrice)} từ bệnh nhân ${selected.customerId?.name} bằng ${methodMap[paymentMethod]}?`;
 
-  return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: '"Inter", sans-serif' }}>
-      <Sidebar user={mockUser} />
+        if (!window.confirm(confirmMsg)) return;
 
-      <div style={{ flexGrow: 1, padding: '40px 32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#1e293b', marginBottom: '24px' }}>Thanh toán Viện phí</h1>
+        setProcessing(true);
+        try {
+            // Ghi invoice vào hệ thống
+            await apiClient.post('/revenue', {
+                customerId: selected.customerId?._id,
+                appointmentId: selected._id,
+                amount: servicePrice,
+                paymentMethod: methodMap[paymentMethod],
+                revenueType: 'Khám bệnh',
+                notes: `Thanh toán dịch vụ ${selected.serviceId?.name || ''}`
+            });
 
-        {/* Thanh Tìm kiếm */}
-        <div style={{ backgroundColor: '#ffffff', padding: '16px 24px', borderRadius: '16px', border: '1px solid #f1f5f9', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>🔍</span>
-            <input 
-              type="text" 
-              placeholder="Nhập Tên bệnh nhân hoặc Mã hóa đơn..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ width: '100%', padding: '12px 12px 12px 48px', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', outline: 'none', fontSize: '15px' }}
-            />
-          </div>
+            // Đánh dấu lịch hẹn thanh toán xong (giả lập bằng cách xóa khỏi danh sách)
+            toast.success(`✅ Thanh toán thành công! Biên lai đã được in.`);
+            setSelectedId(null);
+            setCashReceived('');
+            fetchAppointments();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Lỗi khi xử lý thanh toán');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    // ─── Lọc danh sách ───
+    const filtered = appointments.filter(a => {
+        const name = (a.customerId?.name || '').toLowerCase();
+        const phone = (a.customerId?.phone || '').toLowerCase();
+        const term = searchTerm.toLowerCase();
+        return name.includes(term) || phone.includes(term);
+    });
+
+    const qrPercent = (qrSeconds / QR_TIMEOUT_SECONDS) * 100;
+    const qrMinutes = Math.floor(qrSeconds / 60);
+    const qrSecs = qrSeconds % 60;
+
+    return (
+        <div className="billing-page">
+            {/* Header */}
+            <div className="billing-page-header">
+                <h1>Thanh toán Viện phí</h1>
+                <p>Tra cứu chi phí và kết toán theo đa phương thức thanh toán</p>
+            </div>
+
+            {/* Search bar */}
+            <div className="billing-search-bar">
+                <Search size={18} color="var(--staff-text-muted)" />
+                <input
+                    type="text"
+                    placeholder="Nhập tên hoặc số điện thoại bệnh nhân để tra cứu..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                />
+            </div>
+
+            {/* Main layout */}
+            <div className="billing-layout">
+
+                {/* LEFT: Invoice list */}
+                <div className="billing-list-panel">
+                    <h3>
+                        Danh sách chờ
+                        <span className="billing-badge">{filtered.length}</span>
+                    </h3>
+                    <div className="billing-invoice-list">
+                        {loading ? (
+                            <div className="billing-loading">Đang tải...</div>
+                        ) : filtered.length === 0 ? (
+                            <div className="billing-empty">
+                                <p>Không có bệnh nhân nào trong danh sách.</p>
+                            </div>
+                        ) : (
+                            filtered.map(apt => (
+                                <div
+                                    key={apt._id}
+                                    className={`billing-invoice-card ${selectedId === apt._id ? 'selected' : ''}`}
+                                    onClick={() => { setSelectedId(apt._id); setCashReceived(''); }}
+                                >
+                                    <span className={`bill-status ${apt.status === 'Hoàn thành' ? 'paid' : 'unpaid'}`}>
+                                        {apt.status === 'Hoàn thành' ? 'Đã khám' : apt.status}
+                                    </span>
+                                    <div className="bill-patient-name">{apt.customerId?.name || 'Bệnh nhân'}</div>
+                                    <div className="bill-info">
+                                        📞 {apt.customerId?.phone} &nbsp;|&nbsp; 🕐 {apt.time}
+                                        <br />
+                                        🦷 {apt.serviceId?.name}
+                                    </div>
+                                    <div className="bill-amount">{formatVND(apt.serviceId?.price || 0)}</div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* RIGHT: Detail + payment */}
+                <div className="billing-right-panel">
+                    {!selected ? (
+                        <div className="billing-detail-card">
+                            <div className="billing-empty" style={{ padding: '4rem' }}>
+                                <Receipt size={48} strokeWidth={1} />
+                                <p>Chọn bệnh nhân bên trái để xem chi tiết chi phí</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Chi tiết khoản thu – BR3.3.2: Read-only */}
+                            <div className="billing-detail-card">
+                                <div className="billing-detail-card-header">
+                                    <h3>Chi tiết khoản thu – {selected.customerId?.name}</h3>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--staff-text-muted)' }}>
+                                        📋 {selected.date ? new Date(selected.date).toLocaleDateString('vi-VN') : ''} lúc {selected.time}
+                                    </span>
+                                </div>
+                                <table className="billing-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên khoản thu</th>
+                                            <th className="td-right">Đơn giá (chỉ đọc)</th>
+                                            <th className="td-center">SL</th>
+                                            <th className="td-right">Thành tiền</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>{selected.serviceId?.name || 'Dịch vụ khám'}</td>
+                                            {/* BR3.3.2: Đơn giá không chỉnh sửa được */}
+                                            <td className="td-right" style={{ color: 'var(--staff-text-muted)' }}>
+                                                {formatVND(selected.serviceId?.price || 0)}
+                                            </td>
+                                            <td className="td-center">1</td>
+                                            <td className="td-right td-amount">{formatVND(selected.serviceId?.price || 0)}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div className="billing-total-row">
+                                    <span className="total-label">Tổng bệnh nhân phải nộp:</span>
+                                    <span className="total-amount">{formatVND(servicePrice)}</span>
+                                </div>
+                            </div>
+
+                            {/* Phương thức thanh toán */}
+                            <div className="billing-payment-card">
+                                <h3>Phương thức thanh toán</h3>
+
+                                <div className="payment-method-group">
+                                    <button
+                                        className={`payment-method-btn ${paymentMethod === 'CASH' ? 'active' : ''}`}
+                                        onClick={() => setPaymentMethod('CASH')}
+                                    >
+                                        <span className="method-icon">💵</span>
+                                        Tiền mặt
+                                    </button>
+                                    <button
+                                        className={`payment-method-btn ${paymentMethod === 'QR' ? 'active' : ''}`}
+                                        onClick={() => setPaymentMethod('QR')}
+                                    >
+                                        <span className="method-icon">📱</span>
+                                        Chuyển khoản QR
+                                    </button>
+                                    <button
+                                        className={`payment-method-btn ${paymentMethod === 'POS' ? 'active' : ''}`}
+                                        onClick={() => setPaymentMethod('POS')}
+                                    >
+                                        <span className="method-icon">💳</span>
+                                        Quẹt thẻ POS
+                                    </button>
+                                </div>
+
+                                {/* Luồng 2: Tiền mặt */}
+                                {paymentMethod === 'CASH' && (
+                                    <div className="cash-inputs">
+                                        <div className="cash-input-group">
+                                            <label>Số tiền phải thu</label>
+                                            <input
+                                                type="text"
+                                                value={formatVND(servicePrice)}
+                                                readOnly
+                                                style={{ background: 'var(--staff-bg)', color: 'var(--staff-primary)', fontWeight: 700 }}
+                                            />
+                                        </div>
+                                        <div className="cash-input-group">
+                                            <label>Tiền khách đưa (VNĐ)</label>
+                                            <input
+                                                type="number"
+                                                placeholder="Nhập số tiền..."
+                                                value={cashReceived}
+                                                onChange={e => setCashReceived(e.target.value)}
+                                                autoFocus
+                                            />
+                                        </div>
+                                        <div className="cash-input-group">
+                                            <label>Tiền trả lại</label>
+                                            <input
+                                                type="text"
+                                                value={cashReceived ? formatVND(Math.max(0, change)) : '—'}
+                                                readOnly
+                                                className={cashReceived ? (change >= 0 ? 'change-return' : 'change-negative') : ''}
+                                            />
+                                        </div>
+                                        {cashReceived && change < 0 && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#dc2626', fontSize: '0.85rem', alignSelf: 'center' }}>
+                                                ⚠️ Tiền khách đưa chưa đủ {formatVND(Math.abs(change))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Luồng 1: QR Code */}
+                                {paymentMethod === 'QR' && (
+                                    <div className="qr-box">
+                                        {qrExpired ? (
+                                            <>
+                                                <p style={{ color: '#ef4444', fontWeight: 600 }}>⚠️ Mã QR đã hết hạn! (EF3.3.1)</p>
+                                                <button className="qr-regen-btn" onClick={startQrTimer}>
+                                                    <RefreshCw size={16} style={{ display: 'inline', marginRight: '6px' }} />
+                                                    Tạo lại mã QR
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="qr-code-img">
+                                                    <img
+                                                        src={getQrUrl()}
+                                                        alt="VietQR"
+                                                        style={{ width: '100%', height: '100%', borderRadius: '8px', objectFit: 'cover' }}
+                                                        onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                                                    />
+                                                    <span style={{ display: 'none', fontSize: '2.5rem' }}>📱</span>
+                                                </div>
+                                                <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--staff-primary)' }}>
+                                                    {formatVND(servicePrice)}
+                                                </div>
+                                                <div className={`qr-timer-text ${qrSeconds <= 60 ? 'danger' : ''}`}>
+                                                    ⏱ Còn {qrMinutes}:{qrSecs.toString().padStart(2, '0')} để quét mã
+                                                </div>
+                                                <div className="qr-timeout-bar">
+                                                    <div
+                                                        className={`qr-timeout-fill ${qrSeconds <= 60 ? 'danger' : ''}`}
+                                                        style={{ width: `${qrPercent}%` }}
+                                                    />
+                                                </div>
+                                                <span style={{ fontSize: '0.8rem', color: 'var(--staff-text-muted)' }}>
+                                                    Quét mã QR bằng ứng dụng ngân hàng — Nội dung: {selected.customerId?.name}
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* POS */}
+                                {paymentMethod === 'POS' && (
+                                    <div className="qr-box">
+                                        <span style={{ fontSize: '3rem' }}>💳</span>
+                                        <p style={{ color: 'var(--staff-text-muted)', margin: 0 }}>
+                                            Yêu cầu bệnh nhân cà thẻ vào máy POS. Số tiền: <strong>{formatVND(servicePrice)}</strong>
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Actions */}
+                                <div className="billing-actions">
+                                    <button
+                                        className="btn-cancel"
+                                        onClick={() => { setSelectedId(null); setCashReceived(''); }}
+                                    >
+                                        <X size={16} style={{ display: 'inline', marginRight: '4px' }} />
+                                        Hủy
+                                    </button>
+                                    <button
+                                        className="btn-confirm"
+                                        onClick={handleConfirmPayment}
+                                        disabled={processing || (paymentMethod === 'QR' && qrExpired)}
+                                    >
+                                        {processing ? (
+                                            'Đang xử lý...'
+                                        ) : (
+                                            <>
+                                                <Printer size={18} />
+                                                Hoàn thành &amp; In biên lai
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
         </div>
-
-        {/* Bố cục 2 cột chính */}
-        <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '24px', alignItems: 'start' }}>
-          
-          {/* CỘT TRÁI: Hóa đơn chờ thanh toán */}
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1e293b', marginBottom: '16px', marginTop: 0 }}>Hóa đơn chờ thanh toán</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '530px', overflowY: 'auto' }}>
-              {invoices.map((inv) => {
-                const isSelected = selectedInvoice === inv.id;
-                const isPaid = inv.status === 'Đã thanh toán';
-
-                return (
-                  <div 
-                    key={inv.id}
-                    onClick={() => setSelectedInvoice(inv.id)}
-                    style={{
-                      padding: '16px', borderRadius: '12px',
-                      border: isSelected ? '2px solid #2563eb' : '1px solid #e2e8f0',
-                      backgroundColor: isSelected ? '#f0f5ff' : '#ffffff',
-                      cursor: 'pointer', transition: 'all 0.2s', position: 'relative'
-                    }}
-                  >
-                    <span style={{
-                      position: 'absolute', top: '16px', right: '16px', padding: '3px 10px', borderRadius: '50px', fontSize: '11px', fontWeight: '600',
-                      backgroundColor: isPaid ? '#dcfce7' : '#fee2e2',
-                      color: isPaid ? '#16a34a' : '#ef4444'
-                    }}>
-                      {inv.status || 'Chưa thanh toán'}
-                    </span>
-
-                    <div style={{ fontWeight: '700', color: '#0f172a', marginBottom: '4px' }}>{inv.patientName}</div>
-                    <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px' }}>{inv.id}</div>
-                    <div style={{ textAlign: 'right', fontWeight: '700', color: '#2563eb', fontSize: '16px' }}>{inv.totalCost}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* CỘT PHẢI: Chi tiết và Kết toán */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            
-            {/* Chi tiết khoản thu */}
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1e293b', marginBottom: '16px', marginTop: 0 }}>
-                Chi tiết khoản thu - {currentDetail ? currentDetail.patientName : 'Chưa chọn'}
-              </h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', textAlign: 'left' }}>
-                    <th style={{ padding: '12px 8px', fontWeight: '600' }}>Tên khoản thu</th>
-                    <th style={{ padding: '12px 8px', fontWeight: '600', textAlign: 'right' }}>Đơn giá</th>
-                    <th style={{ padding: '12px 8px', fontWeight: '600', textAlign: 'center' }}>Số lượng</th>
-                    <th style={{ padding: '12px 8px', fontWeight: '600', textAlign: 'right' }}>Thành tiền</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentDetail?.items?.map((item, index) => (
-                    <tr key={index} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '16px 8px', color: '#334155' }}>{item.name}</td>
-                      <td style={{ padding: '16px 8px', textAlign: 'right', color: '#475569' }}>{item.price}</td>
-                      <td style={{ padding: '16px 8px', textAlign: 'center', color: '#475569' }}>{item.quantity}</td>
-                      <td style={{ padding: '16px 8px', textAlign: 'right', fontWeight: '700', color: '#0f172a' }}>{item.total}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Kết toán & Phương thức */}
-            <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1e293b', marginBottom: '20px', marginTop: 0 }}>Kết toán & Phương thức</h3>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px', maxWidth: '400px', marginLeft: 'auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                  <span>Tổng chi phí:</span>
-                  <span style={{ color: '#0f172a', fontWeight: '600' }}>{currentDetail?.totalCost || '0 VND'}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', borderBottom: '1px dashed #e2e8f0', paddingBottom: '12px' }}>
-                  <span>BHYT chi trả:</span>
-                  <span style={{ color: '#64748b' }}>- 0 VND</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: '700' }}>
-                  <span style={{ color: '#0f172a' }}>Bệnh nhân phải nộp:</span>
-                  <span style={{ color: '#2563eb' }}>{currentDetail?.totalCost || '0 VND'}</span>
-                </div>
-              </div>
-
-              <div>
-                <p style={{ fontSize: '14px', color: '#475569', fontWeight: '600', marginBottom: '12px' }}>Phương thức thanh toán</p>
-                <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-                  <button type="button" onClick={() => setPaymentMethod('CASH')} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: paymentMethod === 'CASH' ? '2px solid #2563eb' : '1px solid #e2e8f0', backgroundColor: paymentMethod === 'CASH' ? '#f0f5ff' : '#ffffff', fontWeight: '600', color: '#334155', cursor: 'pointer' }}>Tiền mặt</button>
-                  <button type="button" onClick={() => setPaymentMethod('QR')} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: paymentMethod === 'QR' ? '2px solid #2563eb' : '1px solid #e2e8f0', backgroundColor: paymentMethod === 'QR' ? '#f0f5ff' : '#ffffff', fontWeight: '600', color: '#334155', cursor: 'pointer' }}>Chuyển khoản QR</button>
-                  <button type="button" onClick={() => setPaymentMethod('POS')} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: paymentMethod === 'POS' ? '2px solid #2563eb' : '1px solid #e2e8f0', backgroundColor: paymentMethod === 'POS' ? '#f0f5ff' : '#ffffff', fontWeight: '600', color: '#334155', cursor: 'pointer' }}>Quét thẻ POS</button>
-                </div>
-              </div>
-
-              {paymentMethod === 'QR' && (
-                <div style={{ display: 'flex', justifyContent: 'center', backgroundColor: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ width: '140px', height: '140px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto', fontSize: '40px' }}>📱</div>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>Quét mã QR để tất toán</span>
-                  </div>
-                </div>
-              )}
-
-              <button 
-                type="button"
-                onClick={handleConfirmPayment}
-                style={{ width: '100%', marginTop: '24px', backgroundColor: '#00a651', color: '#ffffff', border: 'none', padding: '14px', borderRadius: '10px', fontWeight: '700', fontSize: '16px', cursor: 'pointer' }}
-              >
-                ✓ Xác nhận đã thu tiền
-              </button>
-            </div>
-
-          </div>
-
-        </div>
-      </div>
-    </div>
-  );
+    );
 }

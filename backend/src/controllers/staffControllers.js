@@ -45,9 +45,9 @@ const getAllStaff = async (req, res) => {
     try {
         const { search: keyword, role, status, sort } = req.query;
 
-        // 1. TẠO BỘ LỌC GỐC: Loại bỏ Khách hàng
         let query = {
-            role: { $in: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, 'Bác sĩ', 'Lễ tân', 'admin', 'doctor', 'receptionist'] }
+            role: { $in: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST, 'Bác sĩ', 'Lễ tân', 'admin', 'doctor', 'receptionist'] },
+            trang_thai: { $ne: 'Ngừng hoạt động' }
         };
 
         // 2. Xử lý Thanh tìm kiếm
@@ -91,20 +91,33 @@ const getAllStaff = async (req, res) => {
         // 5. CẤU HÌNH SẮP XẾP (SORTING)
         let sortOptions = { createdAt: -1 }; // Mặc định: Mới nhất lên đầu
 
-        if (sort === 'Cũ nhất') {
+        if (sort === 'createdAt:asc' || sort === 'Cũ nhất') {
             sortOptions = { createdAt: 1 };
-        } else if (sort === 'Tên: A-Z' || sort === 'Tên A-Z') {
+        } else if (sort === 'fullName:asc' || sort === 'Tên: A-Z' || sort === 'Tên A-Z') {
             sortOptions = { name: 1 }; // 1 là A->Z
-        } else if (sort === 'Tên: Z-A' || sort === 'Tên Z-A') {
+        } else if (sort === 'fullName:desc' || sort === 'Tên: Z-A' || sort === 'Tên Z-A') {
             sortOptions = { name: -1 }; // -1 là Z->A
+        } else if (sort === 'role:asc') {
+            sortOptions = { role: 1, name: 1 };
         }
 
         // 6. Truy vấn và Sắp xếp
-        const staffs = await User.find(query).sort(sortOptions);
+        const pageNum = parseInt(req.query.page) || 1;
+        const limitNum = parseInt(req.query.limit) || 20;
+        const skip = (pageNum - 1) * limitNum;
+
+        const staffs = await User.find(query)
+            .sort(sortOptions)
+            .skip(skip)
+            .limit(limitNum);
+
+        const total = await User.countDocuments(query);
 
         return res.status(200).json({
             message: 'Lấy danh sách thành công',
-            total: staffs.length,
+            total: total,
+            page: pageNum,
+            limit: limitNum,
             data: staffs
         });
     } catch (error) {
@@ -181,7 +194,7 @@ const createStaff = async (req, res) => {
 
         // 5. Gửi email với giao diện cập nhật
         if (data.email) {
-            const inviteLink = `http://localhost:5174/activate?token=${resetToken}&email=${data.email_noi_bo}`;
+            const inviteLink = `http://localhost:5173/activate`;
             const emailHtml = `
                 <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
                     <h2>Chào mừng bạn gia nhập Hệ thống Nha Khoa DentalCare!</h2>
@@ -194,32 +207,42 @@ const createStaff = async (req, res) => {
                             <li><strong>Email đăng nhập:</strong> <span style="color: #007BFF;">${data.email_noi_bo}</span></li>
                         </ul>
                     </div>
-                    <p>Để bắt đầu sử dụng phần mềm, vui lòng click vào nút bên dưới để thiết lập mật khẩu cá nhân và kích hoạt tài khoản (Link có hiệu lực trong 24 giờ):</p>
+                    <p>Mã xác nhận chính chủ (Token) của bạn là:</p>
+                    <div style="background-color: #e8f4fd; padding: 10px; border: 1px dashed #007BFF; text-align: center; font-size: 18px; font-weight: bold; letter-spacing: 2px; margin: 15px 0;">
+                        ${resetToken}
+                    </div>
+                    <p>Vui lòng sao chép đoạn mã Token trên, sau đó click vào nút bên dưới để dán vào biểu mẫu và thiết lập mật khẩu cá nhân (Mã có hiệu lực trong 24 giờ):</p>
                     <a href="${inviteLink}" style="display: inline-block; padding: 12px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold;">
-                        KÍCH HOẠT TÀI KHOẢN
+                        TRANG KÍCH HOẠT TÀI KHOẢN
                     </a>
                     <hr style="margin-top: 30px; border: 0; border-top: 1px solid #eee;">
                     <p style="font-size: 12px; color: #888;">Đây là email tự động từ hệ thống DentalCare, vui lòng không trả lời thư này.</p>
                 </div>
             `;
 
-            await sendEmail({
-                email: data.email,
-                subject: `[DentalCare] Thông tin tài khoản nội bộ - ${data.ma_nhan_vien}`,
-                html: emailHtml
-            });
-            console.log(`✉️ ĐÃ GỬI EMAIL THÀNH CÔNG ĐẾN: ${data.email}`);
-            console.log("📦 GÓI HÀNG FRONTEND GỬI LÊN LÀ:", data);
+            try {
+                await sendEmail({
+                    email: data.email,
+                    subject: `[DentalCare] Thông tin tài khoản nội bộ - ${data.ma_nhan_vien}`,
+                    html: emailHtml
+                });
+                console.log(`✉️ ĐÃ GỬI EMAIL THÀNH CÔNG ĐẾN: ${data.email}`);
+            } catch (emailError) {
+                console.error(`⚠️ LỖI GỬI EMAIL: ${emailError.message}`);
+                // Vẫn tiếp tục trả về 201 vì nhân viên đã được lưu thành công
+            }
         }
 
         return res.status(201).json({
-            message: 'Thêm mới nhân sự thành công. Đã cấp phát email nội bộ và gửi thư kích hoạt.',
+            message: 'Thêm mới nhân sự thành công. (Lưu ý: Nếu chưa cấu hình SMTP, email kích hoạt sẽ không được gửi đi nhưng tài khoản đã được tạo).',
             data: newStaff
         });
     } catch (error) {
         if (error.code === 11000) {
             return res.status(409).json({ message: 'Thông tin (Email cá nhân/SĐT/CCCD) đã tồn tại trên hệ thống' });
         }
+        const fs = require('fs');
+        fs.appendFileSync('error_debug.log', JSON.stringify({ message: error.message, stack: error.stack, errors: error.errors }) + '\n');
         return res.status(400).json({ message: 'Lỗi khi tạo nhân viên', error: error.message });
     }
 };
@@ -344,23 +367,33 @@ const resendEmail = async (req, res) => {
         user.activationExpires = Date.now() + 24 * 60 * 60 * 1000;
         await user.save();
 
-        const inviteLink = `http://localhost:5174/activate?token=${resetToken}&email=${user.email_noi_bo}`;
+        const inviteLink = `http://localhost:5173/activate`;
         const emailHtml = `
             <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
                 <h2>Gửi lại liên kết kích hoạt</h2>
                 <p>Xin chào <strong>${user.name}</strong>,</p>
-                <p>Quản trị viên đã yêu cầu gửi lại liên kết kích hoạt cho bạn.</p>
+                <p>Quản trị viên đã yêu cầu gửi lại thông tin kích hoạt cho bạn.</p>
+                <p>Mã xác nhận chính chủ (Token) của bạn là:</p>
+                <div style="background-color: #e8f4fd; padding: 10px; border: 1px dashed #007BFF; text-align: center; font-size: 18px; font-weight: bold; letter-spacing: 2px; margin: 15px 0;">
+                    ${resetToken}
+                </div>
+                <p>Vui lòng sao chép đoạn mã Token trên, sau đó click vào nút bên dưới để dán vào biểu mẫu và kích hoạt tài khoản:</p>
                 <a href="${inviteLink}" style="display: inline-block; padding: 12px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    KÍCH HOẠT TÀI KHOẢN
+                    TRANG KÍCH HOẠT TÀI KHOẢN
                 </a>
             </div>
         `;
 
-        await sendEmail({
-            email: user.email,
-            subject: `[DentalCare] Gửi lại thư kích hoạt - ${user.ma_nhan_vien}`,
-            html: emailHtml
-        });
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: `[DentalCare] Gửi lại thư kích hoạt - ${user.ma_nhan_vien}`,
+                html: emailHtml
+            });
+        } catch (emailError) {
+            console.error(`⚠️ LỖI GỬI EMAIL: ${emailError.message}`);
+            return res.status(200).json({ message: 'Tài khoản đã được làm mới mã, nhưng hệ thống gửi email đang lỗi (chưa cấu hình SMTP).' });
+        }
 
         return res.status(200).json({ message: 'Đã gửi lại email kích hoạt thành công.' });
     } catch (error) {
@@ -378,28 +411,38 @@ const resetPassword = async (req, res) => {
         const resetToken = crypto.randomBytes(32).toString('hex');
         user.activationToken = resetToken;
         user.activationExpires = Date.now() + 24 * 60 * 60 * 1000;
-        user.trang_thai = 'Chờ kích hoạt'; // Đưa về trạng thái chờ kích hoạt để bắt buộc đổi mật khẩu
+        user.trang_thai = 'Đang hoạt động'; // Giữ trạng thái đang hoạt động
         await user.save();
 
-        const inviteLink = `http://localhost:5174/activate?token=${resetToken}&email=${user.email_noi_bo}`;
+        const inviteLink = `http://localhost:5173/activate`;
         const emailHtml = `
             <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
                 <h2>Khôi phục mật khẩu</h2>
                 <p>Xin chào <strong>${user.name}</strong>,</p>
                 <p>Quản trị viên đã yêu cầu khôi phục mật khẩu cho tài khoản của bạn.</p>
+                <p>Mã xác nhận chính chủ (Token) mới của bạn là:</p>
+                <div style="background-color: #e8f4fd; padding: 10px; border: 1px dashed #007BFF; text-align: center; font-size: 18px; font-weight: bold; letter-spacing: 2px; margin: 15px 0;">
+                    ${resetToken}
+                </div>
+                <p>Vui lòng sao chép đoạn mã Token trên, sau đó click vào nút bên dưới để dán vào biểu mẫu và thiết lập lại mật khẩu:</p>
                 <a href="${inviteLink}" style="display: inline-block; padding: 12px 20px; background-color: #007BFF; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    ĐẶT LẠI MẬT KHẨU
+                    TRANG ĐẶT MẬT KHẨU
                 </a>
             </div>
         `;
 
-        await sendEmail({
-            email: user.email,
-            subject: `[DentalCare] Yêu cầu khôi phục mật khẩu - ${user.ma_nhan_vien}`,
-            html: emailHtml
-        });
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: `[DentalCare] Yêu cầu khôi phục mật khẩu - ${user.ma_nhan_vien}`,
+                html: emailHtml
+            });
+        } catch (emailError) {
+            console.error(`⚠️ LỖI GỬI EMAIL: ${emailError.message}`);
+            return res.status(200).json({ message: 'Đã tạo mã khôi phục mới, nhưng hệ thống gửi email đang lỗi (chưa cấu hình SMTP).' });
+        }
 
-        return res.status(200).json({ message: 'Đã gửi email khôi phục mật khẩu thành công. Tài khoản đã chuyển về trạng thái Chờ kích hoạt.' });
+        return res.status(200).json({ message: 'Đã gửi email khôi phục mật khẩu thành công.' });
     } catch (error) {
         return res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
@@ -460,12 +503,8 @@ const toggleLockStaff = async (req, res) => {
         const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: 'Không tìm thấy nhân sự' });
 
-        if (user.trang_thai === 'Đang hoạt động') {
-            user.trang_thai = 'Ngừng hoạt động'; // Bị đình chỉ
-        } else {
-            user.trang_thai = 'Đang hoạt động'; // Khôi phục
-        }
-        await user.save();
+        const newStatus = user.trang_thai === 'Đang hoạt động' ? 'Đình chỉ' : 'Đang hoạt động';
+        await User.updateOne({ _id: id }, { $set: { trang_thai: newStatus } });
         return res.status(200).json({ message: 'Đã cập nhật trạng thái tài khoản' });
     } catch (error) {
         return res.status(500).json({ message: 'Lỗi server', error: error.message });
@@ -479,10 +518,42 @@ const deleteStaff = async (req, res) => {
         const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: 'Không tìm thấy nhân sự' });
         
-        user.trang_thai = 'Ngừng hoạt động'; // Soft delete
-        await user.save();
+        await User.updateOne({ _id: id }, { $set: { trang_thai: 'Ngừng hoạt động' } });
         return res.status(200).json({ message: 'Đã xóa tài khoản thành công' });
     } catch (error) {
+        return res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+// --- 13. CẬP NHẬT THÔNG TIN NHÂN VIÊN ---
+const updateStaff = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+        
+        // Tránh cập nhật các trường nhạy cảm
+        delete updateData.ma_nhan_vien;
+        delete updateData.password;
+        delete updateData.role; // Vai trò là discriminator key, không thay đổi trực tiếp được
+
+        const updatedUser = await User.findByIdAndUpdate(
+            id,
+            { $set: updateData },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'Không tìm thấy nhân sự' });
+        }
+
+        return res.status(200).json({ 
+            message: 'Cập nhật thông tin nhân viên thành công',
+            data: updatedUser 
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({ message: 'Thông tin (Email cá nhân/SĐT/CCCD) đã tồn tại trên hệ thống' });
+        }
         return res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 };
@@ -498,5 +569,6 @@ module.exports = {
     checkAppointments,
     reassignAndSuspend,
     toggleLockStaff,
-    deleteStaff
+    deleteStaff,
+    updateStaff
 };

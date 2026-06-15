@@ -11,64 +11,113 @@ const getAllHolidays = async (req, res) => {
     }
 };
 
-// 2. Tạo lịch nghỉ lễ mới
-const createHoliday = async (req, res) => {
+// 1.5. API Check xung đột trước khi lưu (EF2.1.1, EF2.1.4)
+const checkHolidayConflicts = async (req, res) => {
     try {
-        const { name, startDate, endDate, type, department, description } = req.body;
-
-        // EF2.1.3: Ngày bắt đầu không được là quá khứ
+        const { startDate, endDate, ignoreHolidayId } = req.body;
+        
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const start = new Date(startDate);
         start.setHours(0, 0, 0, 0);
-        if (start < today) {
-            return res.status(400).json({ message: 'Ngày bắt đầu lịch nghỉ không được nằm trong quá khứ.' });
-        }
-
-        // EF2.1.2: Ngày kết thúc phải sau ngày bắt đầu
         const end = new Date(endDate);
-        if (end < start) {
-            return res.status(400).json({ message: 'Thời gian kết thúc phải sau thời gian bắt đầu.' });
-        }
 
-        // EF2.1.4: Kiểm tra trùng lặp/liên tiếp với lịch nghỉ đã có
-        const overlap = await Holiday.findOne({
+        if (start < today) return res.status(400).json({ message: 'Ngày bắt đầu lịch nghỉ không được nằm trong quá khứ.' });
+        if (end < start) return res.status(400).json({ message: 'Thời gian kết thúc phải sau thời gian bắt đầu.' });
+
+        // Check overlap holiday
+        const overlapQuery = {
             $or: [
-                { startDate: { $lte: new Date(endDate) }, endDate: { $gte: new Date(startDate) } }
+                { startDate: { $lte: end }, endDate: { $gte: start } }
             ]
-        });
-        if (overlap) {
-            return res.status(409).json({
-                message: 'Khoảng thời gian này liên tiếp/trùng lặp với một lịch nghỉ sẵn có trong hệ thống. Bạn có muốn gộp thành một chu kỳ nghỉ liên tiếp không?',
-                conflictWith: overlap
-            });
+        };
+        if (ignoreHolidayId) {
+            overlapQuery._id = { $ne: ignoreHolidayId };
         }
+        
+        const overlapHoliday = await Holiday.findOne(overlapQuery);
 
-        const holiday = new Holiday({ name, startDate, endDate, type, department, description });
-        await holiday.save();
-
-        // EF2.1.1 & BR2.1.2: Kiểm tra lịch khám trùng ngày
+        // Check conflicting appointments
         const conflictingAppointments = await Appointment.find({
-            date: { $gte: new Date(startDate), $lte: new Date(endDate) },
-            status: { $in: ['pending', 'confirmed'] }
+            date: { $gte: start, $lte: end },
+            status: { $in: ['Scheduled', 'Confirmed', 'Rescheduled'] }
         });
 
-        if (conflictingAppointments.length > 0) {
-            // Tự động chuyển trạng thái sang "Chờ điều phối"
-            await Appointment.updateMany(
-                { _id: { $in: conflictingAppointments.map(a => a._id) } },
-                { $set: { status: 'pending', notes: 'Tự động chuyển - Ngày nghỉ lễ được thiết lập' } }
-            );
-            return res.status(201).json({
-                success: true,
-                message: 'Thiết lập thành công. Có ' + conflictingAppointments.length + ' lịch khám bị ảnh hưởng đã được chuyển sang Chờ điều phối.',
-                data: holiday,
-                affectedAppointments: conflictingAppointments.length,
-                hasConflict: true
+        res.status(200).json({
+            success: true,
+            overlapHoliday: overlapHoliday || null,
+            affectedAppointmentsCount: conflictingAppointments.length
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Lỗi hệ thống', error: err.message });
+    }
+};
+
+// 2. Tạo lịch nghỉ lễ mới
+const createHoliday = async (req, res) => {
+    try {
+        const { name, startDate, endDate, type, department, description, holidayAction, appointmentAction } = req.body;
+
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+
+        // EF2.1.4: Xử lý gộp lịch nghỉ
+        let holidayIdToReturn = null;
+        let holidayObj = null;
+
+        if (holidayAction === 'merge') {
+            const overlap = await Holiday.findOne({
+                $or: [
+                    { startDate: { $lte: end }, endDate: { $gte: start } }
+                ]
             });
+            if (overlap) {
+                // Extend dates
+                const newStart = start < new Date(overlap.startDate) ? start : new Date(overlap.startDate);
+                const newEnd = end > new Date(overlap.endDate) ? end : new Date(overlap.endDate);
+                
+                overlap.startDate = newStart;
+                overlap.endDate = newEnd;
+                // Merge name if needed, or keep latest
+                overlap.name = name; // Update with new name
+                overlap.type = type;
+                overlap.department = department;
+                overlap.description = description;
+                
+                await overlap.save();
+                holidayIdToReturn = overlap._id;
+                holidayObj = overlap;
+            }
+        } 
+        
+        if (!holidayObj) {
+            // Create new
+            const holiday = new Holiday({ name, startDate, endDate, type, department, description });
+            await holiday.save();
+            holidayIdToReturn = holiday._id;
+            holidayObj = holiday;
         }
 
-        res.status(201).json({ success: true, message: 'Thiết lập thành công', data: holiday });
+        // EF2.1.1 & BR2.1.2: Xử lý lịch khám
+        if (appointmentAction === 'cancel' || appointmentAction === 'reschedule') {
+            const conflictingAppointments = await Appointment.find({
+                date: { $gte: start, $lte: end },
+                status: { $in: ['Scheduled', 'Confirmed', 'Rescheduled'] }
+            });
+
+            if (conflictingAppointments.length > 0) {
+                const newStatus = appointmentAction === 'cancel' ? 'Cancelled' : 'Pending';
+                const notes = appointmentAction === 'cancel' ? 'Bị hủy do lịch nghỉ đột xuất' : 'Chờ dời lịch do lịch nghỉ đột xuất';
+                
+                await Appointment.updateMany(
+                    { _id: { $in: conflictingAppointments.map(a => a._id) } },
+                    { $set: { status: newStatus, notes: notes } }
+                );
+            }
+        }
+
+        res.status(201).json({ success: true, message: 'Thiết lập thành công', data: holidayObj });
     } catch (err) {
         res.status(500).json({ message: 'Lỗi hệ thống', error: err.message });
     }
@@ -109,4 +158,4 @@ const deleteHoliday = async (req, res) => {
     }
 };
 
-module.exports = { getAllHolidays, createHoliday, updateHoliday, deleteHoliday };
+module.exports = { getAllHolidays, checkHolidayConflicts, createHoliday, updateHoliday, deleteHoliday };

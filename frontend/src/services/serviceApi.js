@@ -9,7 +9,7 @@ export const serviceApi = {
   },
 
   getSuggestedCode: async (category) => {
-    const res = await axios.get(`${API_URL}/suggested-code?groupType=${encodeURIComponent(category)}`);
+    const res = await axios.get(`${API_URL}/suggest-code?category=${encodeURIComponent(category)}`);
     return res.data;
   },
 

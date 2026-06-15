@@ -11,7 +11,11 @@ import { ServicePricePage } from './pages/ServicePricePage/ServicePricePage';
 import { ScheduleLeavesPage } from './pages/ScheduleLeaves/ScheduleLeavesPage';
 import { ScheduleShiftsPage } from './pages/ScheduleShifts/ScheduleShiftsPage';
 import { SalaryConfigPage } from './pages/SalaryConfig/SalaryConfigPage';
+import { ShiftCoefficientPage } from './pages/SalaryConfig/ShiftCoefficientPage';
+import { PayslipPage } from './pages/SalaryConfig/PayslipPage';
 import { SalaryPayslipsPage } from './pages/SalaryPayslips/SalaryPayslipsPage';
+import { YearlySalaryReportPage } from './pages/SalaryConfig/YearlySalaryReportPage';
+import { SalaryFundReportPage } from './pages/SalaryConfig/SalaryFundReportPage';
 import { RevenueStatisticsPage } from './pages/RevenueStats/RevenueStatisticsPage';
 import { DoctorDashboardPage } from './pages/DoctorDashboardPage/DoctorDashboardPage';
 import { LoginPage } from './pages/Auth/LoginPage';
@@ -78,6 +82,7 @@ function App() {
           <Route path="/doctor/medical-record/:id" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.DOCTOR]}><MedicalRecordPage /></ProtectedRoute>} />
           <Route path="/doctor/income" element={<ProtectedRoute allowedRoles={[ROLES.DOCTOR, ROLES.ADMIN]}><IncomeReportPage /></ProtectedRoute>} />
           <Route path="/doctor/history" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.DOCTOR]}><PatientHistory /></ProtectedRoute>} />
+          <Route path="/doctor/yearly-report" element={<ProtectedRoute allowedRoles={[ROLES.DOCTOR, ROLES.ADMIN]}><YearlySalaryReportPage /></ProtectedRoute>} />
 
           {/* CÁC TRANG QUẢN LÝ */}
           <Route path="/staff" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]}><StaffManagementPage /></ProtectedRoute>} />
@@ -89,7 +94,11 @@ function App() {
           <Route path="/schedule/leaves" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST]}><ScheduleLeavesPage /></ProtectedRoute>} />
           <Route path="/schedule/shifts" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.DOCTOR, ROLES.RECEPTIONIST]}><ScheduleShiftsPage /></ProtectedRoute>} />
           <Route path="/salary/config" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]}><SalaryConfigPage /></ProtectedRoute>} />
+          <Route path="/salary/coefficients" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]}><ShiftCoefficientPage /></ProtectedRoute>} />
+          <Route path="/salary/payslip" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]}><PayslipPage /></ProtectedRoute>} />
           <Route path="/salary/payslips" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]}><SalaryPayslipsPage /></ProtectedRoute>} />
+          <Route path="/salary/yearly-report" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]}><YearlySalaryReportPage /></ProtectedRoute>} />
+          <Route path="/salary/fund-report" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]}><SalaryFundReportPage /></ProtectedRoute>} />
           <Route path="/revenue" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]}><RevenueStatisticsPage /></ProtectedRoute>} />
         </Route>
 

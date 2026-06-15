@@ -15,6 +15,7 @@ router.patch('/:id/reset-password', staffController.resetPassword);
 router.get('/:id/check-appointments', staffController.checkAppointments);
 router.post('/:id/reassign-suspend', staffController.reassignAndSuspend);
 router.patch('/:id/lock', staffController.toggleLockStaff);
+router.patch('/:id', staffController.updateStaff);
 router.delete('/:id', staffController.deleteStaff);
 
 module.exports = router;
